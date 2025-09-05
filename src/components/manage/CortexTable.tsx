@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Filter, Move, Plus, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,7 +47,20 @@ const CortexTable = ({
   const [newItemModalOpen, setNewItemModalOpen] = useState(false);
   const [previewDrawerOpen, setPreviewDrawerOpen] = useState(false);
   const [previewItem, setPreviewItem] = useState<CortexItem | null>(null);
-  const [cortexItems, setCortexItems] = useState<CortexItem[]>(initialCortexItems);
+  // Load items from localStorage or use initial data as fallback
+  const [cortexItems, setCortexItems] = useState<CortexItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('cortex-items');
+      return saved ? JSON.parse(saved) : initialCortexItems;
+    } catch {
+      return initialCortexItems;
+    }
+  });
+
+  // Save to localStorage whenever cortexItems changes
+  useEffect(() => {
+    localStorage.setItem('cortex-items', JSON.stringify(cortexItems));
+  }, [cortexItems]);
 
   // Use the filters hook
   const { 
