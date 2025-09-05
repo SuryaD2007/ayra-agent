@@ -21,7 +21,7 @@ export const HeroSection = ({
       <AnimatedTransition show={showTitle} animation="slide-up" duration={600}>
         {/* Title first */}
         <h1 className="text-4xl sm:text-5xl font-bold mb-6 bg-clip-text text-blue-600 md:text-7xl">
-          Your Personal AI Engine
+          Ayra - Your Personal AI Engine
         </h1>
         
         {/* Interactive text second */}

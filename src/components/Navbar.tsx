@@ -160,7 +160,7 @@ export const Navbar = () => {
             <NavItem
               to="#"
               icon={<Brain size={20} />}
-              label="Cortex"
+              label="Ayra"
               active={['what', 'why', 'how'].includes(active)}
               onClick={() => {}}
               hasSubmenu={true}
