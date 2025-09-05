@@ -69,7 +69,7 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated }: NewItemModalProps) 
   });
 
   // Dropzone for PDF uploads
-  const { getRootProps, getInputProps, isDragActive, acceptedFiles } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive, acceptedFiles, fileRejections } = useDropzone({
     accept: {
       'application/pdf': ['.pdf'],
     },
@@ -84,6 +84,16 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated }: NewItemModalProps) 
           title: file.name.replace('.pdf', ''),
         }));
         setErrors(prev => ({ ...prev, file: '' }));
+      }
+    },
+    onDropRejected: (rejections) => {
+      const rejection = rejections[0];
+      if (rejection.errors.some(e => e.code === 'file-too-large')) {
+        setErrors(prev => ({ ...prev, file: 'PDF file must be smaller than 25MB' }));
+      } else if (rejection.errors.some(e => e.code === 'file-invalid-type')) {
+        setErrors(prev => ({ ...prev, file: 'Only PDF files are allowed' }));
+      } else {
+        setErrors(prev => ({ ...prev, file: 'Invalid file' }));
       }
     },
   });

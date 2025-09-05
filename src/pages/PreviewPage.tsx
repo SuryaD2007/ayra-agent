@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Download, ChevronLeft, ChevronRight, ExternalLinkIcon, ArrowLeft } from 'lucide-react';
+import { Download, ChevronLeft, ChevronRight, ExternalLinkIcon, ArrowLeft, Upload, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CortexItem } from '@/components/manage/cortex-data';
+import { toast } from '@/hooks/use-toast';
 
 const PreviewPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -34,8 +36,30 @@ const PreviewPage = () => {
 
   const handleOpenInNewTab = () => {
     if (item?.dataUrl) {
-      window.open(item.dataUrl, '_blank');
+      const newWindow = window.open(item.dataUrl, '_blank');
+      if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
+        toast({
+          title: "Popup blocked",
+          description: "Please allow popups for this site to open PDFs in a new tab.",
+          variant: "destructive",
+        });
+      }
     }
+  };
+
+  const isPdfTooLarge = (dataUrl: string) => {
+    try {
+      // Rough estimation: base64 is ~33% larger than binary data
+      const sizeInBytes = (dataUrl.length * 3) / 4;
+      const sizeInMB = sizeInBytes / (1024 * 1024);
+      return sizeInMB > 25;
+    } catch {
+      return false;
+    }
+  };
+
+  const canShowPdfPreview = (item: CortexItem) => {
+    return item.dataUrl && !isPdfTooLarge(item.dataUrl);
   };
 
   const handleDownload = () => {
@@ -132,57 +156,84 @@ const PreviewPage = () => {
         </div>
 
         {/* PDF Viewer */}
-        {item.type === 'PDF' && item.dataUrl && (
+        {item.type === 'PDF' && (
           <div className="space-y-4">
-            {/* PDF Toolbar */}
-            <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-md">
-              <Button 
-                size="sm" 
-                variant="outline"
-                onClick={handleOpenInNewTab}
-                className="flex items-center gap-1"
-              >
-                <ExternalLinkIcon size={14} />
-                Open in New Tab
-              </Button>
-              <Button 
-                size="sm" 
-                variant="outline"
-                onClick={handleDownload}
-                className="flex items-center gap-1"
-              >
-                <Download size={14} />
-                Download
-              </Button>
-              <div className="flex-1" />
-              <Button size="sm" variant="ghost" className="flex items-center gap-1">
-                <ChevronLeft size={14} />
-                Prev
-              </Button>
-              <Button size="sm" variant="ghost" className="flex items-center gap-1">
-                Next
-                <ChevronRight size={14} />
-              </Button>
-            </div>
+            {canShowPdfPreview(item) ? (
+              <>
+                {/* PDF Toolbar */}
+                <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-md">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={handleOpenInNewTab}
+                    className="flex items-center gap-1"
+                  >
+                    <ExternalLinkIcon size={14} />
+                    Open in New Tab
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={handleDownload}
+                    className="flex items-center gap-1"
+                  >
+                    <Download size={14} />
+                    Download
+                  </Button>
+                  <div className="flex-1" />
+                  <Button size="sm" variant="ghost" className="flex items-center gap-1">
+                    <ChevronLeft size={14} />
+                    Prev
+                  </Button>
+                  <Button size="sm" variant="ghost" className="flex items-center gap-1">
+                    Next
+                    <ChevronRight size={14} />
+                  </Button>
+                </div>
 
-            {/* PDF Viewer */}
-            <div className="border rounded-md overflow-hidden bg-white">
-              {!pdfError ? (
-                <iframe 
-                  src={item.dataUrl} 
-                  className="h-[80vh] w-full"
-                  onError={() => setPdfError(true)}
-                  title={`PDF: ${item.title}`}
-                />
-              ) : (
-                <embed 
-                  src={item.dataUrl} 
-                  type="application/pdf" 
-                  className="h-[80vh] w-full"
-                  title={`PDF: ${item.title}`}
-                />
-              )}
-            </div>
+                {/* PDF Viewer */}
+                <div className="border rounded-md overflow-hidden bg-white">
+                  {!pdfError ? (
+                    <iframe 
+                      src={item.dataUrl} 
+                      className="h-[80vh] w-full"
+                      onError={() => setPdfError(true)}
+                      title={`PDF: ${item.title}`}
+                    />
+                  ) : (
+                    <embed 
+                      src={item.dataUrl} 
+                      type="application/pdf" 
+                      className="h-[80vh] w-full"
+                      title={`PDF: ${item.title}`}
+                    />
+                  )}
+                </div>
+              </>
+            ) : (
+              /* Preview Unavailable */
+              <div className="border rounded-md p-8 text-center">
+                <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                <h3 className="text-lg font-semibold mb-2">Preview unavailable</h3>
+                <p className="text-muted-foreground mb-6">
+                  {!item.dataUrl 
+                    ? "No PDF data available for preview."
+                    : "PDF is too large to preview (>25MB)."}
+                </p>
+                <div className="flex items-center justify-center gap-2">
+                  {item.dataUrl && (
+                    <Button onClick={handleDownload} variant="outline">
+                      <Download size={16} className="mr-2" />
+                      Download
+                    </Button>
+                  )}
+                  <Button variant="outline">
+                    <Upload size={16} className="mr-2" />
+                    Re-upload
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
