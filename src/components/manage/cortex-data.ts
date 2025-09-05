@@ -8,13 +8,17 @@ export type CortexItem = {
   source: string;
   keywords: string[];
   space: 'Personal' | 'Work' | 'School' | 'Team';
+  content?: string;
+  description?: string;
+  dataUrl?: string;
+  favicon?: string;
 };
 
 export const cortexItems: CortexItem[] = [
   {
     id: '1',
     title: 'Neural networks fundamentals',
-    url: '/cortex/neural-networks',
+    url: '/preview/neural-networks',
     type: 'Note',
     createdDate: '2023-04-15',
     source: 'Upload',
@@ -24,7 +28,7 @@ export const cortexItems: CortexItem[] = [
   {
     id: '2',
     title: 'Cloud architecture patterns',
-    url: '/cortex/cloud-patterns',
+    url: '/preview/cloud-patterns',
     type: 'PDF',
     createdDate: '2023-05-22',
     source: 'Upload',
@@ -34,7 +38,7 @@ export const cortexItems: CortexItem[] = [
   {
     id: '3',
     title: 'UX research methods',
-    url: '/cortex/ux-research',
+    url: '/preview/ux-research',
     type: 'Link',
     createdDate: '2023-06-10',
     source: 'medium.com',
@@ -44,7 +48,7 @@ export const cortexItems: CortexItem[] = [
   {
     id: '4',
     title: 'Product strategy',
-    url: '/cortex/product-strategy',
+    url: '/preview/product-strategy',
     type: 'Image',
     createdDate: '2023-07-05',
     source: 'Upload',
@@ -54,7 +58,7 @@ export const cortexItems: CortexItem[] = [
   {
     id: '5',
     title: 'JavaScript patterns',
-    url: '/cortex/js-patterns',
+    url: '/preview/js-patterns',
     type: 'PDF',
     createdDate: '2023-08-18',
     source: 'github.com',

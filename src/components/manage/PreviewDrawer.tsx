@@ -9,6 +9,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { format } from 'date-fns';
+import { Link } from 'react-router-dom';
 
 interface PreviewItem {
   id: string;
@@ -227,10 +228,10 @@ const PreviewDrawer = ({ open, onOpenChange, item }: PreviewDrawerProps) => {
             )}
             {item.type === 'PDF' && !item.dataUrl && (
               <Button asChild variant="outline">
-                <a href={item.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                <Link to={`/preview/${item.id}`} className="flex items-center gap-2">
                   <ExternalLink size={16} />
                   View PDF
-                </a>
+                </Link>
               </Button>
             )}
           </div>

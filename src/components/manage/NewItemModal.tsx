@@ -190,7 +190,7 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated }: NewItemModalProps) 
         id: Date.now().toString(),
         title: formData.title,
         type: activeTab === 'note' ? 'Note' : activeTab === 'pdf' ? 'PDF' : 'Link',
-        url: activeTab === 'link' ? formData.url : `/cortex/${Date.now()}`,
+        url: activeTab === 'link' ? formData.url : `/preview/${Date.now()}`,
         createdDate: new Date().toISOString().split('T')[0],
         source: activeTab === 'pdf' ? 'Upload' : activeTab === 'link' ? new URL(formData.url!).hostname : 'Upload',
         keywords: formData.tags,
