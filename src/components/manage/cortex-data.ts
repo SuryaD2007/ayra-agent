@@ -7,7 +7,7 @@ export type CortexItem = {
   createdDate: string;
   source: string;
   keywords: string[];
-  space: 'Personal' | 'Work' | 'School';
+  space: 'Personal' | 'Work' | 'School' | 'Team';
 };
 
 export const cortexItems: CortexItem[] = [
@@ -49,7 +49,7 @@ export const cortexItems: CortexItem[] = [
     createdDate: '2023-07-05',
     source: 'Upload',
     keywords: ['Product', 'Strategy', 'Management'],
-    space: 'School'
+    space: 'Team'
   },
   {
     id: '5',
@@ -59,7 +59,7 @@ export const cortexItems: CortexItem[] = [
     createdDate: '2023-08-18',
     source: 'github.com',
     keywords: ['JavaScript', 'Patterns', 'Development'],
-    space: 'Work'
+    space: 'School'
   }
 ];
 

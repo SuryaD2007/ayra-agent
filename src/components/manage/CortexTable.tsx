@@ -1,27 +1,30 @@
 import React, { useState } from 'react';
-import { Search, Filter, Plus, Move } from 'lucide-react';
+import { Search, Filter, Move, Plus, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import TableView from './views/TableView';
 import GridView from './views/GridView';
 import ListView from './views/ListView';
 import KanbanView from './views/KanbanView';
-import { cortexItems } from './cortex-data';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogFooter 
-} from '@/components/ui/dialog';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
-import { toast } from 'sonner';
+import FilterDrawer from './FilterDrawer';
+import { cortexItems, CortexItem } from './cortex-data';
+import { useFilters } from '@/hooks/useFilters';
+import { toast } from '@/hooks/use-toast';
 
 interface CortexTableProps {
   viewType?: 'table' | 'grid' | 'list' | 'kanban';
@@ -29,195 +32,220 @@ interface CortexTableProps {
   cortexId?: string | null;
 }
 
-const CortexTable = ({ viewType = 'table', categoryId = 'private', cortexId = 'overview' }: CortexTableProps) => {
-  const [searchQuery, setSearchQuery] = useState('');
+const CortexTable = ({ 
+  viewType = 'table', 
+  categoryId = 'private',
+  cortexId = 'overview'
+}: CortexTableProps) => {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
-  const [targetCortex, setTargetCortex] = useState<string>('');
-  
+  const [targetCortex, setTargetCortex] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+
+  // Use the filters hook
+  const { 
+    filters, 
+    setFilters, 
+    filteredItems, 
+    activeFilterCount, 
+    availableTags 
+  } = useFilters(cortexItems);
+
   const getActiveCortexName = () => {
-    const categories = [
-      {
-        id: 'shared',
-        items: [
-          { id: 'shared-1', name: 'Second Brain' },
-          { id: 'shared-2', name: 'OSS' },
-          { id: 'shared-3', name: 'Artificial Intelligence' },
-        ]
-      },
-      {
-        id: 'team',
-        items: [
-          { id: 'team-1', name: 'Brainboard Competitors' },
-          { id: 'team-2', name: 'Visualize Terraform' },
-          { id: 'team-3', name: 'CI/CD Engine' },
-        ]
-      },
-      {
-        id: 'private',
-        items: [
-          { id: 'overview', name: 'Overview' },
-          { id: 'private-1', name: 'UXUI' },
-          { id: 'private-2', name: 'Space' },
-          { id: 'private-3', name: 'Cloud Computing' },
-        ]
-      }
-    ];
-    
-    if (cortexId === null) {
-      return "All";
-    }
-    
-    const category = categories.find(c => c.id === categoryId);
-    if (!category) return "Unknown";
-    
-    const item = category.items.find(i => i.id === cortexId);
-    return item ? item.name : "Unknown";
+    if (categoryId === 'private' && cortexId === 'overview') return 'All Items';
+    if (categoryId === 'private' && cortexId === 'ai') return 'AI';
+    if (categoryId === 'private' && cortexId === 'design') return 'Design'; 
+    if (categoryId === 'private' && cortexId === 'development') return 'Development';
+    if (categoryId === 'shared' && cortexId === 'team-resources') return 'Team Resources';
+    if (categoryId === 'shared' && cortexId === 'projects') return 'Projects';
+    return 'All Items';
   };
-  
-  const getFilteredItems = () => {
-    const activeCortexName = getActiveCortexName().toLowerCase();
+
+  // Apply search query to already filtered items
+  const searchFilteredItems = () => {
+    if (!searchQuery) return filteredItems;
     
-    if (cortexId === 'overview') {
-      return searchQuery 
-        ? cortexItems.filter(item => 
-            item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            item.keywords.some(keyword => keyword.toLowerCase().includes(searchQuery.toLowerCase()))
-          )
-        : cortexItems;
-    }
-    
-    let cortexFiltered = cortexItems.filter(item => 
-      item.keywords.some(keyword => keyword.toLowerCase() === activeCortexName.toLowerCase())
+    return filteredItems.filter(item => 
+      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.keywords.some(keyword => keyword.toLowerCase().includes(searchQuery.toLowerCase()))
     );
-    
-    if (cortexFiltered.length === 0) {
-      cortexFiltered = cortexItems.filter(item => 
-        item.keywords.some(keyword => keyword.toLowerCase().includes(activeCortexName.toLowerCase())) ||
-        item.title.toLowerCase().includes(activeCortexName.toLowerCase())
-      );
-    }
-    
-    return searchQuery 
-      ? cortexFiltered.filter(item => 
-          item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.keywords.some(keyword => keyword.toLowerCase().includes(searchQuery.toLowerCase()))
-        )
-      : cortexFiltered;
   };
-  
-  const filteredItems = getFilteredItems();
+
+  const finalItems = searchFilteredItems();
 
   const handleSelectItem = (id: string) => {
-    setSelectedItems(prev => {
-      if (prev.includes(id)) {
-        return prev.filter(itemId => itemId !== id);
-      } else {
-        return [...prev, id];
-      }
-    });
+    setSelectedItems(prev => 
+      prev.includes(id) 
+        ? prev.filter(item => item !== id)
+        : [...prev, id]
+    );
   };
 
   const handleMoveItems = () => {
-    if (!targetCortex) return;
-    
-    toast.success(`Moved ${selectedItems.length} items to ${targetCortex}`);
-    setSelectedItems([]);
-    setMoveDialogOpen(false);
-    setTargetCortex('');
+    if (selectedItems.length > 0 && targetCortex) {
+      toast({
+        title: "Items moved successfully",
+        description: `${selectedItems.length} item(s) moved to ${targetCortex}`,
+      });
+      setSelectedItems([]);
+      setMoveDialogOpen(false);
+      setTargetCortex('');
+    }
   };
 
-  const cortexOptions = [
-    { id: 'shared-1', name: 'Second Brain' },
-    { id: 'shared-2', name: 'OSS' },
-    { id: 'shared-3', name: 'Artificial Intelligence' },
-    { id: 'team-1', name: 'Brainboard Competitors' },
-    { id: 'team-2', name: 'Visualize Terraform' },
-    { id: 'team-3', name: 'CI/CD Engine' },
-    { id: 'private-1', name: 'UXUI' },
-    { id: 'private-2', name: 'Space' },
-    { id: 'private-3', name: 'Cloud Computing' },
-  ];
+  const EmptyState = () => (
+    <div className="flex flex-col items-center justify-center py-12 text-center">
+      <div className="text-muted-foreground mb-4">
+        <Search size={48} className="mx-auto mb-2 opacity-50" />
+        <h3 className="text-lg font-semibold mb-1">No items found</h3>
+        <p className="text-sm">
+          {activeFilterCount > 0 
+            ? "No items match your current filters."
+            : searchQuery 
+            ? "No items match your search."
+            : "No items in this cortex yet."
+          }
+        </p>
+      </div>
+      {(activeFilterCount > 0 || searchQuery) && (
+        <div className="flex gap-2">
+          {searchQuery && (
+            <Button variant="outline" onClick={() => setSearchQuery('')}>
+              Clear search
+            </Button>
+          )}
+          {activeFilterCount > 0 && (
+            <Button 
+              variant="outline" 
+              onClick={() => setFilters({
+                types: [],
+                spaces: [],
+                tags: [],
+                dateRange: {},
+                sortBy: 'newest'
+              })}
+            >
+              Clear filters
+            </Button>
+          )}
+        </div>
+      )}
+    </div>
+  );
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between p-4 border-b border-border/50">
-        <div className="relative w-80">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
-          <Input 
-            placeholder="Search cortexes..." 
+    <div className="flex-1 overflow-hidden">
+      <div className="p-4 border-b border-border/50">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">{getActiveCortexName()}</h3>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setFilterDrawerOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <Filter size={16} />
+              Filters
+              {activeFilterCount > 0 && (
+                <Badge variant="secondary" className="ml-1 px-1.5 py-0.5 text-xs">
+                  {activeFilterCount}
+                </Badge>
+              )}
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setMoveDialogOpen(true)}
+              disabled={selectedItems.length === 0}
+            >
+              <Move size={16} className="mr-1" />
+              Move ({selectedItems.length})
+            </Button>
+            
+            <Button variant="outline" size="sm">
+              <Plus size={16} className="mr-1" />
+              New Cortex
+            </Button>
+          </div>
+        </div>
+        
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={16} />
+          <Input
+            placeholder="Search items..."
             className="pl-10"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <div className="flex gap-2">
-          {selectedItems.length > 0 && (
-            <Button variant="outline" size="sm" onClick={() => setMoveDialogOpen(true)}>
-              <Move size={16} className="mr-2" />
-              Move ({selectedItems.length})
-            </Button>
-          )}
-          <Button variant="outline" size="sm">
-            <Filter size={16} className="mr-2" />
-            Filter
-          </Button>
-          <Button size="sm">
-            <Plus size={16} className="mr-2" />
-            New Cortex
-          </Button>
-        </div>
       </div>
-      
-      <div className="flex-1 overflow-auto">
-        {filteredItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-            <p>No cortex items found for this section.</p>
-          </div>
+
+      <div className="overflow-auto h-[calc(100vh-280px)]">
+        {finalItems.length === 0 ? (
+          <EmptyState />
         ) : (
           <>
             {viewType === 'table' && (
               <TableView 
-                items={filteredItems} 
+                items={finalItems}
                 selectedItems={selectedItems}
                 onSelectItem={handleSelectItem}
               />
             )}
             {viewType === 'grid' && (
               <GridView 
-                items={filteredItems}
+                items={finalItems}
                 selectedItems={selectedItems}
                 onSelectItem={handleSelectItem}
               />
             )}
             {viewType === 'list' && (
               <ListView 
-                items={filteredItems}
+                items={finalItems}
                 selectedItems={selectedItems}
                 onSelectItem={handleSelectItem}
               />
             )}
-            {viewType === 'kanban' && <KanbanView items={filteredItems} />}
+            {viewType === 'kanban' && (
+              <KanbanView items={finalItems} />
+            )}
           </>
         )}
       </div>
 
+      {/* Filter Drawer */}
+      <FilterDrawer
+        open={filterDrawerOpen}
+        onOpenChange={setFilterDrawerOpen}
+        filters={filters}
+        onFiltersChange={setFilters}
+        availableTags={availableTags}
+        activeFilterCount={activeFilterCount}
+      />
+
+      {/* Move Dialog */}
       <Dialog open={moveDialogOpen} onOpenChange={setMoveDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Move to Cortex</DialogTitle>
+            <DialogTitle>Move Selected Items</DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <Select onValueChange={setTargetCortex} value={targetCortex}>
+            <p className="text-sm text-muted-foreground mb-4">
+              Move {selectedItems.length} selected item(s) to:
+            </p>
+            <Select value={targetCortex} onValueChange={setTargetCortex}>
               <SelectTrigger>
-                <SelectValue placeholder="Select target cortex" />
+                <SelectValue placeholder="Select destination cortex" />
               </SelectTrigger>
               <SelectContent>
-                {cortexOptions.map(option => (
-                  <SelectItem key={option.id} value={option.id}>
-                    {option.name}
-                  </SelectItem>
-                ))}
+                <SelectItem value="ai">AI</SelectItem>
+                <SelectItem value="design">Design</SelectItem>
+                <SelectItem value="development">Development</SelectItem>
+                <SelectItem value="team-resources">Team Resources</SelectItem>
+                <SelectItem value="projects">Projects</SelectItem>
               </SelectContent>
             </Select>
           </div>

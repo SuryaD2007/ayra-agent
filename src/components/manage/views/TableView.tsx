@@ -214,6 +214,7 @@ const TableView = ({
                       <SelectItem value="Personal">Personal</SelectItem>
                       <SelectItem value="Work">Work</SelectItem>
                       <SelectItem value="School">School</SelectItem>
+                      <SelectItem value="Team">Team</SelectItem>
                     </SelectContent>
                   </Select>
                 </TableCell>
