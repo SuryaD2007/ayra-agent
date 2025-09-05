@@ -1,5 +1,5 @@
-import React from 'react';
-import { X, ExternalLink, Calendar, Tag, MapPin } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, ExternalLink, Calendar, Tag, MapPin, Download, ChevronLeft, ChevronRight, ExternalLinkIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -22,6 +22,7 @@ interface PreviewItem {
   content?: string;
   description?: string;
   favicon?: string;
+  dataUrl?: string; // For PDF base64 data
 }
 
 interface PreviewDrawerProps {
@@ -31,7 +32,26 @@ interface PreviewDrawerProps {
 }
 
 const PreviewDrawer = ({ open, onOpenChange, item }: PreviewDrawerProps) => {
+  const [pdfError, setPdfError] = useState(false);
+
   if (!item) return null;
+
+  const handleOpenInNewTab = () => {
+    if (item.dataUrl) {
+      window.open(item.dataUrl, '_blank');
+    }
+  };
+
+  const handleDownload = () => {
+    if (item.dataUrl) {
+      const link = document.createElement('a');
+      link.href = item.dataUrl;
+      link.download = `${item.title}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -127,6 +147,63 @@ const PreviewDrawer = ({ open, onOpenChange, item }: PreviewDrawerProps) => {
             </div>
           )}
 
+          {/* PDF Viewer */}
+          {item.type === 'PDF' && item.dataUrl && (
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-3">PDF Preview</h3>
+              
+              {/* PDF Toolbar */}
+              <div className="flex items-center gap-2 mb-3 p-2 bg-muted/30 rounded-md">
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={handleOpenInNewTab}
+                  className="flex items-center gap-1"
+                >
+                  <ExternalLinkIcon size={14} />
+                  Open in New Tab
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={handleDownload}
+                  className="flex items-center gap-1"
+                >
+                  <Download size={14} />
+                  Download
+                </Button>
+                <div className="flex-1" />
+                <Button size="sm" variant="ghost" className="flex items-center gap-1">
+                  <ChevronLeft size={14} />
+                  Prev
+                </Button>
+                <Button size="sm" variant="ghost" className="flex items-center gap-1">
+                  Next
+                  <ChevronRight size={14} />
+                </Button>
+              </div>
+
+              {/* PDF Viewer */}
+              <div className="border rounded-md overflow-hidden">
+                {!pdfError ? (
+                  <iframe 
+                    src={item.dataUrl} 
+                    className="h-[70vh] w-full"
+                    onError={() => setPdfError(true)}
+                    title={`PDF: ${item.title}`}
+                  />
+                ) : (
+                  <embed 
+                    src={item.dataUrl} 
+                    type="application/pdf" 
+                    className="h-[70vh] w-full"
+                    title={`PDF: ${item.title}`}
+                  />
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Content */}
           {item.content && (
             <div>
@@ -148,7 +225,7 @@ const PreviewDrawer = ({ open, onOpenChange, item }: PreviewDrawerProps) => {
                 </a>
               </Button>
             )}
-            {item.type === 'PDF' && (
+            {item.type === 'PDF' && !item.dataUrl && (
               <Button asChild variant="outline">
                 <a href={item.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
                   <ExternalLink size={16} />
