@@ -112,6 +112,18 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated }: NewItemModalProps) 
     return Object.keys(newErrors).length === 0;
   };
 
+  // Check form validity without side effects
+  const isFormValid = () => {
+    if (!formData.title.trim()) return false;
+    if (activeTab === 'pdf' && !formData.file) return false;
+    if (activeTab === 'link' && !formData.url?.trim()) return false;
+    if (activeTab === 'link' && formData.url) {
+      const urlPattern = /^https?:\/\/.+/;
+      if (!urlPattern.test(formData.url)) return false;
+    }
+    return true;
+  };
+
   const fetchMetadata = async (url: string) => {
     setIsFetchingMetadata(true);
     try {
@@ -216,7 +228,7 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated }: NewItemModalProps) 
     }
   };
 
-  const isValid = validateForm();
+  const isValid = isFormValid();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
