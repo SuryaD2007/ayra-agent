@@ -26,7 +26,6 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
-import { cn } from '@/lib/utils';
 import { CortexItem } from './cortex-data';
 
 export interface FilterState {
@@ -251,10 +250,7 @@ const FilterDrawer = ({
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !localFilters.dateRange.from && "text-muted-foreground"
-                      )}
+                      className="w-full justify-start text-left font-normal text-muted-foreground"
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {localFilters.dateRange.from ? (
@@ -273,7 +269,7 @@ const FilterDrawer = ({
                         dateRange: { ...prev.dateRange, from: date }
                       }))}
                       initialFocus
-                      className={cn("p-3 pointer-events-auto")}
+                      className="p-3"
                     />
                   </PopoverContent>
                 </Popover>
@@ -285,10 +281,7 @@ const FilterDrawer = ({
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !localFilters.dateRange.to && "text-muted-foreground"
-                      )}
+                      className="w-full justify-start text-left font-normal text-muted-foreground"
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {localFilters.dateRange.to ? (
@@ -307,7 +300,7 @@ const FilterDrawer = ({
                         dateRange: { ...prev.dateRange, to: date }
                       }))}
                       initialFocus
-                      className={cn("p-3 pointer-events-auto")}
+                      className="p-3"
                     />
                   </PopoverContent>
                 </Popover>
