@@ -30,12 +30,14 @@ interface TableViewProps {
   items: CortexItem[];
   selectedItems?: string[];
   onSelectItem?: (id: string) => void;
+  onUpdateItem?: (id: string, updates: Partial<CortexItem>) => void;
 }
 
 const TableView = ({ 
   items, 
   selectedItems = [], 
-  onSelectItem = () => {} 
+  onSelectItem = () => {},
+  onUpdateItem = () => {}
 }: TableViewProps) => {
   const [editingTitle, setEditingTitle] = useState<string | null>(null);
   const [tempTitle, setTempTitle] = useState('');
@@ -63,9 +65,10 @@ const TableView = ({
   };
 
   const handleTitleSave = (id: string) => {
-    // In a real app, this would update the item
-    console.log('Updating title for item', id, 'to:', tempTitle);
-    setEditingTitle(null);
+    if (tempTitle.trim()) {
+      onUpdateItem(id, { title: tempTitle.trim() });
+      setEditingTitle(null);
+    }
   };
 
   const handleTitleCancel = () => {
@@ -74,22 +77,29 @@ const TableView = ({
   };
 
   const handleSpaceChange = (itemId: string, newSpace: CortexItem['space']) => {
-    // In a real app, this would update the item
-    console.log('Updating space for item', itemId, 'to:', newSpace);
+    onUpdateItem(itemId, { space: newSpace });
   };
 
   const handleAddTag = (itemId: string) => {
     const tagValue = newTag[itemId];
     if (tagValue?.trim()) {
-      // In a real app, this would update the item's keywords array
-      console.log('Adding tag', tagValue, 'to item', itemId);
+      const item = items.find(i => i.id === itemId);
+      if (item && !item.keywords.includes(tagValue.trim())) {
+        onUpdateItem(itemId, { 
+          keywords: [...item.keywords, tagValue.trim()] 
+        });
+      }
       setNewTag({ ...newTag, [itemId]: '' });
     }
   };
 
   const handleRemoveTag = (itemId: string, tagToRemove: string) => {
-    // In a real app, this would remove the tag from the item's keywords array
-    console.log('Removing tag', tagToRemove, 'from item', itemId);
+    const item = items.find(i => i.id === itemId);
+    if (item) {
+      onUpdateItem(itemId, { 
+        keywords: item.keywords.filter(tag => tag !== tagToRemove) 
+      });
+    }
   };
 
   const getSourceDisplay = (source: string, type: CortexItem['type']) => {

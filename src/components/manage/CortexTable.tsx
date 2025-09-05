@@ -22,7 +22,7 @@ import GridView from './views/GridView';
 import ListView from './views/ListView';
 import KanbanView from './views/KanbanView';
 import FilterDrawer from './FilterDrawer';
-import { cortexItems, CortexItem } from './cortex-data';
+import { cortexItems as initialCortexItems, CortexItem } from './cortex-data';
 import { useFilters } from '@/hooks/useFilters';
 import { toast } from '@/hooks/use-toast';
 
@@ -42,6 +42,7 @@ const CortexTable = ({
   const [targetCortex, setTargetCortex] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [cortexItems, setCortexItems] = useState<CortexItem[]>(initialCortexItems);
 
   // Use the filters hook
   const { 
@@ -79,6 +80,14 @@ const CortexTable = ({
       prev.includes(id) 
         ? prev.filter(item => item !== id)
         : [...prev, id]
+    );
+  };
+
+  const handleUpdateItem = (id: string, updates: Partial<CortexItem>) => {
+    setCortexItems(prev => 
+      prev.map(item => 
+        item.id === id ? { ...item, ...updates } : item
+      )
     );
   };
 
@@ -193,6 +202,7 @@ const CortexTable = ({
                 items={finalItems}
                 selectedItems={selectedItems}
                 onSelectItem={handleSelectItem}
+                onUpdateItem={handleUpdateItem}
               />
             )}
             {viewType === 'grid' && (
