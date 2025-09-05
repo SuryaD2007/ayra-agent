@@ -1,0 +1,414 @@
+import React, { useState } from 'react';
+import { Upload, Link as LinkIcon, FileText, X, Globe } from 'lucide-react';
+import { useDropzone } from 'react-dropzone';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { toast } from '@/hooks/use-toast';
+
+interface NewItemModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onItemCreated: (item: any) => void;
+}
+
+interface FormData {
+  title: string;
+  space: string;
+  tags: string[];
+  content?: string;
+  url?: string;
+  description?: string;
+  favicon?: string;
+  file?: File;
+}
+
+const NewItemModal = ({ open, onOpenChange, onItemCreated }: NewItemModalProps) => {
+  const [activeTab, setActiveTab] = useState('note');
+  const [formData, setFormData] = useState<FormData>({
+    title: '',
+    space: 'Personal',
+    tags: [],
+  });
+  const [tagInput, setTagInput] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
+
+  // Rich text editor for notes
+  const editor = useEditor({
+    extensions: [StarterKit],
+    content: '',
+    onUpdate: ({ editor }) => {
+      setFormData(prev => ({ ...prev, content: editor.getHTML() }));
+    },
+  });
+
+  // Dropzone for PDF uploads
+  const { getRootProps, getInputProps, isDragActive, acceptedFiles } = useDropzone({
+    accept: {
+      'application/pdf': ['.pdf'],
+    },
+    maxSize: 25 * 1024 * 1024, // 25MB
+    maxFiles: 1,
+    onDrop: (files) => {
+      if (files.length > 0) {
+        const file = files[0];
+        setFormData(prev => ({
+          ...prev,
+          file,
+          title: file.name.replace('.pdf', ''),
+        }));
+        setErrors(prev => ({ ...prev, file: '' }));
+      }
+    },
+  });
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.title.trim()) {
+      newErrors.title = 'Title is required';
+    }
+
+    if (activeTab === 'pdf' && !formData.file) {
+      newErrors.file = 'PDF file is required';
+    }
+
+    if (activeTab === 'link' && !formData.url?.trim()) {
+      newErrors.url = 'URL is required';
+    } else if (activeTab === 'link' && formData.url) {
+      const urlPattern = /^https?:\/\/.+/;
+      if (!urlPattern.test(formData.url)) {
+        newErrors.url = 'Please enter a valid URL starting with http:// or https://';
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const fetchMetadata = async (url: string) => {
+    setIsFetchingMetadata(true);
+    try {
+      // Simulate metadata fetching - in a real app, you'd call an API
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Mock metadata
+      const mockMetadata = {
+        title: `Page Title from ${new URL(url).hostname}`,
+        description: 'This is a sample description fetched from the webpage.',
+        favicon: '/placeholder.svg',
+      };
+
+      setFormData(prev => ({
+        ...prev,
+        title: mockMetadata.title,
+        description: mockMetadata.description,
+        favicon: mockMetadata.favicon,
+      }));
+    } catch (error) {
+      toast({
+        title: 'Failed to fetch metadata',
+        description: 'Please enter the title and description manually.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsFetchingMetadata(false);
+    }
+  };
+
+  const handleUrlChange = (url: string) => {
+    setFormData(prev => ({ ...prev, url }));
+    if (url && /^https?:\/\/.+/.test(url)) {
+      fetchMetadata(url);
+    }
+  };
+
+  const addTag = () => {
+    if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
+      setFormData(prev => ({
+        ...prev,
+        tags: [...prev.tags, tagInput.trim()],
+      }));
+      setTagInput('');
+    }
+  };
+
+  const removeTag = (tag: string) => {
+    setFormData(prev => ({
+      ...prev,
+      tags: prev.tags.filter(t => t !== tag),
+    }));
+  };
+
+  const handleCreate = async () => {
+    if (!validateForm()) return;
+
+    setIsLoading(true);
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const newItem = {
+        id: Date.now().toString(),
+        title: formData.title,
+        type: activeTab === 'note' ? 'Note' : activeTab === 'pdf' ? 'PDF' : 'Link',
+        url: activeTab === 'link' ? formData.url : `/cortex/${Date.now()}`,
+        createdDate: new Date().toISOString().split('T')[0],
+        source: activeTab === 'pdf' ? 'Upload' : activeTab === 'link' ? new URL(formData.url!).hostname : 'Upload',
+        keywords: formData.tags,
+        space: formData.space,
+        content: formData.content,
+        description: formData.description,
+        favicon: formData.favicon,
+      };
+
+      onItemCreated(newItem);
+      
+      toast({
+        title: 'Item created successfully',
+        description: `${formData.title} has been added to your library.`,
+      });
+
+      // Reset form
+      setFormData({
+        title: '',
+        space: 'Personal',
+        tags: [],
+      });
+      setTagInput('');
+      editor?.commands.clearContent();
+      setErrors({});
+      onOpenChange(false);
+    } catch (error) {
+      toast({
+        title: 'Failed to create item',
+        description: 'Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const isValid = validateForm();
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Create New Item</DialogTitle>
+        </DialogHeader>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="note" className="flex items-center gap-2">
+              <FileText size={16} />
+              Note
+            </TabsTrigger>
+            <TabsTrigger value="pdf" className="flex items-center gap-2">
+              <Upload size={16} />
+              PDF
+            </TabsTrigger>
+            <TabsTrigger value="link" className="flex items-center gap-2">
+              <LinkIcon size={16} />
+              Link
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Note Tab */}
+          <TabsContent value="note" className="space-y-4">
+            <div>
+              <Label htmlFor="note-title">Title *</Label>
+              <Input
+                id="note-title"
+                value={formData.title}
+                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Enter note title..."
+                className={errors.title ? 'border-destructive' : ''}
+              />
+              {errors.title && <p className="text-sm text-destructive mt-1">{errors.title}</p>}
+            </div>
+            
+            <div>
+              <Label>Content</Label>
+              <div className="border rounded-md p-3 min-h-[200px] prose prose-sm max-w-none">
+                <EditorContent editor={editor} />
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* PDF Tab */}
+          <TabsContent value="pdf" className="space-y-4">
+            <div>
+              <Label>Upload PDF *</Label>
+              <div
+                {...getRootProps()}
+                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                  isDragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'
+                } ${errors.file ? 'border-destructive' : ''}`}
+              >
+                <input {...getInputProps()} />
+                <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                {formData.file ? (
+                  <div>
+                    <p className="text-sm font-medium">{formData.file.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {(formData.file.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-sm font-medium">
+                      {isDragActive ? 'Drop the file here' : 'Drag & drop a PDF file here'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">or click to select (max 25MB)</p>
+                  </div>
+                )}
+              </div>
+              {errors.file && <p className="text-sm text-destructive mt-1">{errors.file}</p>}
+            </div>
+
+            <div>
+              <Label htmlFor="pdf-title">Title *</Label>
+              <Input
+                id="pdf-title"
+                value={formData.title}
+                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Auto-filled from filename..."
+                className={errors.title ? 'border-destructive' : ''}
+              />
+              {errors.title && <p className="text-sm text-destructive mt-1">{errors.title}</p>}
+            </div>
+          </TabsContent>
+
+          {/* Link Tab */}
+          <TabsContent value="link" className="space-y-4">
+            <div>
+              <Label htmlFor="link-url">URL *</Label>
+              <Input
+                id="link-url"
+                type="url"
+                value={formData.url || ''}
+                onChange={(e) => handleUrlChange(e.target.value)}
+                placeholder="https://example.com"
+                className={errors.url ? 'border-destructive' : ''}
+              />
+              {errors.url && <p className="text-sm text-destructive mt-1">{errors.url}</p>}
+              {isFetchingMetadata && (
+                <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
+                  <Globe size={14} className="animate-spin" />
+                  Fetching metadata...
+                </p>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="link-title">Title *</Label>
+              <Input
+                id="link-title"
+                value={formData.title}
+                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Auto-filled from webpage..."
+                className={errors.title ? 'border-destructive' : ''}
+              />
+              {errors.title && <p className="text-sm text-destructive mt-1">{errors.title}</p>}
+            </div>
+
+            <div>
+              <Label htmlFor="link-description">Description</Label>
+              <Textarea
+                id="link-description"
+                value={formData.description || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Auto-filled from webpage..."
+                rows={3}
+              />
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        {/* Common Fields */}
+        <div className="space-y-4 border-t pt-4">
+          <div>
+            <Label htmlFor="space">Space</Label>
+            <Select value={formData.space} onValueChange={(value) => setFormData(prev => ({ ...prev, space: value }))}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Personal">Personal</SelectItem>
+                <SelectItem value="Work">Work</SelectItem>
+                <SelectItem value="School">School</SelectItem>
+                <SelectItem value="Team">Team</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="tags">Tags</Label>
+            <div className="flex gap-2 mb-2">
+              <Input
+                id="tags"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                placeholder="Add tag..."
+                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+              />
+              <Button type="button" onClick={addTag} variant="outline">Add</Button>
+            </div>
+            {formData.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {formData.tags.map((tag) => (
+                  <Badge key={tag} variant="secondary" className="flex items-center gap-1">
+                    {tag}
+                    <X size={12} className="cursor-pointer" onClick={() => removeTag(tag)} />
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleCreate} 
+            disabled={!isValid || isLoading}
+          >
+            {isLoading ? 'Creating...' : 'Create Item'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default NewItemModal;

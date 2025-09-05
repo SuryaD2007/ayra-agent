@@ -22,6 +22,8 @@ import GridView from './views/GridView';
 import ListView from './views/ListView';
 import KanbanView from './views/KanbanView';
 import FilterDrawer from './FilterDrawer';
+import NewItemModal from './NewItemModal';
+import PreviewDrawer from './PreviewDrawer';
 import { cortexItems as initialCortexItems, CortexItem } from './cortex-data';
 import { useFilters } from '@/hooks/useFilters';
 import { toast } from '@/hooks/use-toast';
@@ -42,6 +44,9 @@ const CortexTable = ({
   const [targetCortex, setTargetCortex] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [newItemModalOpen, setNewItemModalOpen] = useState(false);
+  const [previewDrawerOpen, setPreviewDrawerOpen] = useState(false);
+  const [previewItem, setPreviewItem] = useState<CortexItem | null>(null);
   const [cortexItems, setCortexItems] = useState<CortexItem[]>(initialCortexItems);
 
   // Use the filters hook
@@ -101,6 +106,15 @@ const CortexTable = ({
       setMoveDialogOpen(false);
       setTargetCortex('');
     }
+  };
+
+  const handleItemCreated = (newItem: CortexItem) => {
+    // Optimistically insert at the top
+    setCortexItems(prev => [newItem, ...prev]);
+    
+    // Open preview drawer for the new item
+    setPreviewItem(newItem);
+    setPreviewDrawerOpen(true);
   };
 
   const EmptyState = () => (
@@ -174,9 +188,9 @@ const CortexTable = ({
               Move ({selectedItems.length})
             </Button>
             
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => setNewItemModalOpen(true)}>
               <Plus size={16} className="mr-1" />
-              New Cortex
+              New Item
             </Button>
           </div>
         </div>
@@ -269,6 +283,20 @@ const CortexTable = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* New Item Modal */}
+      <NewItemModal
+        open={newItemModalOpen}
+        onOpenChange={setNewItemModalOpen}
+        onItemCreated={handleItemCreated}
+      />
+
+      {/* Preview Drawer */}
+      <PreviewDrawer
+        open={previewDrawerOpen}
+        onOpenChange={setPreviewDrawerOpen}
+        item={previewItem}
+      />
     </div>
   );
 };
