@@ -24,7 +24,7 @@ const KanbanView = ({ items }: KanbanViewProps) => {
                     {item.type}
                   </span>
                 </div>
-                <p className="text-xs text-muted-foreground">{item.pitch}</p>
+                <p className="text-xs text-muted-foreground">{item.space}</p>
               </Card>
             ))}
           </div>

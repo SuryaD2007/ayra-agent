@@ -82,8 +82,7 @@ const CortexTable = ({ viewType = 'table', categoryId = 'private', cortexId = 'o
       return searchQuery 
         ? cortexItems.filter(item => 
             item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            item.keywords.some(keyword => keyword.toLowerCase().includes(searchQuery.toLowerCase())) ||
-            item.writer.toLowerCase().includes(searchQuery.toLowerCase())
+            item.keywords.some(keyword => keyword.toLowerCase().includes(searchQuery.toLowerCase()))
           )
         : cortexItems;
     }
@@ -102,8 +101,7 @@ const CortexTable = ({ viewType = 'table', categoryId = 'private', cortexId = 'o
     return searchQuery 
       ? cortexFiltered.filter(item => 
           item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.keywords.some(keyword => keyword.toLowerCase().includes(searchQuery.toLowerCase())) ||
-          item.writer.toLowerCase().includes(searchQuery.toLowerCase())
+          item.keywords.some(keyword => keyword.toLowerCase().includes(searchQuery.toLowerCase()))
         )
       : cortexFiltered;
   };

@@ -50,7 +50,7 @@ const ListView = ({
                 </span>
                 <span className="text-sm text-muted-foreground">{item.source}</span>
               </div>
-              <p className="text-sm text-muted-foreground mb-2">{item.pitch}</p>
+              <p className="text-sm text-muted-foreground mb-2">{item.space}</p>
               <div className="flex flex-wrap gap-1">
                 {item.keywords.map((keyword, idx) => (
                   <span 

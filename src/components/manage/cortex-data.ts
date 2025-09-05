@@ -3,12 +3,11 @@ export type CortexItem = {
   id: string;
   title: string;
   url: string;
-  type: string;
+  type: 'Note' | 'PDF' | 'Link' | 'Image';
   createdDate: string;
   source: string;
   keywords: string[];
-  pitch: string;
-  writer: string;
+  space: 'Personal' | 'Work' | 'School';
 };
 
 export const cortexItems: CortexItem[] = [
@@ -16,66 +15,59 @@ export const cortexItems: CortexItem[] = [
     id: '1',
     title: 'Neural networks fundamentals',
     url: '/cortex/neural-networks',
-    type: 'Article',
+    type: 'Note',
     createdDate: '2023-04-15',
-    source: 'Research Paper',
+    source: 'Upload',
     keywords: ['AI', 'Machine Learning', 'Deep Learning'],
-    pitch: 'Foundational knowledge on neural networks',
-    writer: 'Alex Johnson'
+    space: 'Work'
   },
   {
     id: '2',
     title: 'Cloud architecture patterns',
     url: '/cortex/cloud-patterns',
-    type: 'Guide',
+    type: 'PDF',
     createdDate: '2023-05-22',
-    source: 'Internal Knowledge',
+    source: 'Upload',
     keywords: ['Cloud', 'Architecture', 'Patterns'],
-    pitch: 'Best practices for cloud systems',
-    writer: 'Sarah Miller'
+    space: 'Work'
   },
   {
     id: '3',
     title: 'UX research methods',
     url: '/cortex/ux-research',
-    type: 'Collection',
+    type: 'Link',
     createdDate: '2023-06-10',
-    source: 'External Website',
+    source: 'medium.com',
     keywords: ['UX', 'Research', 'Design'],
-    pitch: 'Comprehensive guide to UX research',
-    writer: 'David Chen'
+    space: 'Personal'
   },
   {
     id: '4',
     title: 'Product strategy',
     url: '/cortex/product-strategy',
-    type: 'Template',
+    type: 'Image',
     createdDate: '2023-07-05',
-    source: 'Team Workshop',
+    source: 'Upload',
     keywords: ['Product', 'Strategy', 'Management'],
-    pitch: 'Framework for product strategy',
-    writer: 'Emily Rodriguez'
+    space: 'School'
   },
   {
     id: '5',
     title: 'JavaScript patterns',
     url: '/cortex/js-patterns',
-    type: 'Code',
+    type: 'PDF',
     createdDate: '2023-08-18',
-    source: 'Book',
+    source: 'github.com',
     keywords: ['JavaScript', 'Patterns', 'Development'],
-    pitch: 'Effective JavaScript patterns and practices',
-    writer: 'Michael Park'
+    space: 'Work'
   }
 ];
 
 export const columns = [
   { id: 'title', name: 'Title', sortable: true },
-  { id: 'url', name: 'URL', sortable: false },
   { id: 'type', name: 'Type', sortable: true },
-  { id: 'createdDate', name: 'Created Date', sortable: true },
-  { id: 'keywords', name: 'Keywords', sortable: false },
-  { id: 'source', name: 'Source', sortable: true },
-  { id: 'pitch', name: 'Pitch', sortable: false },
-  { id: 'writer', name: 'Writer', sortable: true },
+  { id: 'space', name: 'Space', sortable: true },
+  { id: 'keywords', name: 'Tags', sortable: false },
+  { id: 'createdDate', name: 'Date Added', sortable: true },
+  { id: 'source', name: 'Source', sortable: true }
 ];

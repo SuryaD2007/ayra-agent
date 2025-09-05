@@ -52,7 +52,7 @@ const GridView = ({
                 </span>
                 <span className="ml-2 text-sm text-muted-foreground">{item.source}</span>
               </div>
-              <p className="text-sm text-muted-foreground mb-3">{item.pitch}</p>
+              <p className="text-sm text-muted-foreground mb-3">{item.space}</p>
               <div className="flex flex-wrap gap-1 mb-2">
                 {item.keywords.map((keyword, idx) => (
                   <span 
