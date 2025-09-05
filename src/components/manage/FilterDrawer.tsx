@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { CalendarIcon, X, Filter } from 'lucide-react';
+import { X, Filter } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Calendar } from '@/components/ui/calendar';
 import {
   Select,
   SelectContent,
@@ -14,11 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
 import {
   Sheet,
   SheetContent,
@@ -246,64 +240,28 @@ const FilterDrawer = ({
             <div className="mt-2 grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-xs text-muted-foreground">From</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal text-muted-foreground"
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {localFilters.dateRange.from ? (
-                        format(localFilters.dateRange.from, "PPP")
-                      ) : (
-                        <span>Pick a date</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={localFilters.dateRange.from}
-                      onSelect={(date) => setLocalFilters(prev => ({
-                        ...prev,
-                        dateRange: { ...prev.dateRange, from: date }
-                      }))}
-                      initialFocus
-                      className="p-3"
-                    />
-                  </PopoverContent>
-                </Popover>
+                <Input
+                  type="date"
+                  value={localFilters.dateRange.from ? format(localFilters.dateRange.from, "yyyy-MM-dd") : ""}
+                  onChange={(e) => setLocalFilters(prev => ({
+                    ...prev,
+                    dateRange: { ...prev.dateRange, from: e.target.value ? new Date(e.target.value) : undefined }
+                  }))}
+                  className="w-full"
+                />
               </div>
 
               <div>
                 <Label className="text-xs text-muted-foreground">To</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal text-muted-foreground"
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {localFilters.dateRange.to ? (
-                        format(localFilters.dateRange.to, "PPP")
-                      ) : (
-                        <span>Pick a date</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={localFilters.dateRange.to}
-                      onSelect={(date) => setLocalFilters(prev => ({
-                        ...prev,
-                        dateRange: { ...prev.dateRange, to: date }
-                      }))}
-                      initialFocus
-                      className="p-3"
-                    />
-                  </PopoverContent>
-                </Popover>
+                <Input
+                  type="date" 
+                  value={localFilters.dateRange.to ? format(localFilters.dateRange.to, "yyyy-MM-dd") : ""}
+                  onChange={(e) => setLocalFilters(prev => ({
+                    ...prev,
+                    dateRange: { ...prev.dateRange, to: e.target.value ? new Date(e.target.value) : undefined }
+                  }))}
+                  className="w-full"
+                />
               </div>
             </div>
           </div>
