@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, ExternalLink, Calendar, Tag, MapPin, Download, ChevronLeft, ChevronRight, ExternalLinkIcon, Upload, AlertTriangle } from 'lucide-react';
+import { X, ExternalLink, Calendar, Tag, MapPin, Download, ChevronLeft, ChevronRight, ExternalLinkIcon, Upload, AlertTriangle, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -261,8 +261,14 @@ const PreviewDrawer = ({ open, onOpenChange, item }: PreviewDrawerProps) => {
 
           {/* Actions */}
           <div className="flex gap-2 pt-4 border-t">
+            <Button asChild>
+              <Link to={`/search?itemId=${item.id}`} className="flex items-center gap-2">
+                <MessageCircle size={16} />
+                Open in Chat
+              </Link>
+            </Button>
             {item.type === 'Link' && (
-              <Button asChild>
+              <Button asChild variant="outline">
                 <a href={item.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
                   <ExternalLink size={16} />
                   Open Link

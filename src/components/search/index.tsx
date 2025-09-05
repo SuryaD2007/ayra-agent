@@ -1,15 +1,21 @@
 
 import React, { useState, useEffect } from 'react';
-import { SearchIcon } from 'lucide-react';
+import { SearchIcon, ArrowLeft, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Chat, ChatMessage } from '@/types/chat';
 import { generateId, createNewChat as createNewChatUtil } from '@/utils/chatUtils';
 import ChatSidebar from './ChatSidebar';
 import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
 import { cn } from '@/lib/utils';
+import { Link } from 'react-router-dom';
 
-export const Search: React.FC = () => {
+interface SearchProps {
+  itemId?: string | null;
+}
+
+export const Search: React.FC<SearchProps> = ({ itemId }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const [chats, setChats] = useState<Chat[]>([]);
@@ -17,15 +23,42 @@ export const Search: React.FC = () => {
   const [isEditingTitle, setIsEditingTitle] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [showSidebar, setShowSidebar] = useState(true);
+  const [preloadedItem, setPreloadedItem] = useState<any>(null);
+  
+  // Load preloaded item if itemId is provided
+  useEffect(() => {
+    if (itemId) {
+      const stored = localStorage.getItem('cortex-items');
+      if (stored) {
+        const items = JSON.parse(stored);
+        const item = items.find((item: any) => item.id === itemId);
+        if (item) {
+          setPreloadedItem(item);
+        }
+      }
+    }
+  }, [itemId]);
   
   // Initialize with a sample chat on first render
   useEffect(() => {
     if (chats.length === 0) {
       const newChat = createNewChatUtil();
+      // If we have a preloaded item, add a system context message
+      if (preloadedItem) {
+        const contextContent = getItemContent(preloadedItem);
+        const systemMessage: ChatMessage = {
+          id: generateId(),
+          type: 'assistant',
+          content: `I have access to: "${preloadedItem.title}" (${preloadedItem.type}). Feel free to ask questions about this content.`,
+          timestamp: new Date()
+        };
+        newChat.messages = [systemMessage];
+        newChat.title = `Chat about: ${preloadedItem.title}`;
+      }
       setChats([newChat]);
       setActiveChat(newChat);
     }
-  }, []);
+  }, [preloadedItem]);
 
   // Create a new chat
   const createNewChat = () => {
@@ -143,6 +176,18 @@ export const Search: React.FC = () => {
     }
   };
 
+  // Get content from item for context
+  const getItemContent = (item: any) => {
+    if (item.type === 'Note') {
+      return item.content || item.description || '';
+    } else if (item.type === 'PDF') {
+      return item.extractedText || item.description || `PDF document: ${item.title}`;
+    } else if (item.type === 'Link') {
+      return item.summary || item.description || `Link: ${item.url}`;
+    }
+    return item.description || '';
+  };
+
   // Toggle sidebar
   const toggleSidebar = () => {
     setShowSidebar(!showSidebar);
@@ -168,18 +213,40 @@ export const Search: React.FC = () => {
       {/* Main chat area */}
       <div className="flex-1 flex flex-col">
         {/* Header with toggle */}
-        <div className="border-b py-2 px-4 flex items-center">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={toggleSidebar}
-            className="mr-2"
-          >
-            <SearchIcon size={18} />
-          </Button>
-          <h2 className="font-medium">
-            {activeChat?.title || 'Universal Search'}
-          </h2>
+        <div className="border-b py-2 px-4 flex items-center justify-between">
+          <div className="flex items-center">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={toggleSidebar}
+              className="mr-2"
+            >
+              <SearchIcon size={18} />
+            </Button>
+            <h2 className="font-medium">
+              {activeChat?.title || 'Universal Search'}
+            </h2>
+          </div>
+          
+          {/* Preloaded item chip */}
+          {preloadedItem && (
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="flex items-center gap-1">
+                {preloadedItem.type === 'Note' && '📝'}
+                {preloadedItem.type === 'PDF' && '📄'}
+                {preloadedItem.type === 'Link' && '🔗'}
+                {preloadedItem.type === 'Image' && '🖼️'}
+                <span className="max-w-[150px] truncate">{preloadedItem.title}</span>
+                <span className="text-xs text-muted-foreground">• {preloadedItem.type}</span>
+              </Badge>
+              <Button asChild variant="ghost" size="sm">
+                <Link to={`/manage?itemId=${preloadedItem.id}`} className="flex items-center gap-1">
+                  <ArrowLeft size={14} />
+                  Back to Library
+                </Link>
+              </Button>
+            </div>
+          )}
         </div>
         
         {/* Chat messages area */}
