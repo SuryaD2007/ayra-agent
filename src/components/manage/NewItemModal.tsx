@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Upload, Link as LinkIcon, FileText, X, Globe } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { useEditor, EditorContent } from '@tiptap/react';
@@ -34,6 +34,7 @@ interface NewItemModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onItemCreated: (item: any) => void;
+  preselectedSpace?: string | null;
 }
 
 interface FormData {
@@ -47,7 +48,7 @@ interface FormData {
   file?: File;
 }
 
-const NewItemModal = ({ open, onOpenChange, onItemCreated }: NewItemModalProps) => {
+const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: NewItemModalProps) => {
   const [activeTab, setActiveTab] = useState('note');
   const [formData, setFormData] = useState<FormData>({
     title: '',
@@ -58,6 +59,24 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated }: NewItemModalProps) 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
+  const [customSpaces, setCustomSpaces] = useState<any[]>([]);
+
+  // Load custom spaces and handle preselected space
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('custom-spaces');
+      if (saved) {
+        setCustomSpaces(JSON.parse(saved));
+      }
+    } catch (error) {
+      console.error('Error loading custom spaces:', error);
+    }
+
+    // Set preselected space if provided
+    if (preselectedSpace) {
+      setFormData(prev => ({ ...prev, space: preselectedSpace }));
+    }
+  }, [preselectedSpace]);
 
   // Rich text editor for notes
   const editor = useEditor({
@@ -383,11 +402,16 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated }: NewItemModalProps) 
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-popover border border-border shadow-lg z-50">
                 <SelectItem value="Personal">Personal</SelectItem>
                 <SelectItem value="Work">Work</SelectItem>
                 <SelectItem value="School">School</SelectItem>
                 <SelectItem value="Team">Team</SelectItem>
+                {customSpaces.map((space) => (
+                  <SelectItem key={space.id} value={space.id}>
+                    {space.emoji} {space.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

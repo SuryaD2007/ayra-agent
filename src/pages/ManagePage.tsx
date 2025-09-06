@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { AnimatedTransition } from '@/components/AnimatedTransition';
 import { useAnimateIn } from '@/lib/animations';
 import CortexTable from '@/components/manage/CortexTable';
@@ -8,12 +9,15 @@ import ViewSwitcher from '@/components/manage/ViewSwitcher';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Check, Edit2, X } from 'lucide-react';
+import { Check, Edit2, X, Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Toaster } from 'sonner';
+import NewItemModal from '@/components/manage/NewItemModal';
 
 const ManagePage = () => {
   const showContent = useAnimateIn(false, 300);
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [viewType, setViewType] = useState<'table' | 'grid' | 'list' | 'kanban'>('table');
   const [libraryTitle, setLibraryTitle] = useState('Cortex Library');
   const [isEditing, setIsEditing] = useState(false);
@@ -21,6 +25,40 @@ const ManagePage = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('private');
   const [selectedItem, setSelectedItem] = useState<string | null>('overview');
+  const [selectedSpace, setSelectedSpace] = useState<string | null>(null);
+  const [newItemModalOpen, setNewItemModalOpen] = useState(false);
+  const [customSpaces, setCustomSpaces] = useState<any[]>([]);
+
+  // Load custom spaces and handle URL params
+  useEffect(() => {
+    // Load custom spaces
+    try {
+      const saved = localStorage.getItem('custom-spaces');
+      if (saved) {
+        setCustomSpaces(JSON.parse(saved));
+      }
+    } catch (error) {
+      console.error('Error loading custom spaces:', error);
+    }
+
+    // Handle URL params
+    const spaceParam = searchParams.get('space');
+    const itemParam = searchParams.get('itemId');
+    
+    if (spaceParam) {
+      setSelectedSpace(spaceParam);
+      // Find the space and set appropriate category
+      const saved = localStorage.getItem('custom-spaces');
+      if (saved) {
+        const spaces = JSON.parse(saved);
+        const space = spaces.find((s: any) => s.slug === spaceParam);
+        if (space) {
+          setSelectedCategory(space.visibility === 'Private' ? 'private' : 'team');
+          setSelectedItem(space.id);
+        }
+      }
+    }
+  }, [searchParams]);
 
   const handleEditClick = () => {
     setTempTitle(libraryTitle);
@@ -50,9 +88,40 @@ const ManagePage = () => {
     }
   };
 
-  const handleCortexSelect = (categoryId: string, itemId: string | null) => {
+  const handleCortexSelect = (categoryId: string, itemId: string | null, spaceSlug?: string) => {
     setSelectedCategory(categoryId);
     setSelectedItem(itemId);
+    setSelectedSpace(spaceSlug || null);
+    
+    // Update URL if it's a custom space
+    if (spaceSlug) {
+      navigate(`/manage?space=${spaceSlug}`, { replace: true });
+    } else {
+      navigate('/manage', { replace: true });
+    }
+  };
+
+  // Check if current selection is a custom space with no items
+  const isEmptyCustomSpace = () => {
+    if (!selectedSpace || !selectedItem) return false;
+    
+    const space = customSpaces.find(s => s.id === selectedItem);
+    if (!space) return false;
+    
+    // Check if space has any items (this would be from cortex-items localStorage)
+    try {
+      const items = JSON.parse(localStorage.getItem('cortex-items') || '[]');
+      const spaceItems = items.filter((item: any) => item.spaceId === space.id);
+      return spaceItems.length === 0;
+    } catch {
+      return true;
+    }
+  };
+
+  const getCurrentSpaceName = () => {
+    if (!selectedSpace || !selectedItem) return null;
+    const space = customSpaces.find(s => s.id === selectedItem);
+    return space ? `${space.emoji} ${space.name}` : null;
   };
 
   // Handle keyboard events for inline editing
@@ -73,6 +142,7 @@ const ManagePage = () => {
             onCortexSelect={handleCortexSelect}
             selectedCategoryId={selectedCategory}
             selectedItemId={selectedItem}
+            selectedSpace={selectedSpace}
           />
           <div className="flex-1 overflow-x-auto">
             <div className="flex items-center justify-between px-4 py-2 border-b border-border/50">
@@ -109,11 +179,30 @@ const ManagePage = () => {
                 <ViewSwitcher activeView={viewType} onViewChange={setViewType} />
               </TooltipProvider>
             </div>
-            <CortexTable 
-              viewType={viewType} 
-              categoryId={selectedCategory}
-              cortexId={selectedItem}
-            />
+            {isEmptyCustomSpace() ? (
+              // Empty state for custom spaces
+              <div className="flex-1 flex items-center justify-center">
+                <div className="text-center max-w-md">
+                  <div className="text-6xl mb-4">📦</div>
+                  <h3 className="text-xl font-semibold mb-2">
+                    Add your first item to {getCurrentSpaceName()}
+                  </h3>
+                  <p className="text-muted-foreground mb-6">
+                    Start building your knowledge base by adding notes, PDFs, links, or images to this space.
+                  </p>
+                  <Button onClick={() => setNewItemModalOpen(true)}>
+                    <Plus size={16} className="mr-2" />
+                    Add First Item
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <CortexTable 
+                viewType={viewType} 
+                categoryId={selectedCategory}
+                cortexId={selectedItem}
+              />
+            )}
           </div>
         </div>
       </AnimatedTransition>
@@ -141,6 +230,18 @@ const ManagePage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* New Item Modal for empty state */}
+      <NewItemModal
+        open={newItemModalOpen}
+        onOpenChange={setNewItemModalOpen}
+        onItemCreated={() => {
+          setNewItemModalOpen(false);
+          // Refresh the view
+          window.location.reload();
+        }}
+        preselectedSpace={selectedItem}
+      />
     </div>
   );
 };
