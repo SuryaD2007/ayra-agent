@@ -21,6 +21,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
   const [migrationInProgress, setMigrationInProgress] = useState(false);
 
   // Convert base64 dataUrl to Blob
@@ -209,6 +210,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        setInitialized(true);
 
         // Trigger migration when user logs in
         if (session?.user && event === 'SIGNED_IN') {
@@ -224,6 +226,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      setInitialized(true);
 
       // Trigger migration for existing session
       if (session?.user) {
@@ -262,6 +265,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Clear all caches on logout
     DataCache.clear();
   };
+
+  // Don't render children until auth is initialized
+  if (!initialized) {
+    return null;
+  }
 
   return (
     <AuthContext.Provider value={{ 
