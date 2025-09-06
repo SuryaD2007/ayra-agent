@@ -111,12 +111,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           if (payload.type === 'pdf' && localItem.dataUrl) {
             try {
               const blob = dataUrlToBlob(localItem.dataUrl);
-              const file = new File([blob], localItem.title || 'document.pdf', { 
+              // Use original filename if available, fallback to generated name
+              const originalName = localItem.fileName || localItem.title || 'document.pdf';
+              const file = new File([blob], originalName, { 
                 type: 'application/pdf' 
               });
               payload.file = file;
             } catch (error) {
               console.warn('Failed to convert dataUrl to file:', error);
+              failedItems.push(localItem);
+              continue; // Skip this item
             }
           }
 

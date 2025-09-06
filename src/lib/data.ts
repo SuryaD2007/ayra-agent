@@ -60,6 +60,73 @@ export class AuthError extends Error {
   }
 }
 
+export class FileUploadError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'FileUploadError';
+  }
+}
+
+// Validate file upload path format
+const validateFileUploadPath = (userId: string, fileName: string): { isValid: boolean; error?: string } => {
+  // Check if filename is valid
+  if (!fileName || fileName.trim() === '') {
+    return { isValid: false, error: 'File name cannot be empty' };
+  }
+
+  // Check for invalid characters in filename
+  const invalidChars = /[<>:"/\\|?*\x00-\x1f]/;
+  if (invalidChars.test(fileName)) {
+    return { isValid: false, error: 'File name contains invalid characters' };
+  }
+
+  // Check if userId is valid UUID format
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(userId)) {
+    return { isValid: false, error: 'Invalid user ID format' };
+  }
+
+  // Validate file extension exists
+  if (!fileName.includes('.')) {
+    return { isValid: false, error: 'File must have a valid extension' };
+  }
+
+  return { isValid: true };
+};
+
+// Generate validated file path
+const generateValidatedFilePath = (userId: string, originalFileName: string): string => {
+  const validation = validateFileUploadPath(userId, originalFileName);
+  if (!validation.isValid) {
+    throw new FileUploadError(validation.error || 'Invalid file upload parameters');
+  }
+
+  // Generate UUID for filename prefix
+  const uuid = crypto.randomUUID();
+  
+  // Sanitize filename - remove any path separators and invalid chars
+  const sanitizedFileName = originalFileName
+    .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_')
+    .replace(/^\.+/, '') // Remove leading dots
+    .trim();
+
+  if (!sanitizedFileName) {
+    throw new FileUploadError('File name is invalid after sanitization');
+  }
+
+  // Construct the path: user_id/uuid-filename
+  const fileName = `${uuid}-${sanitizedFileName}`;
+  const filePath = `${userId}/${fileName}`;
+
+  // Final validation - ensure path matches expected format
+  const expectedFormat = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-.+$/i;
+  if (!expectedFormat.test(filePath)) {
+    throw new FileUploadError(`Generated file path "${filePath}" does not match required format: ayra-files/<user_id>/<uuid>-<filename>`);
+  }
+
+  return filePath;
+};
+
 // Check if error is auth related (401/403)
 const isAuthError = (error: any): boolean => {
   if (error?.code) {
@@ -271,21 +338,35 @@ export async function createItem(payload: any): Promise<Item> {
     // Handle file upload if present
     if (payload.file) {
       const file = payload.file;
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${crypto.randomUUID()}-${file.name}`;
-      const filePath = `${user.id}/${fileName}`;
+      
+      try {
+        // Validate and generate file path with strict format enforcement
+        const filePath = generateValidatedFilePath(user.id, file.name);
+        
+        console.log(`Uploading file to: ayra-files/${filePath}`);
+        
+        const { error: uploadError } = await supabase.storage
+          .from('ayra-files')
+          .upload(filePath, file);
 
-      const { error: uploadError } = await supabase.storage
-        .from('ayra-files')
-        .upload(filePath, file);
+        if (uploadError) {
+          console.error('File upload error:', uploadError);
+          throw new FileUploadError(`Failed to upload file: ${uploadError.message}`);
+        }
 
-      if (uploadError) throw uploadError;
-
-      fileData = {
-        file_path: filePath,
-        mime_type: file.type,
-        size_bytes: file.size
-      };
+        fileData = {
+          file_path: filePath,
+          mime_type: file.type,
+          size_bytes: file.size
+        };
+        
+        console.log(`File uploaded successfully to: ayra-files/${filePath}`);
+      } catch (error) {
+        if (error instanceof FileUploadError) {
+          throw error; // Re-throw file upload errors with original message
+        }
+        throw new FileUploadError(`File upload validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     }
 
     // Extract/enhance content based on type

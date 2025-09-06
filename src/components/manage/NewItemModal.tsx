@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
+import { AuthError, FileUploadError, createItem } from '@/lib/data';
 
 interface NewItemModalProps {
   open: boolean;
@@ -302,21 +303,32 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: N
 
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      const newItem = {
-        id: Date.now().toString(),
+      const payload = {
         title: formData.title,
-        type: activeTab === 'note' ? 'Note' : activeTab === 'pdf' ? 'PDF' : 'Link',
-        url: activeTab === 'link' ? formData.url : `/preview/${Date.now()}`,
-        createdDate: new Date().toISOString().split('T')[0],
-        source: activeTab === 'pdf' ? 'Upload' : activeTab === 'link' ? new URL(formData.url!).hostname : 'Upload',
+        type: activeTab,
+        content: activeTab === 'note' ? editor?.getHTML() || '' : formData.content,
+        source: activeTab === 'link' ? formData.url : 'Upload',
+        spaceId: formData.space === 'custom' ? preselectedSpace : undefined,
+        tags: formData.tags,
+        ...(activeTab === 'link' && { url: formData.url }),
+        ...(activeTab === 'pdf' && formData.file && { file: formData.file })
+      };
+
+      // Create the item using our data layer
+      const createdItem = await createItem(payload);
+      
+      // Convert to CortexItem format for compatibility
+      const newItem = {
+        id: createdItem.id,
+        title: createdItem.title,
+        type: createdItem.type.charAt(0).toUpperCase() + createdItem.type.slice(1).toLowerCase() as 'Note' | 'PDF' | 'Link' | 'Image',
+        url: createdItem.file_path || `/preview/${createdItem.id}`,
+        createdDate: new Date(createdItem.created_at).toISOString().split('T')[0],
+        source: createdItem.source || 'Upload',
         keywords: formData.tags,
         space: formData.space,
-        content: formData.content,
-        description: formData.description,
-        favicon: formData.favicon,
+        content: createdItem.content,
+        description: createdItem.content?.substring(0, 150),
       };
 
       onItemCreated(newItem);
@@ -337,12 +349,29 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: N
       editor?.commands.clearContent();
       setErrors({});
       onOpenChange(false);
+      
     } catch (error) {
-      toast({
-        title: 'Failed to create item',
-        description: 'Please try again.',
-        variant: 'destructive',
-      });
+      console.error('Error creating item:', error);
+      
+      if (error instanceof FileUploadError) {
+        toast({
+          title: "File upload failed",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else if (error instanceof AuthError) {
+        toast({
+          title: "Authentication required",
+          description: "Please sign in to create items.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Error creating item",
+          description: "Something went wrong. Please try again.",
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsLoading(false);
     }
