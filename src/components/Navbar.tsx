@@ -122,7 +122,7 @@ export const Navbar = () => {
   const [active, setActive] = useState('what');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isNewItemModalOpen, setIsNewItemModalOpen] = useState(false);
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, logout, loading } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [searchParams] = useSearchParams();
   
@@ -259,7 +259,12 @@ export const Navbar = () => {
               </TooltipContent>
             </Tooltip>
             
-            {isAuthenticated ? (
+            {loading ? (
+              // Show loading state while auth is initializing
+              <div className="w-10 h-10 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+              </div>
+            ) : isAuthenticated ? (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
