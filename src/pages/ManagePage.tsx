@@ -3,13 +3,14 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { AnimatedTransition } from '@/components/AnimatedTransition';
 import { useAnimateIn } from '@/lib/animations';
+import { useLibraryTitle } from '@/hooks/useLibraryTitle';
 import CortexTable from '@/components/manage/CortexTable';
 import CortexSidebar from '@/components/manage/CortexSidebar';
 import ViewSwitcher from '@/components/manage/ViewSwitcher';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Check, Edit2, X, Plus } from 'lucide-react';
+import { Check, Edit2, X, Plus, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Toaster } from 'sonner';
 import NewItemModal from '@/components/manage/NewItemModal';
@@ -19,15 +20,26 @@ const ManagePage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [viewType, setViewType] = useState<'table' | 'grid' | 'list' | 'kanban'>('table');
-  const [libraryTitle, setLibraryTitle] = useState('Cortex Library');
-  const [isEditing, setIsEditing] = useState(false);
-  const [tempTitle, setTempTitle] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('private');
   const [selectedItem, setSelectedItem] = useState<string | null>('overview');
   const [selectedSpace, setSelectedSpace] = useState<string | null>(null);
   const [newItemModalOpen, setNewItemModalOpen] = useState(false);
   const [customSpaces, setCustomSpaces] = useState<any[]>([]);
+  
+  // Use the enhanced title editing hook
+  const {
+    libraryTitle,
+    isEditing,
+    tempTitle,
+    isSaving,
+    showSuccess,
+    setTempTitle,
+    handleBlur,
+    handleKeyDown,
+    handleDoubleClick,
+    cancelEdit,
+  } = useLibraryTitle();
 
   // Load custom spaces and handle URL params
   useEffect(() => {
@@ -60,30 +72,8 @@ const ManagePage = () => {
     }
   }, [searchParams]);
 
-  const handleEditClick = () => {
-    setTempTitle(libraryTitle);
-    setIsEditing(true);
-  };
-
-  const handleSaveClick = () => {
-    if (tempTitle.trim()) {
-      setLibraryTitle(tempTitle);
-      setIsEditing(false);
-    }
-  };
-
-  const handleCancelClick = () => {
-    setIsEditing(false);
-  };
-
-  const handleDialogOpen = () => {
-    setTempTitle(libraryTitle);
-    setDialogOpen(true);
-  };
-
   const handleDialogSave = () => {
     if (tempTitle.trim()) {
-      setLibraryTitle(tempTitle);
       setDialogOpen(false);
     }
   };
@@ -100,6 +90,7 @@ const ManagePage = () => {
       navigate('/manage', { replace: true });
     }
   };
+
 
   // Check if current selection is a custom space with no items
   const isEmptyCustomSpace = () => {
@@ -124,15 +115,6 @@ const ManagePage = () => {
     return space ? `${space.emoji} ${space.name}` : null;
   };
 
-  // Handle keyboard events for inline editing
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleSaveClick();
-    } else if (e.key === 'Escape') {
-      handleCancelClick();
-    }
-  };
-
   return (
     <div className="max-w-full mx-auto h-screen pt-24 pb-6">
       <Toaster position="top-right" />
@@ -152,27 +134,32 @@ const ManagePage = () => {
                     value={tempTitle}
                     onChange={(e) => setTempTitle(e.target.value)}
                     onKeyDown={handleKeyDown}
+                    onBlur={handleBlur}
                     className="h-8 text-xl font-semibold w-64"
                     autoFocus
                   />
-                  <Button size="icon" variant="ghost" onClick={handleSaveClick}>
-                    <Check size={18} className="text-green-500" />
-                  </Button>
-                  <Button size="icon" variant="ghost" onClick={handleCancelClick}>
+                  {isSaving && (
+                    <Loader2 size={16} className="animate-spin text-muted-foreground" />
+                  )}
+                  {showSuccess && (
+                    <Check size={16} className="text-green-500" />
+                  )}
+                  <Button size="icon" variant="ghost" onClick={cancelEdit}>
                     <X size={18} className="text-red-500" />
                   </Button>
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <h2 className="text-xl font-semibold">{libraryTitle}</h2>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={handleEditClick}
-                    className="h-8 w-8"
+                  <h2 
+                    className="text-xl font-semibold cursor-pointer hover:bg-muted/50 px-2 py-1 rounded transition-colors"
+                    onDoubleClick={handleDoubleClick}
+                    title="Double-click to edit"
                   >
-                    <Edit2 size={14} />
-                  </Button>
+                    {libraryTitle}
+                  </h2>
+                  {showSuccess && (
+                    <Check size={16} className="text-green-500" />
+                  )}
                 </div>
               )}
               <TooltipProvider>

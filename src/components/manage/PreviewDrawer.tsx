@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, ExternalLink, Calendar, Tag, MapPin, Download, ChevronLeft, ChevronRight, ExternalLinkIcon, Upload, AlertTriangle, MessageCircle, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -36,6 +36,29 @@ interface PreviewDrawerProps {
 
 const PreviewDrawer = ({ open, onOpenChange, item, onDelete }: PreviewDrawerProps) => {
   const [pdfError, setPdfError] = useState(false);
+  const [libraryTitle, setLibraryTitle] = useState('Cortex Library');
+
+  // Listen for library title changes
+  useEffect(() => {
+    const handleTitleChange = (event: CustomEvent) => {
+      setLibraryTitle(event.detail.title);
+    };
+
+    // Load initial title
+    try {
+      const savedTitle = localStorage.getItem('cortex-library-title');
+      if (savedTitle) {
+        setLibraryTitle(savedTitle);
+      }
+    } catch (error) {
+      console.error('Error loading library title:', error);
+    }
+
+    window.addEventListener('libraryTitleChanged', handleTitleChange as EventListener);
+    return () => {
+      window.removeEventListener('libraryTitleChanged', handleTitleChange as EventListener);
+    };
+  }, []);
 
   if (!item) return null;
 
@@ -112,6 +135,8 @@ const PreviewDrawer = ({ open, onOpenChange, item, onDelete }: PreviewDrawerProp
                 <Badge className={getTypeColor(item.type)}>
                   {item.type}
                 </Badge>
+                <span className="text-xs text-muted-foreground">• {libraryTitle}</span>
+                <span className="text-xs text-muted-foreground">• {libraryTitle}</span>
               </div>
               <SheetTitle className="text-xl leading-tight pr-8">
                 {item.title}
