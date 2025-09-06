@@ -1,15 +1,18 @@
 
 import React, { useState, useEffect } from 'react';
-import { SearchIcon, ArrowLeft, X } from 'lucide-react';
+import { SearchIcon, ArrowLeft, X, AlertTriangle, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Chat, ChatMessage } from '@/types/chat';
 import { generateId, createNewChat as createNewChatUtil } from '@/utils/chatUtils';
+import { CortexItem } from '@/components/manage/cortex-data';
 import ChatSidebar from './ChatSidebar';
 import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
+import { toast } from '@/hooks/use-toast';
 
 interface SearchProps {
   itemId?: string | null;
@@ -23,18 +26,35 @@ export const Search: React.FC<SearchProps> = ({ itemId }) => {
   const [isEditingTitle, setIsEditingTitle] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [showSidebar, setShowSidebar] = useState(true);
-  const [preloadedItem, setPreloadedItem] = useState<any>(null);
+  const [preloadedItem, setPreloadedItem] = useState<CortexItem | null>(null);
+  const [isItemDeleted, setIsItemDeleted] = useState(false);
   
   // Load preloaded item if itemId is provided
   useEffect(() => {
     if (itemId) {
-      const stored = localStorage.getItem('cortex-items');
-      if (stored) {
-        const items = JSON.parse(stored);
-        const item = items.find((item: any) => item.id === itemId);
-        if (item) {
-          setPreloadedItem(item);
+      try {
+        const stored = localStorage.getItem('cortex-items');
+        if (stored) {
+          const items: CortexItem[] = JSON.parse(stored);
+          const item = items.find((item: CortexItem) => item.id === itemId);
+          if (item) {
+            setPreloadedItem(item);
+            setIsItemDeleted(false);
+          } else {
+            // Check if item was recently deleted
+            const deletedItems = localStorage.getItem('recently-deleted-items');
+            if (deletedItems) {
+              const deleted: CortexItem[] = JSON.parse(deletedItems);
+              const deletedItem = deleted.find(item => item.id === itemId);
+              if (deletedItem) {
+                setPreloadedItem(deletedItem);
+                setIsItemDeleted(true);
+              }
+            }
+          }
         }
+      } catch (error) {
+        console.error('Error loading preloaded item:', error);
       }
     }
   }, [itemId]);
@@ -177,15 +197,47 @@ export const Search: React.FC<SearchProps> = ({ itemId }) => {
   };
 
   // Get content from item for context
-  const getItemContent = (item: any) => {
+  const getItemContent = (item: CortexItem) => {
     if (item.type === 'Note') {
       return item.content || item.description || '';
     } else if (item.type === 'PDF') {
-      return item.extractedText || item.description || `PDF document: ${item.title}`;
+      return item.content || item.description || `PDF document: ${item.title}`;
     } else if (item.type === 'Link') {
-      return item.summary || item.description || `Link: ${item.url}`;
+      return item.content || item.description || `Link: ${item.url}`;
     }
     return item.description || '';
+  };
+
+  const handleRestoreItem = () => {
+    if (!preloadedItem) return;
+    
+    try {
+      const saved = localStorage.getItem('cortex-items');
+      const items: CortexItem[] = saved ? JSON.parse(saved) : [];
+      const updatedItems = [preloadedItem, ...items];
+      localStorage.setItem('cortex-items', JSON.stringify(updatedItems));
+      
+      // Remove from recently deleted
+      const deletedItems = localStorage.getItem('recently-deleted-items');
+      if (deletedItems) {
+        const deleted: CortexItem[] = JSON.parse(deletedItems);
+        const filtered = deleted.filter(i => i.id !== preloadedItem.id);
+        localStorage.setItem('recently-deleted-items', JSON.stringify(filtered));
+      }
+      
+      setIsItemDeleted(false);
+      toast({
+        title: "Item restored",
+        description: "The item has been restored to your library.",
+      });
+    } catch (error) {
+      console.error('Error restoring item:', error);
+      toast({
+        title: "Error",
+        description: "Failed to restore the item.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Toggle sidebar
@@ -195,6 +247,24 @@ export const Search: React.FC<SearchProps> = ({ itemId }) => {
 
   return (
     <div className="w-full h-[calc(100vh-120px)] flex">
+      {/* Deleted Item Banner */}
+      {isItemDeleted && preloadedItem && (
+        <div className="absolute top-0 left-0 right-0 z-10">
+          <Alert className="mx-4 mt-4 border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950">
+            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <AlertDescription className="flex items-center justify-between">
+              <span className="text-amber-800 dark:text-amber-200">
+                This item was deleted
+              </span>
+              <Button size="sm" variant="outline" onClick={handleRestoreItem}>
+                <RotateCcw size={14} className="mr-1" />
+                Restore
+              </Button>
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
+      
       {/* Sidebar with chat history */}
       <ChatSidebar 
         chats={chats}

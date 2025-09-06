@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Move, Plus, MoreHorizontal } from 'lucide-react';
+import { Search, Filter, Move, Plus, MoreHorizontal, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import TableView from './views/TableView';
 import GridView from './views/GridView';
 import ListView from './views/ListView';
@@ -41,12 +51,14 @@ const CortexTable = ({
 }: CortexTableProps) => {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [targetCortex, setTargetCortex] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [newItemModalOpen, setNewItemModalOpen] = useState(false);
   const [previewDrawerOpen, setPreviewDrawerOpen] = useState(false);
   const [previewItem, setPreviewItem] = useState<CortexItem | null>(null);
+  const [deletedItems, setDeletedItems] = useState<CortexItem[]>([]);
   // Load items from localStorage or use initial data as fallback
   const [cortexItems, setCortexItems] = useState<CortexItem[]>(() => {
     try {
@@ -130,6 +142,46 @@ const CortexTable = ({
     setPreviewDrawerOpen(true);
   };
 
+  const handleDeleteItems = () => {
+    const itemsToDelete = cortexItems.filter(item => selectedItems.includes(item.id));
+    setDeletedItems(itemsToDelete);
+    
+    // Optimistically remove from UI
+    setCortexItems(prev => prev.filter(item => !selectedItems.includes(item.id)));
+    
+    // Show undo toast
+    const count = selectedItems.length;
+    toast({
+      title: `Deleted ${count} item(s)`,
+      description: "Undo",
+      action: (
+        <Button 
+          size="sm" 
+          variant="outline" 
+          onClick={handleUndoDelete}
+          className="ml-auto"
+        >
+          Undo
+        </Button>
+      ),
+      duration: 6000,
+    });
+    
+    setSelectedItems([]);
+    setDeleteDialogOpen(false);
+  };
+
+  const handleUndoDelete = () => {
+    if (deletedItems.length > 0) {
+      setCortexItems(prev => [...deletedItems, ...prev]);
+      setDeletedItems([]);
+      toast({
+        title: "Items restored",
+        description: `${deletedItems.length} item(s) have been restored.`,
+      });
+    }
+  };
+
   const EmptyState = () => (
     <div className="flex flex-col items-center justify-center py-12 text-center">
       <div className="text-muted-foreground mb-4">
@@ -199,6 +251,16 @@ const CortexTable = ({
             >
               <Move size={16} className="mr-1" />
               Move ({selectedItems.length})
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setDeleteDialogOpen(true)}
+              disabled={selectedItems.length === 0}
+            >
+              <Trash2 size={16} className="mr-1" />
+              Delete ({selectedItems.length})
             </Button>
             
             <Button variant="outline" size="sm" onClick={() => setNewItemModalOpen(true)}>
@@ -297,6 +359,23 @@ const CortexTable = ({
         </DialogContent>
       </Dialog>
 
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Items</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedItems.length === 1 ? '1 item' : `${selectedItems.length} items`}? 
+              This action can be undone within 6 seconds.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteItems}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* New Item Modal */}
       <NewItemModal
         open={newItemModalOpen}
@@ -309,6 +388,37 @@ const CortexTable = ({
         open={previewDrawerOpen}
         onOpenChange={setPreviewDrawerOpen}
         item={previewItem}
+        onDelete={(item) => {
+          // Convert PreviewItem to CortexItem for deletion
+          const cortexItem: CortexItem = {
+            ...item,
+            space: item.space as 'Personal' | 'Work' | 'School' | 'Team'
+          };
+          setDeletedItems([cortexItem]);
+          setCortexItems(prev => prev.filter(i => i.id !== item.id));
+          
+          // Store deleted item temporarily for undo
+          const deletedItems = localStorage.getItem('recently-deleted-items');
+          const deleted: CortexItem[] = deletedItems ? JSON.parse(deletedItems) : [];
+          localStorage.setItem('recently-deleted-items', JSON.stringify([cortexItem, ...deleted]));
+          
+          toast({
+            title: "Deleted 1 item",
+            description: "Undo",
+            action: (
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={handleUndoDelete}
+                className="ml-auto"
+              >
+                Undo
+              </Button>
+            ),
+            duration: 6000,
+          });
+          setPreviewDrawerOpen(false);
+        }}
       />
     </div>
   );

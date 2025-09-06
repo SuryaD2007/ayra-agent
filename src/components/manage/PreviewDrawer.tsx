@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, ExternalLink, Calendar, Tag, MapPin, Download, ChevronLeft, ChevronRight, ExternalLinkIcon, Upload, AlertTriangle, MessageCircle } from 'lucide-react';
+import { X, ExternalLink, Calendar, Tag, MapPin, Download, ChevronLeft, ChevronRight, ExternalLinkIcon, Upload, AlertTriangle, MessageCircle, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -31,9 +31,10 @@ interface PreviewDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   item: PreviewItem | null;
+  onDelete?: (item: PreviewItem) => void;
 }
 
-const PreviewDrawer = ({ open, onOpenChange, item }: PreviewDrawerProps) => {
+const PreviewDrawer = ({ open, onOpenChange, item, onDelete }: PreviewDrawerProps) => {
   const [pdfError, setPdfError] = useState(false);
 
   if (!item) return null;
@@ -281,6 +282,16 @@ const PreviewDrawer = ({ open, onOpenChange, item }: PreviewDrawerProps) => {
                   <ExternalLink size={16} />
                   View PDF
                 </Link>
+              </Button>
+            )}
+            {onDelete && (
+              <Button 
+                variant="outline" 
+                onClick={() => onDelete(item)}
+                className="flex items-center gap-2 text-destructive hover:text-destructive"
+              >
+                <Trash2 size={16} />
+                Delete
               </Button>
             )}
           </div>

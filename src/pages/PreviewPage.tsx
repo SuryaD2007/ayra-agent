@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { Download, ChevronLeft, ChevronRight, ExternalLinkIcon, ArrowLeft, Upload, AlertTriangle } from 'lucide-react';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
+import { Download, ChevronLeft, ChevronRight, ExternalLinkIcon, ArrowLeft, Upload, AlertTriangle, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -9,9 +9,11 @@ import { toast } from '@/hooks/use-toast';
 
 const PreviewPage = () => {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const [item, setItem] = useState<CortexItem | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [pdfError, setPdfError] = useState(false);
+  const [isDeleted, setIsDeleted] = useState(false);
 
   useEffect(() => {
     if (!id) {
@@ -21,15 +23,33 @@ const PreviewPage = () => {
 
     try {
       const saved = localStorage.getItem('cortex-items');
-      const items: CortexItem[] = saved ? JSON.parse(saved) : [];
-      const foundItem = items.find(item => item.id === id);
-      
-      if (foundItem) {
-        setItem(foundItem);
+      if (saved) {
+        const items: CortexItem[] = JSON.parse(saved);
+        const foundItem = items.find(item => item.id === id);
+        if (foundItem) {
+          setItem(foundItem);
+          setIsDeleted(false);
+        } else {
+          // Check if item was recently deleted
+          const deletedItems = localStorage.getItem('recently-deleted-items');
+          if (deletedItems) {
+            const deleted: CortexItem[] = JSON.parse(deletedItems);
+            const deletedItem = deleted.find(item => item.id === id);
+            if (deletedItem) {
+              setItem(deletedItem);
+              setIsDeleted(true);
+            } else {
+              setNotFound(true);
+            }
+          } else {
+            setNotFound(true);
+          }
+        }
       } else {
         setNotFound(true);
       }
-    } catch {
+    } catch (error) {
+      console.error('Error loading item:', error);
       setNotFound(true);
     }
   }, [id]);
@@ -70,6 +90,38 @@ const PreviewPage = () => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+    }
+  };
+
+  const handleRestoreItem = () => {
+    if (!item) return;
+    
+    try {
+      const saved = localStorage.getItem('cortex-items');
+      const items: CortexItem[] = saved ? JSON.parse(saved) : [];
+      const updatedItems = [item, ...items];
+      localStorage.setItem('cortex-items', JSON.stringify(updatedItems));
+      
+      // Remove from recently deleted
+      const deletedItems = localStorage.getItem('recently-deleted-items');
+      if (deletedItems) {
+        const deleted: CortexItem[] = JSON.parse(deletedItems);
+        const filtered = deleted.filter(i => i.id !== item.id);
+        localStorage.setItem('recently-deleted-items', JSON.stringify(filtered));
+      }
+      
+      setIsDeleted(false);
+      toast({
+        title: "Item restored",
+        description: "The item has been restored to your library.",
+      });
+    } catch (error) {
+      console.error('Error restoring item:', error);
+      toast({
+        title: "Error",
+        description: "Failed to restore the item.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -137,6 +189,22 @@ const PreviewPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Deleted Item Banner */}
+      {isDeleted && (
+        <Alert className="mx-4 mt-4 border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950">
+          <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+          <AlertDescription className="flex items-center justify-between">
+            <span className="text-amber-800 dark:text-amber-200">
+              This item was deleted
+            </span>
+            <Button size="sm" variant="outline" onClick={handleRestoreItem}>
+              <RotateCcw size={14} className="mr-1" />
+              Restore
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
