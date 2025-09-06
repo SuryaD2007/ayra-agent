@@ -48,11 +48,9 @@ export interface GetItemsParams {
 export interface GetItemsResult {
   items: Item[];
   total: number;
-  page: number;
-  pageSize: number;
 }
 
-// Auth error types
+// Error handling
 export class AuthError extends Error {
   constructor(message: string) {
     super(message);
@@ -67,172 +65,143 @@ export class FileUploadError extends Error {
   }
 }
 
-// Validate file upload path format
-const validateFileUploadPath = (userId: string, fileName: string): { isValid: boolean; error?: string } => {
-  // Check if filename is valid
-  if (!fileName || fileName.trim() === '') {
-    return { isValid: false, error: 'File name cannot be empty' };
+// File upload validation and path generation
+function validateFileUploadPath(userId: string, fileName: string): void {
+  if (!userId || typeof userId !== 'string') {
+    throw new FileUploadError('Valid user ID is required for file upload');
   }
-
-  // Check for invalid characters in filename
-  const invalidChars = /[<>:"/\\|?*\x00-\x1f]/;
-  if (invalidChars.test(fileName)) {
-    return { isValid: false, error: 'File name contains invalid characters' };
-  }
-
-  // Check if userId is valid UUID format
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (!uuidRegex.test(userId)) {
-    return { isValid: false, error: 'Invalid user ID format' };
-  }
-
-  // Validate file extension exists
-  if (!fileName.includes('.')) {
-    return { isValid: false, error: 'File must have a valid extension' };
-  }
-
-  return { isValid: true };
-};
-
-// Generate validated file path
-const generateValidatedFilePath = (userId: string, originalFileName: string): string => {
-  const validation = validateFileUploadPath(userId, originalFileName);
-  if (!validation.isValid) {
-    throw new FileUploadError(validation.error || 'Invalid file upload parameters');
-  }
-
-  // Generate UUID for filename prefix
-  const uuid = crypto.randomUUID();
   
-  // Sanitize filename - remove any path separators and invalid chars
-  const sanitizedFileName = originalFileName
-    .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_')
-    .replace(/^\.+/, '') // Remove leading dots
-    .trim();
-
-  if (!sanitizedFileName) {
-    throw new FileUploadError('File name is invalid after sanitization');
+  if (!fileName || typeof fileName !== 'string') {
+    throw new FileUploadError('Valid file name is required');
   }
-
-  // Construct the path: user_id/uuid-filename
-  const fileName = `${uuid}-${sanitizedFileName}`;
-  const filePath = `${userId}/${fileName}`;
-
-  // Final validation - ensure path matches expected format
-  const expectedFormat = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-.+$/i;
-  if (!expectedFormat.test(filePath)) {
-    throw new FileUploadError(`Generated file path "${filePath}" does not match required format: ayra-files/<user_id>/<uuid>-<filename>`);
+  
+  // Check for suspicious patterns
+  if (fileName.includes('..') || fileName.includes('/') || fileName.includes('\\')) {
+    throw new FileUploadError('Invalid characters in file name');
   }
+}
 
-  return filePath;
-};
+function generateValidatedFilePath(userId: string, fileName: string): string {
+  validateFileUploadPath(userId, fileName);
+  
+  // Create a safe, timestamped file path
+  const timestamp = new Date().getTime();
+  const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+  
+  return `${userId}/${timestamp}_${sanitizedFileName}`;
+}
 
-// Check if error is auth related (401/403)
-const isAuthError = (error: any): boolean => {
-  if (error?.code) {
-    return error.code === 'PGRST301' || error.code === 'PGRST302'; // RLS errors
-  }
-  if (error?.message) {
-    return error.message.includes('JWT') || 
-           error.message.includes('auth') ||
-           error.message.includes('401') ||
-           error.message.includes('403') ||
-           error.message.includes('permission');
-  }
-  return false;
-};
+function isAuthError(error: any): boolean {
+  return error?.message?.includes('JWT') || 
+         error?.message?.includes('authentication') ||
+         error?.message?.includes('unauthorized') ||
+         error?.code === 'PGRST301';
+}
 
-// Wrapper for Supabase operations with auth error handling
-const withAuthErrorHandling = async <T>(operation: () => Promise<T>): Promise<T> => {
+async function withAuthErrorHandling<T>(operation: () => Promise<T>): Promise<T> {
   try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      throw new AuthError('Please sign in to access this feature.');
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new AuthError('User not authenticated. Please sign in to continue.');
     }
     
     return await operation();
   } catch (error) {
     if (isAuthError(error)) {
-      throw new AuthError('Please sign in to access this feature.');
+      throw new AuthError('Authentication required. Please sign in to continue.');
     }
     throw error;
   }
-};
+}
 
-// Simple client-side cache
-export class DataCache {
-  private static items: any[] = [];
-  private static spaces: Space[] = [];
-  private static tags: Tag[] = [];
-  private static lastUpdate = 0;
-  private static CACHE_DURATION = 30000; // 30 seconds
+// Simple cache implementation
+class DataCache {
+  private static cache = new Map<string, { data: any; timestamp: number; duration: number }>();
+  private static defaultDuration = 5 * 60 * 1000; // 5 minutes
 
-  static isExpired(): boolean {
-    return Date.now() - this.lastUpdate > this.CACHE_DURATION;
+  static set(key: string, data: any, duration = this.defaultDuration) {
+    this.cache.set(key, {
+      data,
+      timestamp: Date.now(),
+      duration
+    });
   }
 
-  static setItems(items: any[]): void {
-    this.items = items;
-    this.lastUpdate = Date.now();
+  static get(key: string): any | null {
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+
+    if (Date.now() - entry.timestamp > entry.duration) {
+      this.cache.delete(key);
+      return null;
+    }
+
+    return entry.data;
   }
 
-  static getItems(): any[] {
-    return this.isExpired() ? [] : this.items;
+  static clear(key?: string) {
+    if (key) {
+      this.cache.delete(key);
+    } else {
+      this.cache.clear();
+    }
   }
 
-  static setSpaces(spaces: Space[]): void {
-    this.spaces = spaces;
-    this.lastUpdate = Date.now();
+  // Convenience methods for specific data types
+  static setSpaces(data: Space[]) {
+    this.set('spaces', data);
   }
 
-  static getSpaces(): Space[] {
-    return this.isExpired() ? [] : this.spaces;
+  static getSpaces(): Space[] | null {
+    return this.get('spaces');
   }
 
-  static setTags(tags: Tag[]): void {
-    this.tags = tags;
-    this.lastUpdate = Date.now();
+  static setItems(data: Item[]) {
+    this.set('items', data);
   }
 
-  static getTags(): Tag[] {
-    return this.isExpired() ? [] : this.tags;
+  static getItems(): Item[] | null {
+    return this.get('items') || [];
   }
 
-  static clear(): void {
-    this.items = [];
-    this.spaces = [];
-    this.tags = [];
-    this.lastUpdate = 0;
+  static setTags(data: Tag[]) {
+    this.set('tags', data);
+  }
+
+  static getTags(): Tag[] | null {
+    return this.get('tags');
   }
 }
 
-// Spaces CRUD
+export { DataCache };
+
+// Spaces API
 export async function getSpaces(): Promise<Space[]> {
   return withAuthErrorHandling(async () => {
+    // Try cache first
+    const cached = DataCache.getSpaces();
+    if (cached) {
+      return cached;
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new AuthError('User not authenticated');
-
-    // Check cache first
-    const cached = DataCache.getSpaces();
-    if (cached.length > 0) return cached;
 
     const { data, error } = await supabase
       .from('spaces')
       .select('*')
-      .order('created_at', { ascending: false });
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: true });
 
     if (error) throw error;
 
-    const spaces = (data || []).map(space => ({
-      ...space,
-      visibility: space.visibility as 'private' | 'public'
-    }));
+    const spaces = data as Space[];
     DataCache.setSpaces(spaces);
     return spaces;
   });
 }
 
-export async function createSpace(payload: { name: string; emoji?: string; visibility?: 'private' | 'public' }): Promise<Space> {
+export async function createSpace(payload: Omit<Space, 'id' | 'created_at' | 'user_id'>): Promise<Space> {
   return withAuthErrorHandling(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new AuthError('User not authenticated');
@@ -240,9 +209,7 @@ export async function createSpace(payload: { name: string; emoji?: string; visib
     const { data, error } = await supabase
       .from('spaces')
       .insert({
-        name: payload.name,
-        emoji: payload.emoji,
-        visibility: payload.visibility || 'private',
+        ...payload,
         user_id: user.id
       })
       .select()
@@ -251,91 +218,81 @@ export async function createSpace(payload: { name: string; emoji?: string; visib
     if (error) throw error;
 
     // Clear cache to force refresh
-    DataCache.clear();
-    
-    return {
-      ...data,
-      visibility: data.visibility as 'private' | 'public'
-    };
+    DataCache.clear('spaces');
+
+    return data as Space;
   });
 }
 
-// Items CRUD
+// Items API
 export async function getItems(params: GetItemsParams = {}): Promise<GetItemsResult> {
   return withAuthErrorHandling(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new AuthError('User not authenticated');
 
-    const {
-      page = 1,
-      pageSize = 25,
-      type = [],
-      spaceId,
-      tags = [],
-      dateRange = {},
-      search = ''
-    } = params;
-
     let query = supabase
       .from('items')
-      .select('*, item_tags(tag_id)', { count: 'exact' })
-      .is('deleted_at', null);
+      .select('*', { count: 'exact' })
+      .eq('user_id', user.id)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false });
 
     // Apply filters
-    if (type.length > 0) {
-      query = query.in('type', type);
+    if (params.type && params.type.length > 0) {
+      query = query.in('type', params.type);
     }
 
-    if (spaceId) {
-      query = query.eq('space_id', spaceId);
+    if (params.spaceId) {
+      query = query.eq('space_id', params.spaceId);
     }
 
-    if (search) {
-      query = query.or(`title.ilike.%${search}%,content.ilike.%${search}%`);
+    if (params.search) {
+      // Use ilike for case-insensitive search across title and content
+      query = query.or(`title.ilike.%${params.search}%,content.ilike.%${params.search}%`);
     }
 
-    if (dateRange.from) {
-      query = query.gte('created_at', dateRange.from);
+    if (params.dateRange?.from) {
+      query = query.gte('created_at', params.dateRange.from);
     }
 
-    if (dateRange.to) {
-      query = query.lte('created_at', dateRange.to);
+    if (params.dateRange?.to) {
+      query = query.lte('created_at', params.dateRange.to);
     }
 
     // Apply pagination
+    const page = params.page || 1;
+    const pageSize = params.pageSize || 20;
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
-    
-    query = query
-      .order('created_at', { ascending: false })
-      .range(from, to);
+
+    query = query.range(from, to);
 
     const { data, error, count } = await query;
 
     if (error) throw error;
 
-    const items = (data || []).map(item => ({
-      ...item,
-      type: item.type as 'note' | 'pdf' | 'link' | 'image'
-    }));
-
     return {
-      items,
-      total: count || 0,
-      page,
-      pageSize
+      items: data as Item[],
+      total: count || 0
     };
   });
 }
 
-export async function createItem(payload: any): Promise<Item> {
+export async function createItem(payload: {
+  title: string;
+  type: 'note' | 'pdf' | 'link' | 'image';
+  content?: string;
+  source?: string;
+  space_id?: string;
+  file?: File;
+}): Promise<Item> {
   return withAuthErrorHandling(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new AuthError('User not authenticated');
 
-    let fileData = {};
+    let fileData: { file_path?: string; mime_type?: string; size_bytes?: number } = {};
 
-    // Handle file upload if present
+    // Handle file upload if provided
     if (payload.file) {
       const file = payload.file;
       
@@ -359,55 +316,40 @@ export async function createItem(payload: any): Promise<Item> {
           mime_type: file.type,
           size_bytes: file.size
         };
-        
-        console.log(`File uploaded successfully to: ayra-files/${filePath}`);
       } catch (error) {
+        console.error('File processing error:', error);
         if (error instanceof FileUploadError) {
-          throw error; // Re-throw file upload errors with original message
+          throw error;
         }
-        throw new FileUploadError(`File upload validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        throw new FileUploadError(`File upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
 
-    // Extract/enhance content based on type
-    let content = payload.content || '';
-    
-    if (payload.type === 'link' && payload.url && !content) {
-      try {
-        // Call edge function to extract content
-        const { data: extracted } = await supabase.functions
-          .invoke('extract-content', {
-            body: { url: payload.url }
-          });
-        
-        if (extracted?.content) {
-          content = extracted.content;
-        }
-      } catch (error) {
-        console.warn('Content extraction failed:', error);
-      }
-    }
+    // Prepare the item data for insertion
+    const itemData = {
+      title: payload.title,
+      type: payload.type,
+      content: payload.content,
+      source: payload.source,
+      space_id: payload.space_id,
+      user_id: user.id,
+      ...fileData
+    };
+
+    console.log('Creating item with data:', itemData);
 
     const { data, error } = await supabase
       .from('items')
-      .insert({
-        title: payload.title,
-        type: payload.type.toLowerCase(),
-        content,
-        source: payload.source || payload.url || 'Upload',
-        space_id: payload.spaceId,
-        user_id: user.id,
-        ...fileData
-      })
+      .insert(itemData)
       .select()
       .single();
 
-    if (error) throw error;
-
-    // Handle tags if provided
-    if (payload.tags && payload.tags.length > 0) {
-      await setItemTags(data.id, payload.tags);
+    if (error) {
+      console.error('Database insert error:', error);
+      throw error;
     }
+
+    console.log('Item created successfully:', data);
 
     // Clear cache to force refresh
     DataCache.clear();
@@ -452,11 +394,15 @@ export async function deleteItems(ids: string[]): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new AuthError('User not authenticated');
 
+    // Soft delete by setting deleted_at timestamp
     const { error } = await supabase
       .from('items')
-      .update({ deleted_at: new Date().toISOString() })
-      .in('id', ids)
-      .eq('user_id', user.id);
+      .update({ 
+        deleted_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', user.id)
+      .in('id', ids);
 
     if (error) throw error;
 
@@ -465,27 +411,102 @@ export async function deleteItems(ids: string[]): Promise<void> {
   });
 }
 
-// Tags CRUD
+export async function restoreItem(id: string): Promise<Item> {
+  return withAuthErrorHandling(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new AuthError('User not authenticated');
+
+    const { data, error } = await supabase
+      .from('items')
+      .update({ 
+        deleted_at: null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // Clear cache to force refresh
+    DataCache.clear();
+
+    return {
+      ...data,
+      type: data.type as 'note' | 'pdf' | 'link' | 'image'
+    };
+  });
+}
+
+export async function bulkMoveItems(itemIds: string[], targetSpaceId: string | null): Promise<void> {
+  return withAuthErrorHandling(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new AuthError('User not authenticated');
+
+    const { error } = await supabase
+      .from('items')
+      .update({ 
+        space_id: targetSpaceId,
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', user.id)
+      .in('id', itemIds);
+
+    if (error) throw error;
+
+    // Clear cache to force refresh
+    DataCache.clear();
+  });
+}
+
+export async function getSpaceCounts(): Promise<{ [spaceId: string]: number }> {
+  return withAuthErrorHandling(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new AuthError('User not authenticated');
+
+    const { data, error } = await supabase
+      .from('items')
+      .select('space_id')
+      .eq('user_id', user.id)
+      .is('deleted_at', null);
+
+    if (error) throw error;
+
+    // Count items by space_id
+    const counts: { [spaceId: string]: number } = {};
+    data.forEach(item => {
+      const spaceId = item.space_id || 'overview'; // Default to overview for items without space
+      counts[spaceId] = (counts[spaceId] || 0) + 1;
+    });
+
+    return counts;
+  });
+}
+
+// Tags API
 export async function upsertTag(name: string): Promise<Tag> {
   return withAuthErrorHandling(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new AuthError('User not authenticated');
 
-    // Check if tag exists
-    const { data: existing } = await supabase
+    // Try to find existing tag first
+    const { data: existingTag } = await supabase
       .from('tags')
-      .select()
-      .eq('name', name)
+      .select('*')
       .eq('user_id', user.id)
+      .eq('name', name.trim())
       .single();
 
-    if (existing) return existing;
+    if (existingTag) {
+      return existingTag as Tag;
+    }
 
-    // Create new tag
+    // Create new tag if it doesn't exist
     const { data, error } = await supabase
       .from('tags')
       .insert({
-        name,
+        name: name.trim(),
         user_id: user.id
       })
       .select()
@@ -493,7 +514,10 @@ export async function upsertTag(name: string): Promise<Tag> {
 
     if (error) throw error;
 
-    return data;
+    // Clear cache
+    DataCache.clear('tags');
+
+    return data as Tag;
   });
 }
 
@@ -502,50 +526,56 @@ export async function setItemTags(itemId: string, tagNames: string[]): Promise<v
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new AuthError('User not authenticated');
 
-    // Remove existing tags for this item
+    // Remove existing tag associations for this item
     await supabase
       .from('item_tags')
       .delete()
-      .eq('item_id', itemId);
+      .in('item_id', [itemId]);
 
     if (tagNames.length === 0) return;
 
-    // Upsert all tags
-    const tags = await Promise.all(
-      tagNames.map(name => upsertTag(name))
-    );
+    // Create or get tags
+    const tagPromises = tagNames.map(name => upsertTag(name));
+    const tags = await Promise.all(tagPromises);
 
-    // Create tag associations
-    const tagAssociations = tags.map(tag => ({
+    // Create new tag associations
+    const associations = tags.map(tag => ({
       item_id: itemId,
       tag_id: tag.id
     }));
 
     const { error } = await supabase
       .from('item_tags')
-      .insert(tagAssociations);
+      .insert(associations);
 
     if (error) throw error;
+
+    // Clear cache
+    DataCache.clear();
   });
 }
 
 export async function getTags(): Promise<Tag[]> {
   return withAuthErrorHandling(async () => {
+    // Try cache first
+    const cached = DataCache.getTags();
+    if (cached) {
+      return cached;
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new AuthError('User not authenticated');
-
-    // Check cache first
-    const cached = DataCache.getTags();
-    if (cached.length > 0) return cached;
 
     const { data, error } = await supabase
       .from('tags')
       .select('*')
+      .eq('user_id', user.id)
       .order('name');
 
     if (error) throw error;
 
-    DataCache.setTags(data || []);
-    return data || [];
+    const tags = data as Tag[];
+    DataCache.setTags(tags);
+    return tags;
   });
 }

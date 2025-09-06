@@ -37,6 +37,7 @@ const ManagePage = () => {
   const [customSpaces, setCustomSpaces] = useState<any[]>([]);
   const [activeFilterCount, setActiveFilterCount] = useState(0);
   const [isEmptySpace, setIsEmptySpace] = useState(false);
+  const [spaceCounts, setSpaceCounts] = useState<{ [spaceId: string]: number }>({});
   const [checkingEmptyState, setCheckingEmptyState] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -194,6 +195,7 @@ const ManagePage = () => {
               selectedCategoryId={selectedCategory}
               selectedItemId={selectedItem}
               selectedSpace={selectedSpace}
+              spaceCounts={spaceCounts}
             />
             <div className="flex-1 overflow-x-auto">
               <div className="flex items-center justify-between px-4 py-2 border-b border-border/50">

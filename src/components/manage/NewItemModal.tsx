@@ -305,13 +305,11 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: N
     try {
       const payload = {
         title: formData.title,
-        type: activeTab,
+        type: activeTab as 'note' | 'pdf' | 'link' | 'image',
         content: activeTab === 'note' ? editor?.getHTML() || '' : formData.content,
         source: activeTab === 'link' ? formData.url : 'Upload',
-        spaceId: formData.space === 'custom' ? preselectedSpace : undefined,
-        tags: formData.tags,
-        ...(activeTab === 'link' && { url: formData.url }),
-        ...(activeTab === 'pdf' && formData.file && { file: formData.file })
+        space_id: formData.space === 'custom' ? preselectedSpace : undefined,
+        file: activeTab === 'pdf' ? formData.file : undefined
       };
 
       // Create the item using our data layer

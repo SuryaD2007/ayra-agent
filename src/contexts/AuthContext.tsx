@@ -85,7 +85,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         try {
           const space = await createSpace({ 
             name: spaceName, 
-            emoji: spaceName === 'Personal' ? '👤' : spaceName === 'Work' ? '💼' : '🎓'
+            emoji: spaceName === 'Personal' ? '👤' : spaceName === 'Work' ? '💼' : '🎓',
+            visibility: 'private'
           });
           spaceMap[spaceName] = space.id;
         } catch (error) {

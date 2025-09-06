@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Folder, Share, Users, Lock, Plus, Move } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   Popover,
   PopoverContent,
@@ -37,13 +38,15 @@ interface CortexSidebarProps {
   selectedCategoryId: string;
   selectedItemId: string | null;
   selectedSpace?: string | null;
+  spaceCounts?: { [spaceId: string]: number };
 }
 
 const CortexSidebar = ({ 
   onCortexSelect, 
   selectedCategoryId = 'private', 
   selectedItemId = 'overview',
-  selectedSpace = null
+  selectedSpace = null,
+  spaceCounts = {}
 }: CortexSidebarProps) => {
   const [customSpaces, setCustomSpaces] = useState<CustomSpace[]>([]);
   const [newSpaceModalOpen, setNewSpaceModalOpen] = useState(false);
@@ -230,9 +233,15 @@ const CortexSidebar = ({
                   )}
                   onClick={() => handleItemClick(category.id, item.id)}
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-1">
                     {item.emoji && <span className="text-sm">{item.emoji}</span>}
-                    <span>{item.name}</span>
+                    <span className="flex-1">{item.name}</span>
+                    {/* Space count badge */}
+                    {spaceCounts[item.id] !== undefined && spaceCounts[item.id] > 0 && (
+                      <Badge variant="secondary" className="text-xs px-1.5 py-0.5 h-auto">
+                        {spaceCounts[item.id]}
+                      </Badge>
+                    )}
                   </div>
                   
                   {/* Space Plus Button */}

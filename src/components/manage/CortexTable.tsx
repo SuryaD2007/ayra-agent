@@ -41,8 +41,9 @@ import { useFilters } from '@/hooks/useFilters';
 import { usePagination } from '@/hooks/usePagination';
 import { toast } from '@/hooks/use-toast';
 import TablePagination from './TablePagination';
-import { getItems, deleteItems, getSpaces, updateItem, DataCache } from '@/lib/data';
+import { getItems, deleteItems, getSpaces, updateItem, bulkMoveItems, getSpaceCounts, DataCache } from '@/lib/data';
 import { useAuth } from '@/contexts/AuthContext';
+import { itemsToCortexItems } from '@/lib/itemUtils';
 
 interface CortexTableProps {
   viewType?: 'table' | 'grid' | 'list' | 'kanban';
@@ -548,15 +549,79 @@ const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({
     }
   };
 
-  const handleMoveItems = () => {
-    if (selectedItems.length > 0 && targetCortex) {
+  const handleMoveItems = async () => {
+    if (selectedItems.length === 0 || !targetCortex) return;
+    
+    // Find target space ID from spaces list
+    let targetSpaceId: string | null = null;
+    if (targetCortex !== 'overview') {
+      const targetSpace = spaces.find(space => space.id === targetCortex || space.name === targetCortex);
+      targetSpaceId = targetSpace?.id || null;
+    }
+
+    // Store original items for rollback
+    const originalItems = cortexItems.filter(item => selectedItems.includes(item.id));
+
+    try {
+      // Apply optimistic update
+      setCortexItems(prev => 
+        prev.map(item => 
+          selectedItems.includes(item.id) 
+            ? { ...item, space: targetCortex as CortexItem['space'] }
+            : item
+        )
+      );
+
+      // Perform bulk move in database
+      await bulkMoveItems(selectedItems, targetSpaceId);
+
+      // Success
       toast({
         title: "Items moved successfully",
         description: `${selectedItems.length} item(s) moved to ${targetCortex}`,
       });
+
       setSelectedItems([]);
       setMoveDialogOpen(false);
       setTargetCortex('');
+
+      // Refresh space counts
+      try {
+        const counts = await getSpaceCounts();
+        // Note: We'd need to pass this up to parent component
+        // For now, we'll clear cache to force refresh
+        DataCache.clear();
+      } catch (error) {
+        console.error('Error refreshing space counts:', error);
+      }
+
+    } catch (error) {
+      console.error('Error moving items:', error);
+      
+      // Rollback optimistic update
+      setCortexItems(prev => 
+        prev.map(item => {
+          const original = originalItems.find(orig => orig.id === item.id);
+          return original || item;
+        })
+      );
+
+      const errorMessage = error instanceof Error ? error.message : 'Failed to move items';
+      
+      toast({
+        title: "Failed to move items",
+        description: errorMessage,
+        variant: "destructive",
+        action: (
+          <Button 
+            size="sm" 
+            variant="outline"
+            onClick={handleMoveItems}
+          >
+            Retry
+          </Button>
+        ),
+      });
     }
   };
 

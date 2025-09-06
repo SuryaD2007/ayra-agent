@@ -13,6 +13,8 @@ import ChatInput from './ChatInput';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
+import { EnhancedPdfViewer } from '@/components/manage/EnhancedPdfViewer';
+import { restoreItem } from '@/lib/data';
 import { useSignedUrl } from '@/hooks/useSignedUrl';
 
 interface SearchProps {
@@ -228,16 +230,13 @@ export const Search: React.FC<SearchProps> = ({ itemId }) => {
     return item.description || '';
   };
 
-  const handleRestoreItem = () => {
+  const handleRestoreItem = async () => {
     if (!preloadedItem) return;
     
     try {
-      const saved = localStorage.getItem('cortex-items');
-      const items: CortexItem[] = saved ? JSON.parse(saved) : [];
-      const updatedItems = [preloadedItem, ...items];
-      localStorage.setItem('cortex-items', JSON.stringify(updatedItems));
+      await restoreItem(preloadedItem.id);
       
-      // Remove from recently deleted
+      // Remove from localStorage deleted items
       const deletedItems = localStorage.getItem('recently-deleted-items');
       if (deletedItems) {
         const deleted: CortexItem[] = JSON.parse(deletedItems);
@@ -250,11 +249,14 @@ export const Search: React.FC<SearchProps> = ({ itemId }) => {
         title: "Item restored",
         description: "The item has been restored to your library.",
       });
+      
+      // Refresh the page to show updated content
+      window.location.reload();
     } catch (error) {
       console.error('Error restoring item:', error);
       toast({
         title: "Error",
-        description: "Failed to restore the item.",
+        description: "Failed to restore the item. Please try again.",
         variant: "destructive",
       });
     }
