@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CortexItem } from '@/components/manage/cortex-data';
 import { toast } from '@/hooks/use-toast';
+import { EnhancedPdfViewer } from '@/components/manage/EnhancedPdfViewer';
 
 const PreviewPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -260,23 +261,11 @@ const PreviewPage = () => {
                 </div>
 
                 {/* PDF Viewer */}
-                <div className="border rounded-md overflow-hidden bg-white">
-                  {!pdfError ? (
-                    <iframe 
-                      src={item.dataUrl} 
-                      className="h-[80vh] w-full"
-                      onError={() => setPdfError(true)}
-                      title={`PDF: ${item.title}`}
-                    />
-                  ) : (
-                    <embed 
-                      src={item.dataUrl} 
-                      type="application/pdf" 
-                      className="h-[80vh] w-full"
-                      title={`PDF: ${item.title}`}
-                    />
-                  )}
-                </div>
+                <EnhancedPdfViewer 
+                  filePath={item.file_path || null}
+                  title={item.title}
+                  className="h-[80vh] w-full"
+                />
               </>
             ) : (
               /* Preview Unavailable */

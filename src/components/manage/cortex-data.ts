@@ -12,6 +12,7 @@ export type CortexItem = {
   description?: string;
   dataUrl?: string;
   favicon?: string;
+  file_path?: string;
 };
 
 export const cortexItems: CortexItem[] = [

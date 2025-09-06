@@ -11,6 +11,7 @@ import {
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
+import { EnhancedPdfViewer } from './EnhancedPdfViewer';
 
 interface PreviewItem {
   id: string;
@@ -25,6 +26,7 @@ interface PreviewItem {
   description?: string;
   favicon?: string;
   dataUrl?: string; // For PDF base64 data
+  file_path?: string; // For Supabase storage path
 }
 
 interface PreviewDrawerProps {
@@ -229,23 +231,11 @@ const PreviewDrawer = ({ open, onOpenChange, item, onDelete }: PreviewDrawerProp
                   </div>
 
                   {/* PDF Viewer */}
-                  <div className="border rounded-md overflow-hidden">
-                    {!pdfError ? (
-                      <iframe 
-                        src={item.dataUrl} 
-                        className="h-[70vh] w-full"
-                        onError={() => setPdfError(true)}
-                        title={`PDF: ${item.title}`}
-                      />
-                    ) : (
-                      <embed 
-                        src={item.dataUrl} 
-                        type="application/pdf" 
-                        className="h-[70vh] w-full"
-                        title={`PDF: ${item.title}`}
-                      />
-                    )}
-                  </div>
+                  <EnhancedPdfViewer 
+                    filePath={item.file_path || null}
+                    title={item.title}
+                    className="h-[70vh] w-full"
+                  />
                 </>
               ) : (
                 /* Preview Unavailable */
