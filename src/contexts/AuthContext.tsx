@@ -41,17 +41,39 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!user || migrationInProgress) return;
 
     try {
+      // Check if migration has already been completed
+      const migrationCompleted = localStorage.getItem('ayra.migrated');
+      if (migrationCompleted === 'true') {
+        console.log('Migration already completed, skipping');
+        return;
+      }
+
       // Check if user has items in Supabase
       const result = await getItems({ page: 1, pageSize: 1 });
-      if (result.total > 0) return; // User already has items
+      if (result.total > 0) {
+        console.log('User already has items in Supabase, skipping migration');
+        // Mark as migrated to prevent future checks
+        localStorage.setItem('ayra.migrated', 'true');
+        return;
+      }
 
       // Check if localStorage has items
       const localItems = localStorage.getItem('ayra.items');
-      if (!localItems) return;
+      if (!localItems) {
+        console.log('No local items to migrate');
+        // Mark as migrated to prevent future checks
+        localStorage.setItem('ayra.migrated', 'true');
+        return;
+      }
 
       const items = JSON.parse(localItems);
-      if (!Array.isArray(items) || items.length === 0) return;
+      if (!Array.isArray(items) || items.length === 0) {
+        console.log('No valid local items to migrate');
+        localStorage.setItem('ayra.migrated', 'true');
+        return;
+      }
 
+      console.log(`Starting migration of ${items.length} items...`);
       setMigrationInProgress(true);
 
       // Create default spaces if missing
@@ -71,6 +93,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       let importedCount = 0;
+      const failedItems: any[] = [];
 
       // Process each local item
       for (const localItem of items) {
@@ -108,22 +131,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           // Preserve created_at if available
           if (localItem.createdDate || localItem.created_at) {
             const createdAt = localItem.createdDate || localItem.created_at;
-            await supabase
-              .from('items')
-              .update({ 
-                created_at: new Date(createdAt).toISOString() 
-              })
-              .eq('id', createdItem.id)
-              .eq('user_id', user.id);
+            try {
+              await supabase
+                .from('items')
+                .update({ 
+                  created_at: new Date(createdAt).toISOString() 
+                })
+                .eq('id', createdItem.id)
+                .eq('user_id', user.id);
+            } catch (error) {
+              console.warn('Failed to update created_at for item:', localItem.title, error);
+            }
           }
 
           importedCount++;
+          console.log(`Migrated item ${importedCount}/${items.length}: ${localItem.title}`);
         } catch (error) {
           console.warn('Failed to migrate item:', localItem.title, error);
+          failedItems.push(localItem);
         }
       }
 
+      // Migration completed successfully
       if (importedCount > 0) {
+        // Mark migration as completed BEFORE clearing localStorage
+        localStorage.setItem('ayra.migrated', 'true');
+        
         // Clear localStorage items
         localStorage.removeItem('ayra.items');
         
@@ -133,8 +166,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Show success toast
         toast({
           title: "Import successful",
-          description: `Imported ${importedCount} items from your device.`,
+          description: `Imported ${importedCount} items from your device.${failedItems.length > 0 ? ` ${failedItems.length} items failed to import.` : ''}`,
         });
+
+        console.log(`Migration completed: ${importedCount} items imported, ${failedItems.length} failed`);
 
         // Reload /manage page if we're currently there
         if (window.location.pathname === '/manage') {
@@ -142,15 +177,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             window.location.reload();
           }, 1000);
         }
+      } else {
+        // No items were imported, still mark as migrated to prevent retries
+        localStorage.setItem('ayra.migrated', 'true');
+        console.log('Migration completed with no items imported');
       }
 
     } catch (error) {
       console.error('Migration failed:', error);
       toast({
         title: "Import failed",
-        description: "Failed to import some items from your device.",
+        description: "Failed to import some items from your device. Please try again later.",
         variant: "destructive"
       });
+      
+      // Don't mark as migrated if there was a critical error
+      // This allows retry on next login
     } finally {
       setMigrationInProgress(false);
     }

@@ -87,12 +87,17 @@ if (typeof window !== 'undefined') {
   (window as any).populateSampleData = populateSampleData;
   (window as any).clearSampleData = clearSampleData;
   (window as any).hasSampleData = hasSampleData;
+  (window as any).resetMigration = () => {
+    localStorage.removeItem('ayra.migrated');
+    console.log('Migration flag cleared. Migration will run on next login.');
+  };
   
   // Show help message in console
   console.log('🔧 Migration Testing Commands:');
   console.log('- populateSampleData() - Add sample items to localStorage');
   console.log('- clearSampleData() - Clear sample items from localStorage'); 
   console.log('- hasSampleData() - Check if sample data exists');
+  console.log('- resetMigration() - Clear migration flag to allow re-migration');
   console.log('');
   console.log('To test migration: Run populateSampleData(), then log in to the app.');
 }
