@@ -18,8 +18,11 @@ import { Check, Edit2, X, Plus, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Toaster } from 'sonner';
 import NewItemModal from '@/components/manage/NewItemModal';
-import { getSpaces, getItems, DataCache } from '@/lib/data';
+import { getSpaces, getItems, DataCache, AuthError } from '@/lib/data';
 import { useAuth } from '@/contexts/AuthContext';
+import AuthGuard from '@/components/auth/AuthGuard';
+import InlineError from '@/components/auth/InlineError';
+import AuthModal from '@/components/AuthModal';
 
 const ManagePage = () => {
   const showContent = useAnimateIn(false, 300);
@@ -35,6 +38,8 @@ const ManagePage = () => {
   const [activeFilterCount, setActiveFilterCount] = useState(0);
   const [isEmptySpace, setIsEmptySpace] = useState(false);
   const [checkingEmptyState, setCheckingEmptyState] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   
   // Auth state
   const { isAuthenticated } = useAuth();
@@ -65,6 +70,8 @@ const ManagePage = () => {
 
     const loadSpaces = async () => {
       try {
+        setAuthError(null);
+        
         // Load spaces from Supabase
         const spaces = await getSpaces();
         setCustomSpaces(spaces);
@@ -74,6 +81,12 @@ const ManagePage = () => {
         
       } catch (error) {
         console.error('Error loading spaces:', error);
+        
+        if (error instanceof AuthError) {
+          setAuthError(error.message);
+          return;
+        }
+        
         // Fallback to cache
         const cached = DataCache.getSpaces();
         setCustomSpaces(cached);
@@ -158,163 +171,183 @@ const ManagePage = () => {
   ]);
 
   return (
-    <div className="max-w-full mx-auto h-screen pt-24 pb-6">
-      <Toaster position="top-right" />
-      <AnimatedTransition show={showContent} animation="slide-up">
-        <div className="flex h-[calc(100vh-130px)]">
-          <CortexSidebar 
-            onCortexSelect={handleCortexSelect}
-            selectedCategoryId={selectedCategory}
-            selectedItemId={selectedItem}
-            selectedSpace={selectedSpace}
-          />
-          <div className="flex-1 overflow-x-auto">
-            <div className="flex items-center justify-between px-4 py-2 border-b border-border/50">
-              {isEditing ? (
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={tempTitle}
-                    onChange={(e) => setTempTitle(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    onBlur={handleBlur}
-                    className="h-8 text-xl font-semibold w-64"
-                    autoFocus
-                  />
-                  {isSaving && (
-                    <Loader2 size={16} className="animate-spin text-muted-foreground" />
-                  )}
-                  {showSuccess && (
-                    <Check size={16} className="text-green-500" />
-                  )}
-                  <Button size="icon" variant="ghost" onClick={cancelEdit}>
-                    <X size={18} className="text-red-500" />
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <h2 
-                    className="text-xl font-semibold cursor-pointer hover:bg-muted/50 px-2 py-1 rounded transition-colors"
-                    onDoubleClick={handleDoubleClick}
-                    title="Double-click to edit"
-                  >
-                    {libraryTitle}
-                  </h2>
-                  {activeFilterCount > 0 && (
-                    <Badge variant="secondary" className="bg-primary/10 text-primary text-xs px-2 py-1">
-                      Filtered
-                    </Badge>
-                  )}
-                  {showSuccess && (
-                    <Check size={16} className="text-green-500" />
-                  )}
-                </div>
-              )}
-              <div className="flex items-center gap-2">
-                <TooltipProvider>
-                  <ViewSwitcher activeView={viewType} onViewChange={setViewType} />
-                </TooltipProvider>
-                <HotkeysSheet />
-              </div>
-            </div>
-            {isEmptySpace ? (
-              // Empty state for custom spaces
-              <div className="flex-1 flex items-center justify-center">
-                <div className="text-center max-w-md">
-                  <div className="text-6xl mb-4">📦</div>
-                  <h3 className="text-xl font-semibold mb-2">
-                    Add your first item to {getCurrentSpaceName()}
-                  </h3>
-                  <p className="text-muted-foreground mb-6">
-                    Start building your knowledge base by adding notes, PDFs, links, or images to this space.
-                  </p>
-                  <Button onClick={() => setNewItemModalOpen(true)}>
-                    <Plus size={16} className="mr-2" />
-                    Add First Item
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <CortexTable 
-                ref={cortexTableRef}
-                viewType={viewType} 
-                categoryId={selectedCategory}
-                cortexId={selectedItem}
-                onFiltersChange={(count) => setActiveFilterCount(count)}
-              />
-            )}
-          </div>
-        </div>
-      </AnimatedTransition>
-
-      {/* Alternative: Dialog for editing title */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Library Title</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <Input
-              value={tempTitle}
-              onChange={(e) => setTempTitle(e.target.value)}
-              className="w-full"
-              placeholder="Enter a title for your library"
-              autoFocus
+    <AuthGuard 
+      title="Access your library"
+      description="Sign in to manage your notes, documents, and saved links."
+    >
+      <div className="max-w-full mx-auto h-screen pt-24 pb-6">
+        <Toaster position="top-right" />
+        
+        {authError && (
+          <div className="mb-4 mx-4">
+            <InlineError 
+              message={authError}
+              onSignIn={() => setAuthModalOpen(true)}
             />
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleDialogSave}>Save</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        )}
+        
+        <AnimatedTransition show={showContent} animation="slide-up">
+          <div className="flex h-[calc(100vh-130px)]">
+            <CortexSidebar 
+              onCortexSelect={handleCortexSelect}
+              selectedCategoryId={selectedCategory}
+              selectedItemId={selectedItem}
+              selectedSpace={selectedSpace}
+            />
+            <div className="flex-1 overflow-x-auto">
+              <div className="flex items-center justify-between px-4 py-2 border-b border-border/50">
+                {isEditing ? (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={tempTitle}
+                      onChange={(e) => setTempTitle(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      onBlur={handleBlur}
+                      className="h-8 text-xl font-semibold w-64"
+                      autoFocus
+                    />
+                    {isSaving && (
+                      <Loader2 size={16} className="animate-spin text-muted-foreground" />
+                    )}
+                    {showSuccess && (
+                      <Check size={16} className="text-green-500" />
+                    )}
+                    <Button size="icon" variant="ghost" onClick={cancelEdit}>
+                      <X size={18} className="text-red-500" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <h2 
+                      className="text-xl font-semibold cursor-pointer hover:bg-muted/50 px-2 py-1 rounded transition-colors"
+                      onDoubleClick={handleDoubleClick}
+                      title="Double-click to edit"
+                    >
+                      {libraryTitle}
+                    </h2>
+                    {activeFilterCount > 0 && (
+                      <Badge variant="secondary" className="bg-primary/10 text-primary text-xs px-2 py-1">
+                        Filtered
+                      </Badge>
+                    )}
+                    {showSuccess && (
+                      <Check size={16} className="text-green-500" />
+                    )}
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <TooltipProvider>
+                    <ViewSwitcher activeView={viewType} onViewChange={setViewType} />
+                  </TooltipProvider>
+                  <HotkeysSheet />
+                </div>
+              </div>
+              {isEmptySpace ? (
+                // Empty state for custom spaces
+                <div className="flex-1 flex items-center justify-center">
+                  <div className="text-center max-w-md">
+                    <div className="text-6xl mb-4">📦</div>
+                    <h3 className="text-xl font-semibold mb-2">
+                      Add your first item to {getCurrentSpaceName()}
+                    </h3>
+                    <p className="text-muted-foreground mb-6">
+                      Start building your knowledge base by adding notes, PDFs, links, or images to this space.
+                    </p>
+                    <Button onClick={() => setNewItemModalOpen(true)}>
+                      <Plus size={16} className="mr-2" />
+                      Add First Item
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <CortexTable 
+                  ref={cortexTableRef}
+                  viewType={viewType} 
+                  categoryId={selectedCategory}
+                  cortexId={selectedItem}
+                  onFiltersChange={(count) => setActiveFilterCount(count)}
+                />
+              )}
+            </div>
+          </div>
+        </AnimatedTransition>
 
-      {/* New Item Modal for empty state */}
-      <NewItemModal
-        open={newItemModalOpen}
-        onOpenChange={setNewItemModalOpen}
-        onItemCreated={() => {
-          setNewItemModalOpen(false);
-          // Clear cache and trigger a refresh
-          DataCache.clear();
-          // Re-check empty state
-          const checkEmptySpace = async () => {
-            if (!selectedSpace || !selectedItem || !isAuthenticated) {
-              setIsEmptySpace(false);
-              return;
-            }
+        {/* Alternative: Dialog for editing title */}
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit Library Title</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <Input
+                value={tempTitle}
+                onChange={(e) => setTempTitle(e.target.value)}
+                className="w-full"
+                placeholder="Enter a title for your library"
+                autoFocus
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleDialogSave}>Save</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* New Item Modal for empty state */}
+        <NewItemModal
+          open={newItemModalOpen}
+          onOpenChange={setNewItemModalOpen}
+          onItemCreated={() => {
+            setNewItemModalOpen(false);
+            // Clear cache and trigger a refresh
+            DataCache.clear();
+            // Re-check empty state
+            const checkEmptySpace = async () => {
+              if (!selectedSpace || !selectedItem || !isAuthenticated) {
+                setIsEmptySpace(false);
+                return;
+              }
+              
+              const space = customSpaces.find(s => s.id === selectedItem);
+              if (!space) {
+                setIsEmptySpace(false);
+                return;
+              }
+              
+              setCheckingEmptyState(true);
+              try {
+                const result = await getItems({
+                  page: 1,
+                  pageSize: 1,
+                  type: [],
+                  spaceId: space.id,
+                  tags: [],
+                  dateRange: {},
+                  search: ''
+                });
+                setIsEmptySpace(result.total === 0);
+              } catch {
+                setIsEmptySpace(true);
+              } finally {
+                setCheckingEmptyState(false);
+              }
+            };
             
-            const space = customSpaces.find(s => s.id === selectedItem);
-            if (!space) {
-              setIsEmptySpace(false);
-              return;
-            }
-            
-            setCheckingEmptyState(true);
-            try {
-              const result = await getItems({
-                page: 1,
-                pageSize: 1,
-                type: [],
-                spaceId: space.id,
-                tags: [],
-                dateRange: {},
-                search: ''
-              });
-              setIsEmptySpace(result.total === 0);
-            } catch {
-              setIsEmptySpace(true);
-            } finally {
-              setCheckingEmptyState(false);
-            }
-          };
-          
-          checkEmptySpace();
-        }}
-        preselectedSpace={selectedItem}
-      />
-    </div>
+            checkEmptySpace();
+          }}
+          preselectedSpace={selectedItem}
+        />
+
+        <AuthModal 
+          isOpen={authModalOpen} 
+          onClose={() => setAuthModalOpen(false)} 
+        />
+      </div>
+    </AuthGuard>
   );
 };
 

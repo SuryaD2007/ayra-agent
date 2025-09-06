@@ -52,6 +52,46 @@ export interface GetItemsResult {
   pageSize: number;
 }
 
+// Auth error types
+export class AuthError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'AuthError';
+  }
+}
+
+// Check if error is auth related (401/403)
+const isAuthError = (error: any): boolean => {
+  if (error?.code) {
+    return error.code === 'PGRST301' || error.code === 'PGRST302'; // RLS errors
+  }
+  if (error?.message) {
+    return error.message.includes('JWT') || 
+           error.message.includes('auth') ||
+           error.message.includes('401') ||
+           error.message.includes('403') ||
+           error.message.includes('permission');
+  }
+  return false;
+};
+
+// Wrapper for Supabase operations with auth error handling
+const withAuthErrorHandling = async <T>(operation: () => Promise<T>): Promise<T> => {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      throw new AuthError('Please sign in to access this feature.');
+    }
+    
+    return await operation();
+  } catch (error) {
+    if (isAuthError(error)) {
+      throw new AuthError('Please sign in to access this feature.');
+    }
+    throw error;
+  }
+};
+
 // Simple client-side cache
 export class DataCache {
   private static items: any[] = [];
@@ -101,9 +141,9 @@ export class DataCache {
 
 // Spaces CRUD
 export async function getSpaces(): Promise<Space[]> {
-  try {
+  return withAuthErrorHandling(async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+    if (!user) throw new AuthError('User not authenticated');
 
     // Check cache first
     const cached = DataCache.getSpaces();
@@ -122,16 +162,13 @@ export async function getSpaces(): Promise<Space[]> {
     }));
     DataCache.setSpaces(spaces);
     return spaces;
-  } catch (error) {
-    console.error('Error fetching spaces:', error);
-    throw error;
-  }
+  });
 }
 
 export async function createSpace(payload: { name: string; emoji?: string; visibility?: 'private' | 'public' }): Promise<Space> {
-  try {
+  return withAuthErrorHandling(async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+    if (!user) throw new AuthError('User not authenticated');
 
     const { data, error } = await supabase
       .from('spaces')
@@ -153,17 +190,14 @@ export async function createSpace(payload: { name: string; emoji?: string; visib
       ...data,
       visibility: data.visibility as 'private' | 'public'
     };
-  } catch (error) {
-    console.error('Error creating space:', error);
-    throw error;
-  }
+  });
 }
 
 // Items CRUD
 export async function getItems(params: GetItemsParams = {}): Promise<GetItemsResult> {
-  try {
+  return withAuthErrorHandling(async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+    if (!user) throw new AuthError('User not authenticated');
 
     const {
       page = 1,
@@ -224,16 +258,13 @@ export async function getItems(params: GetItemsParams = {}): Promise<GetItemsRes
       page,
       pageSize
     };
-  } catch (error) {
-    console.error('Error fetching items:', error);
-    throw error;
-  }
+  });
 }
 
 export async function createItem(payload: any): Promise<Item> {
-  try {
+  return withAuthErrorHandling(async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+    if (!user) throw new AuthError('User not authenticated');
 
     let fileData = {};
 
@@ -304,16 +335,13 @@ export async function createItem(payload: any): Promise<Item> {
       ...data,
       type: data.type as 'note' | 'pdf' | 'link' | 'image'
     };
-  } catch (error) {
-    console.error('Error creating item:', error);
-    throw error;
-  }
+  });
 }
 
 export async function updateItem(id: string, payload: Partial<Item>): Promise<Item> {
-  try {
+  return withAuthErrorHandling(async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+    if (!user) throw new AuthError('User not authenticated');
 
     const { data, error } = await supabase
       .from('items')
@@ -335,16 +363,13 @@ export async function updateItem(id: string, payload: Partial<Item>): Promise<It
       ...data,
       type: data.type as 'note' | 'pdf' | 'link' | 'image'
     };
-  } catch (error) {
-    console.error('Error updating item:', error);
-    throw error;
-  }
+  });
 }
 
 export async function deleteItems(ids: string[]): Promise<void> {
-  try {
+  return withAuthErrorHandling(async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+    if (!user) throw new AuthError('User not authenticated');
 
     const { error } = await supabase
       .from('items')
@@ -356,17 +381,14 @@ export async function deleteItems(ids: string[]): Promise<void> {
 
     // Clear cache to force refresh
     DataCache.clear();
-  } catch (error) {
-    console.error('Error deleting items:', error);
-    throw error;
-  }
+  });
 }
 
 // Tags CRUD
 export async function upsertTag(name: string): Promise<Tag> {
-  try {
+  return withAuthErrorHandling(async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+    if (!user) throw new AuthError('User not authenticated');
 
     // Check if tag exists
     const { data: existing } = await supabase
@@ -391,16 +413,13 @@ export async function upsertTag(name: string): Promise<Tag> {
     if (error) throw error;
 
     return data;
-  } catch (error) {
-    console.error('Error upserting tag:', error);
-    throw error;
-  }
+  });
 }
 
 export async function setItemTags(itemId: string, tagNames: string[]): Promise<void> {
-  try {
+  return withAuthErrorHandling(async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+    if (!user) throw new AuthError('User not authenticated');
 
     // Remove existing tags for this item
     await supabase
@@ -426,16 +445,13 @@ export async function setItemTags(itemId: string, tagNames: string[]): Promise<v
       .insert(tagAssociations);
 
     if (error) throw error;
-  } catch (error) {
-    console.error('Error setting item tags:', error);
-    throw error;
-  }
+  });
 }
 
 export async function getTags(): Promise<Tag[]> {
-  try {
+  return withAuthErrorHandling(async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+    if (!user) throw new AuthError('User not authenticated');
 
     // Check cache first
     const cached = DataCache.getTags();
@@ -450,8 +466,5 @@ export async function getTags(): Promise<Tag[]> {
 
     DataCache.setTags(data || []);
     return data || [];
-  } catch (error) {
-    console.error('Error fetching tags:', error);
-    throw error;
-  }
+  });
 }
