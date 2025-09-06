@@ -27,6 +27,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import EmptyItemsState from './EmptyItemsState';
+import ErrorState from './ErrorState';
 import TableView from './views/TableView';
 import GridView from './views/GridView';
 import ListView from './views/ListView';
@@ -85,6 +87,9 @@ const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({
   const [spaces, setSpaces] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalItems, setTotalItems] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [retrying, setRetrying] = useState(false);
+  const [lastQuery, setLastQuery] = useState<any>(null);
 
   // Load data from Supabase
   useEffect(() => {
@@ -92,19 +97,21 @@ const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({
       setCortexItems([]);
       setSpaces([]);
       setLoading(false);
+      setError(null);
       return;
     }
 
-    const loadData = async () => {
+    const loadData = async (isRetry = false) => {
       try {
-        setLoading(true);
+        if (isRetry) {
+          setRetrying(true);
+        } else {
+          setLoading(true);
+        }
+        setError(null);
         
-        // Load spaces for filtering
-        const spacesData = await getSpaces();
-        setSpaces(spacesData);
-        
-        // Load items with current filters
-        const result = await getItems({
+        // Build query object
+        const query = {
           page: 1,
           pageSize: 1000, // Load all for client-side filtering for now
           type: [],
@@ -112,12 +119,21 @@ const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({
           tags: [],
           dateRange: {},
           search: ''
-        });
+        };
+        
+        setLastQuery(query);
+        
+        // Load spaces for filtering
+        const spacesData = await getSpaces();
+        setSpaces(spacesData);
+        
+        // Load items with current filters
+        const result = await getItems(query);
         
         // Convert Supabase items to CortexItem format
         const convertedItems = result.items.map((item: any) => {
           // Map space_id to space name
-          const space = spaces.find(s => s.id === item.space_id);
+          const space = spacesData.find(s => s.id === item.space_id);
           const spaceName = space ? space.name : 'Personal';
           
           // Map space name to valid CortexItem space type
@@ -148,16 +164,25 @@ const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({
         
       } catch (error) {
         console.error('Error loading data:', error);
-        toast({
-          title: "Error loading data",
-          description: "Failed to load items from database.",
-          variant: "destructive"
-        });
-        // Fallback to cache or initial data
-        const cached = DataCache.getItems();
-        setCortexItems(cached.length > 0 ? cached : initialCortexItems);
+        const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+        setError(errorMessage);
+        
+        if (!isRetry) {
+          toast({
+            title: "Error loading data",
+            description: "Failed to load items from database.",
+            variant: "destructive"
+          });
+        }
+        
+        // Fallback to cache or initial data only if not retrying
+        if (!isRetry) {
+          const cached = DataCache.getItems();
+          setCortexItems(cached.length > 0 ? cached : initialCortexItems);
+        }
       } finally {
         setLoading(false);
+        setRetrying(false);
       }
     };
 
@@ -185,6 +210,11 @@ const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({
     if (categoryId === 'private' && cortexId === 'development') return 'Development';
     if (categoryId === 'shared' && cortexId === 'team-resources') return 'Team Resources';
     if (categoryId === 'shared' && cortexId === 'projects') return 'Projects';
+    
+    // Check if it's a custom space
+    const space = spaces.find(s => s.id === cortexId);
+    if (space) return `${space.emoji || ''} ${space.name}`.trim();
+    
     return 'All Items';
   };
 
@@ -219,6 +249,67 @@ const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({
 
   // Use virtualization for large datasets (>100 items)
   const shouldVirtualize = finalItems.length > 100;
+
+  const getCurrentSpaceName = () => {
+    if (!cortexId || cortexId === 'overview') return null;
+    const space = spaces.find(s => s.id === cortexId);
+    return space ? `${space.emoji || ''} ${space.name}`.trim() : null;
+  };
+
+  const handleRetry = () => {
+    if (lastQuery && isAuthenticated) {
+      const loadData = async () => {
+        try {
+          setRetrying(true);
+          setError(null);
+          
+          // Load spaces for filtering
+          const spacesData = await getSpaces();
+          setSpaces(spacesData);
+          
+          // Re-run the last query
+          const result = await getItems(lastQuery);
+          
+          // Convert Supabase items to CortexItem format
+          const convertedItems = result.items.map((item: any) => {
+            const space = spacesData.find(s => s.id === item.space_id);
+            const spaceName = space ? space.name : 'Personal';
+            
+            let spaceType: 'Personal' | 'Work' | 'School' | 'Team' = 'Personal';
+            if (spaceName.toLowerCase().includes('work')) spaceType = 'Work';
+            else if (spaceName.toLowerCase().includes('school')) spaceType = 'School';
+            else if (spaceName.toLowerCase().includes('team')) spaceType = 'Team';
+            
+            return {
+              id: item.id,
+              title: item.title,
+              url: item.file_path || '#',
+              type: item.type.charAt(0).toUpperCase() + item.type.slice(1).toLowerCase() as 'Note' | 'PDF' | 'Link' | 'Image',
+              createdDate: new Date(item.created_at).toISOString().split('T')[0],
+              source: item.source || 'Upload',
+              keywords: [],
+              space: spaceType,
+              content: item.content,
+              description: item.content?.substring(0, 150),
+            };
+          });
+          
+          setCortexItems(convertedItems);
+          setTotalItems(result.total);
+          DataCache.setItems(convertedItems);
+          
+        } catch (error) {
+          console.error('Retry failed:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Retry failed';
+          setError(errorMessage);
+        } finally {
+          setRetrying(false);
+        }
+      };
+      
+      loadData();
+    }
+  };
 
   // Expose methods via ref for hotkeys
   useImperativeHandle(ref, () => ({
@@ -361,43 +452,20 @@ const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({
   };
 
   const EmptyState = () => (
-    <div className="flex flex-col items-center justify-center py-12 text-center">
-      <div className="text-muted-foreground mb-4">
-        <Search size={48} className="mx-auto mb-2 opacity-50" />
-        <h3 className="text-lg font-semibold mb-1">No items found</h3>
-        <p className="text-sm">
-          {activeFilterCount > 0 
-            ? "No items match your current filters."
-            : searchQuery 
-            ? "No items match your search."
-            : "No items in this cortex yet."
-          }
-        </p>
-      </div>
-      {(activeFilterCount > 0 || searchQuery) && (
-        <div className="flex gap-2">
-          {searchQuery && (
-            <Button variant="outline" onClick={() => setSearchQuery('')}>
-              Clear search
-            </Button>
-          )}
-          {activeFilterCount > 0 && (
-            <Button 
-              variant="outline" 
-              onClick={() => setFilters({
-                types: [],
-                spaces: [],
-                tags: [],
-                dateRange: {},
-                sortBy: 'newest'
-              })}
-            >
-              Clear filters
-            </Button>
-          )}
-        </div>
-      )}
-    </div>
+    <EmptyItemsState
+      hasFilters={activeFilterCount > 0}
+      hasSearch={!!searchQuery}
+      onAddFirstItem={() => setNewItemModalOpen(true)}
+      onClearFilters={() => setFilters({
+        types: [],
+        spaces: [],
+        tags: [],
+        dateRange: {},
+        sortBy: 'newest'
+      })}
+      onClearSearch={() => setSearchQuery('')}
+      spaceName={getCurrentSpaceName()}
+    />
   );
 
   return (
@@ -469,6 +537,12 @@ const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({
                 <p className="text-muted-foreground">Loading items...</p>
               </div>
             </div>
+          ) : error ? (
+            <ErrorState 
+              message={error}
+              onRetry={handleRetry}
+              retrying={retrying}
+            />
           ) : !isAuthenticated ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
@@ -597,11 +671,13 @@ const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({
       </AlertDialog>
 
       {/* New Item Modal */}
-      <NewItemModal
-        open={newItemModalOpen}
-        onOpenChange={setNewItemModalOpen}
-        onItemCreated={handleItemCreated}
-      />
+        {/* New Item Modal */}
+        <NewItemModal
+          open={newItemModalOpen}
+          onOpenChange={setNewItemModalOpen}
+          onItemCreated={handleItemCreated}
+          preselectedSpace={cortexId !== 'overview' ? cortexId : undefined}
+        />
 
       {/* Preview Drawer */}
       <PreviewDrawer
