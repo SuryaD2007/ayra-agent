@@ -18,6 +18,8 @@ import { Check, Edit2, X, Plus, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Toaster } from 'sonner';
 import NewItemModal from '@/components/manage/NewItemModal';
+import { getSpaces, getItems, DataCache } from '@/lib/data';
+import { useAuth } from '@/contexts/AuthContext';
 
 const ManagePage = () => {
   const showContent = useAnimateIn(false, 300);
@@ -31,6 +33,11 @@ const ManagePage = () => {
   const [newItemModalOpen, setNewItemModalOpen] = useState(false);
   const [customSpaces, setCustomSpaces] = useState<any[]>([]);
   const [activeFilterCount, setActiveFilterCount] = useState(0);
+  const [isEmptySpace, setIsEmptySpace] = useState(false);
+  const [checkingEmptyState, setCheckingEmptyState] = useState(false);
+  
+  // Auth state
+  const { isAuthenticated } = useAuth();
   
   // Refs for hotkey access
   const cortexTableRef = useRef<CortexTableRef>(null);
@@ -51,15 +58,29 @@ const ManagePage = () => {
 
   // Load custom spaces and handle URL params
   useEffect(() => {
-    // Load custom spaces
-    try {
-      const saved = localStorage.getItem('custom-spaces');
-      if (saved) {
-        setCustomSpaces(JSON.parse(saved));
-      }
-    } catch (error) {
-      console.error('Error loading custom spaces:', error);
+    if (!isAuthenticated) {
+      setCustomSpaces([]);
+      return;
     }
+
+    const loadSpaces = async () => {
+      try {
+        // Load spaces from Supabase
+        const spaces = await getSpaces();
+        setCustomSpaces(spaces);
+        
+        // Update cache
+        DataCache.setSpaces(spaces);
+        
+      } catch (error) {
+        console.error('Error loading spaces:', error);
+        // Fallback to cache
+        const cached = DataCache.getSpaces();
+        setCustomSpaces(cached);
+      }
+    };
+
+    loadSpaces();
 
     // Handle URL params
     const spaceParam = searchParams.get('space');
@@ -68,17 +89,13 @@ const ManagePage = () => {
     if (spaceParam) {
       setSelectedSpace(spaceParam);
       // Find the space and set appropriate category
-      const saved = localStorage.getItem('custom-spaces');
-      if (saved) {
-        const spaces = JSON.parse(saved);
-        const space = spaces.find((s: any) => s.slug === spaceParam);
-        if (space) {
-          setSelectedCategory(space.visibility === 'Private' ? 'private' : 'team');
-          setSelectedItem(space.id);
-        }
+      const space = customSpaces.find((s: any) => s.name === spaceParam);
+      if (space) {
+        setSelectedCategory(space.visibility === 'private' ? 'private' : 'team');
+        setSelectedItem(space.id);
       }
     }
-  }, [searchParams]);
+  }, [searchParams, isAuthenticated]);
 
   const handleDialogSave = () => {
     if (tempTitle.trim()) {
@@ -96,24 +113,6 @@ const ManagePage = () => {
       navigate(`/manage?space=${spaceSlug}`, { replace: true });
     } else {
       navigate('/manage', { replace: true });
-    }
-  };
-
-
-  // Check if current selection is a custom space with no items
-  const isEmptyCustomSpace = () => {
-    if (!selectedSpace || !selectedItem) return false;
-    
-    const space = customSpaces.find(s => s.id === selectedItem);
-    if (!space) return false;
-    
-    // Check if space has any items (this would be from cortex-items localStorage)
-    try {
-      const items = JSON.parse(localStorage.getItem('cortex-items') || '[]');
-      const spaceItems = items.filter((item: any) => item.spaceId === space.id);
-      return spaceItems.length === 0;
-    } catch {
-      return true;
     }
   };
 
@@ -217,7 +216,7 @@ const ManagePage = () => {
                 <HotkeysSheet />
               </div>
             </div>
-            {isEmptyCustomSpace() ? (
+            {isEmptySpace ? (
               // Empty state for custom spaces
               <div className="flex-1 flex items-center justify-center">
                 <div className="text-center max-w-md">
@@ -277,8 +276,41 @@ const ManagePage = () => {
         onOpenChange={setNewItemModalOpen}
         onItemCreated={() => {
           setNewItemModalOpen(false);
-          // Refresh the view
-          window.location.reload();
+          // Clear cache and trigger a refresh
+          DataCache.clear();
+          // Re-check empty state
+          const checkEmptySpace = async () => {
+            if (!selectedSpace || !selectedItem || !isAuthenticated) {
+              setIsEmptySpace(false);
+              return;
+            }
+            
+            const space = customSpaces.find(s => s.id === selectedItem);
+            if (!space) {
+              setIsEmptySpace(false);
+              return;
+            }
+            
+            setCheckingEmptyState(true);
+            try {
+              const result = await getItems({
+                page: 1,
+                pageSize: 1,
+                type: [],
+                spaceId: space.id,
+                tags: [],
+                dateRange: {},
+                search: ''
+              });
+              setIsEmptySpace(result.total === 0);
+            } catch {
+              setIsEmptySpace(true);
+            } finally {
+              setCheckingEmptyState(false);
+            }
+          };
+          
+          checkEmptySpace();
         }}
         preselectedSpace={selectedItem}
       />

@@ -39,6 +39,8 @@ import { useFilters } from '@/hooks/useFilters';
 import { usePagination } from '@/hooks/usePagination';
 import { toast } from '@/hooks/use-toast';
 import TablePagination from './TablePagination';
+import { getItems, deleteItems, getSpaces, DataCache } from '@/lib/data';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface CortexTableProps {
   viewType?: 'table' | 'grid' | 'list' | 'kanban';
@@ -76,20 +78,91 @@ const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({
   
   // Refs
   const searchInputRef = useRef<HTMLInputElement>(null);
-  // Load items from localStorage or use initial data as fallback
-  const [cortexItems, setCortexItems] = useState<CortexItem[]>(() => {
-    try {
-      const saved = localStorage.getItem('cortex-items');
-      return saved ? JSON.parse(saved) : initialCortexItems;
-    } catch {
-      return initialCortexItems;
-    }
-  });
+  
+  // Auth and data state
+  const { isAuthenticated } = useAuth();
+  const [cortexItems, setCortexItems] = useState<CortexItem[]>([]);
+  const [spaces, setSpaces] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [totalItems, setTotalItems] = useState(0);
 
-  // Save to localStorage whenever cortexItems changes
+  // Load data from Supabase
   useEffect(() => {
-    localStorage.setItem('cortex-items', JSON.stringify(cortexItems));
-  }, [cortexItems]);
+    if (!isAuthenticated) {
+      setCortexItems([]);
+      setSpaces([]);
+      setLoading(false);
+      return;
+    }
+
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        
+        // Load spaces for filtering
+        const spacesData = await getSpaces();
+        setSpaces(spacesData);
+        
+        // Load items with current filters
+        const result = await getItems({
+          page: 1,
+          pageSize: 1000, // Load all for client-side filtering for now
+          type: [],
+          spaceId: cortexId === 'overview' ? undefined : cortexId,
+          tags: [],
+          dateRange: {},
+          search: ''
+        });
+        
+        // Convert Supabase items to CortexItem format
+        const convertedItems = result.items.map((item: any) => {
+          // Map space_id to space name
+          const space = spaces.find(s => s.id === item.space_id);
+          const spaceName = space ? space.name : 'Personal';
+          
+          // Map space name to valid CortexItem space type
+          let spaceType: 'Personal' | 'Work' | 'School' | 'Team' = 'Personal';
+          if (spaceName.toLowerCase().includes('work')) spaceType = 'Work';
+          else if (spaceName.toLowerCase().includes('school')) spaceType = 'School';
+          else if (spaceName.toLowerCase().includes('team')) spaceType = 'Team';
+          
+          return {
+            id: item.id,
+            title: item.title,
+            url: item.file_path || '#',
+            type: item.type.charAt(0).toUpperCase() + item.type.slice(1).toLowerCase() as 'Note' | 'PDF' | 'Link' | 'Image',
+            createdDate: new Date(item.created_at).toISOString().split('T')[0],
+            source: item.source || 'Upload',
+            keywords: [], // Will be populated from tags separately
+            space: spaceType,
+            content: item.content,
+            description: item.content?.substring(0, 150),
+          };
+        });
+        
+        setCortexItems(convertedItems);
+        setTotalItems(result.total);
+        
+        // Update cache
+        DataCache.setItems(convertedItems);
+        
+      } catch (error) {
+        console.error('Error loading data:', error);
+        toast({
+          title: "Error loading data",
+          description: "Failed to load items from database.",
+          variant: "destructive"
+        });
+        // Fallback to cache or initial data
+        const cached = DataCache.getItems();
+        setCortexItems(cached.length > 0 ? cached : initialCortexItems);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [isAuthenticated, cortexId]);
 
   // Use the filters hook
   const { 
@@ -223,35 +296,54 @@ const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({
     // Optimistically insert at the top
     setCortexItems(prev => [newItem, ...prev]);
     
+    // Clear cache to force refresh
+    DataCache.clear();
+    
     // Open preview drawer for the new item
     setPreviewItem(newItem);
     setPreviewDrawerOpen(true);
   };
 
-  const handleDeleteItems = () => {
+  const handleDeleteItems = async () => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to delete items.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     const itemsToDelete = cortexItems.filter(item => selectedItems.includes(item.id));
     setDeletedItems(itemsToDelete);
     
-    // Optimistically remove from UI
-    setCortexItems(prev => prev.filter(item => !selectedItems.includes(item.id)));
-    
-    // Show undo toast
-    const count = selectedItems.length;
-    toast({
-      title: `Deleted ${count} item(s)`,
-      description: "Undo",
-      action: (
-        <Button 
-          size="sm" 
-          variant="outline" 
-          onClick={handleUndoDelete}
-          className="ml-auto"
-        >
-          Undo
-        </Button>
-      ),
-      duration: 6000,
-    });
+    try {
+      // Optimistically remove from UI
+      setCortexItems(prev => prev.filter(item => !selectedItems.includes(item.id)));
+      
+      // Delete from database
+      await deleteItems(selectedItems);
+      
+      // Clear cache
+      DataCache.clear();
+      
+      // Show undo toast (note: undo won't work with database, this is just for UI feedback)
+      const count = selectedItems.length;
+      toast({
+        title: `Deleted ${count} item(s)`,
+        description: "Items have been permanently deleted.",
+      });
+      
+    } catch (error) {
+      console.error('Error deleting items:', error);
+      // Restore items on error
+      setCortexItems(prev => [...itemsToDelete, ...prev]);
+      toast({
+        title: "Error deleting items",
+        description: "Failed to delete items. Please try again.",
+        variant: "destructive"
+      });
+    }
     
     setSelectedItems([]);
     setDeleteDialogOpen(false);
@@ -370,7 +462,21 @@ const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-auto">
-          {finalItems.length === 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                <p className="text-muted-foreground">Loading items...</p>
+              </div>
+            </div>
+          ) : !isAuthenticated ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <h3 className="text-lg font-semibold mb-2">Authentication Required</h3>
+                <p className="text-muted-foreground">Please log in to view your items.</p>
+              </div>
+            </div>
+          ) : finalItems.length === 0 ? (
             <EmptyState />
           ) : (
             <>
