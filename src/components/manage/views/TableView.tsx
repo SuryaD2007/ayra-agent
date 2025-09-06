@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { ArrowUpDown, Check, Square, Edit2, FileText, File, Link, Image as ImageIcon, Plus, X } from 'lucide-react';
+import { ArrowUpDown, Check, Square, Edit2, FileText, File, Link, Image as ImageIcon, Plus, X, Loader2 } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,6 +35,7 @@ interface TableViewProps {
   virtualized?: boolean;
   selectedRowIndex?: number;
   onRowClick?: (item: CortexItem, index: number) => void;
+  syncingItems?: Set<string>;
 }
 
 const TableView = ({ 
@@ -44,7 +45,8 @@ const TableView = ({
   onUpdateItem = () => {},
   virtualized = false,
   selectedRowIndex = -1,
-  onRowClick = () => {}
+  onRowClick = () => {},
+  syncingItems = new Set()
 }: TableViewProps) => {
   const [editingTitle, setEditingTitle] = useState<string | null>(null);
   const [tempTitle, setTempTitle] = useState('');
@@ -208,6 +210,12 @@ const TableView = ({
               >
                 {item.title}
               </button>
+              {syncingItems.has(item.id) && (
+                <div className="flex items-center gap-1 text-muted-foreground">
+                  <Loader2 size={12} className="animate-spin" />
+                  <span className="text-xs">Syncing...</span>
+                </div>
+              )}
               <Button
                 size="icon"
                 variant="ghost"
@@ -233,17 +241,22 @@ const TableView = ({
 
         {/* Space - Editable Dropdown */}
         <TableCell>
-          <Select value={item.space} onValueChange={(value: CortexItem['space']) => handleSpaceChange(item.id, value)}>
-            <SelectTrigger className="w-32 h-8">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Personal">Personal</SelectItem>
-              <SelectItem value="Work">Work</SelectItem>
-              <SelectItem value="School">School</SelectItem>
-              <SelectItem value="Team">Team</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <Select value={item.space} onValueChange={(value: CortexItem['space']) => handleSpaceChange(item.id, value)}>
+              <SelectTrigger className="w-32 h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Personal">Personal</SelectItem>
+                <SelectItem value="Work">Work</SelectItem>
+                <SelectItem value="School">School</SelectItem>
+                <SelectItem value="Team">Team</SelectItem>
+              </SelectContent>
+            </Select>
+            {syncingItems.has(item.id) && (
+              <Loader2 size={12} className="animate-spin text-muted-foreground" />
+            )}
+          </div>
         </TableCell>
 
         {/* Tags - Chips with Add/Remove */}
@@ -281,6 +294,9 @@ const TableView = ({
               >
                 <Plus size={12} />
               </Button>
+              {syncingItems.has(item.id) && (
+                <Loader2 size={12} className="animate-spin text-muted-foreground" />
+              )}
             </div>
           </div>
         </TableCell>
