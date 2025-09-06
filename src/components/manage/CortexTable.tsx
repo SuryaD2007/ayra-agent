@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle, useRef } from 'react';
 import { Search, Filter, Move, Plus, MoreHorizontal, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,11 +46,20 @@ interface CortexTableProps {
   cortexId?: string | null;
 }
 
-const CortexTable = ({ 
+export interface CortexTableRef {
+  focusSearch: () => void;
+  openFilters: () => void;
+  openNewItem: () => void;
+  navigateSelection: (direction: 'up' | 'down') => void;
+  openPreviewForSelected: () => void;
+  closePreview: () => void;
+}
+
+const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({ 
   viewType = 'table', 
   categoryId = 'private',
   cortexId = 'overview'
-}: CortexTableProps) => {
+}, ref) => {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -61,6 +70,10 @@ const CortexTable = ({
   const [previewDrawerOpen, setPreviewDrawerOpen] = useState(false);
   const [previewItem, setPreviewItem] = useState<CortexItem | null>(null);
   const [deletedItems, setDeletedItems] = useState<CortexItem[]>([]);
+  const [selectedRowIndex, setSelectedRowIndex] = useState<number>(-1);
+  
+  // Refs
+  const searchInputRef = useRef<HTMLInputElement>(null);
   // Load items from localStorage or use initial data as fallback
   const [cortexItems, setCortexItems] = useState<CortexItem[]>(() => {
     try {
@@ -126,6 +139,50 @@ const CortexTable = ({
 
   // Use virtualization for large datasets (>100 items)
   const shouldVirtualize = finalItems.length > 100;
+
+  // Expose methods via ref for hotkeys
+  useImperativeHandle(ref, () => ({
+    focusSearch: () => {
+      searchInputRef.current?.focus();
+    },
+    openFilters: () => {
+      setFilterDrawerOpen(true);
+    },
+    openNewItem: () => {
+      setNewItemModalOpen(true);
+    },
+    navigateSelection: (direction: 'up' | 'down') => {
+      if (paginatedItems.length === 0) return;
+      
+      setSelectedRowIndex(prevIndex => {
+        let newIndex = direction === 'down' ? prevIndex + 1 : prevIndex - 1;
+        
+        // Handle wrap-around
+        if (newIndex >= paginatedItems.length) {
+          newIndex = 0;
+        } else if (newIndex < 0) {
+          newIndex = paginatedItems.length - 1;
+        }
+        
+        return newIndex;
+      });
+    },
+    openPreviewForSelected: () => {
+      if (selectedRowIndex >= 0 && selectedRowIndex < paginatedItems.length) {
+        const item = paginatedItems[selectedRowIndex];
+        setPreviewItem(item);
+        setPreviewDrawerOpen(true);
+      }
+    },
+    closePreview: () => {
+      setPreviewDrawerOpen(false);
+    },
+  }));
+
+  // Reset row selection when items change
+  useEffect(() => {
+    setSelectedRowIndex(-1);
+  }, [paginatedItems]);
 
   const handleSelectItem = (id: string) => {
     setSelectedItems(prev => 
@@ -295,7 +352,8 @@ const CortexTable = ({
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={16} />
           <Input
-            placeholder="Search items..."
+            ref={searchInputRef}
+            placeholder="Search items... (Press / to focus)"
             className="pl-10"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -316,6 +374,12 @@ const CortexTable = ({
                   onSelectItem={handleSelectItem}
                   onUpdateItem={handleUpdateItem}
                   virtualized={shouldVirtualize}
+                  selectedRowIndex={selectedRowIndex}
+                  onRowClick={(item, index) => {
+                    setSelectedRowIndex(index);
+                    setPreviewItem(item);
+                    setPreviewDrawerOpen(true);
+                  }}
                 />
               )}
               {viewType === 'grid' && (
@@ -465,6 +529,8 @@ const CortexTable = ({
       />
     </div>
   );
-};
+});
+
+CortexTable.displayName = 'CortexTable';
 
 export default CortexTable;

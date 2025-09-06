@@ -1,12 +1,15 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { AnimatedTransition } from '@/components/AnimatedTransition';
 import { useAnimateIn } from '@/lib/animations';
 import { useLibraryTitle } from '@/hooks/useLibraryTitle';
+import { useHotkeys } from '@/hooks/useHotkeys';
 import CortexTable from '@/components/manage/CortexTable';
+import type { CortexTableRef } from '@/components/manage/CortexTable';
 import CortexSidebar from '@/components/manage/CortexSidebar';
 import ViewSwitcher from '@/components/manage/ViewSwitcher';
+import HotkeysSheet from '@/components/manage/HotkeysSheet';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -26,6 +29,9 @@ const ManagePage = () => {
   const [selectedSpace, setSelectedSpace] = useState<string | null>(null);
   const [newItemModalOpen, setNewItemModalOpen] = useState(false);
   const [customSpaces, setCustomSpaces] = useState<any[]>([]);
+  
+  // Refs for hotkey access
+  const cortexTableRef = useRef<CortexTableRef>(null);
   
   // Use the enhanced title editing hook
   const {
@@ -115,6 +121,41 @@ const ManagePage = () => {
     return space ? `${space.emoji} ${space.name}` : null;
   };
 
+  // Setup hotkeys
+  useHotkeys([
+    {
+      key: '/',
+      action: () => cortexTableRef.current?.focusSearch(),
+    },
+    {
+      key: 'f',
+      action: () => cortexTableRef.current?.openFilters(),
+    },
+    {
+      key: 'n', 
+      action: () => cortexTableRef.current?.openNewItem(),
+    },
+    {
+      key: 'j',
+      action: () => cortexTableRef.current?.navigateSelection('down'),
+      condition: () => viewType === 'table',
+    },
+    {
+      key: 'k',
+      action: () => cortexTableRef.current?.navigateSelection('up'),
+      condition: () => viewType === 'table',
+    },
+    {
+      key: 'Enter',
+      action: () => cortexTableRef.current?.openPreviewForSelected(),
+      condition: () => viewType === 'table',
+    },
+    {
+      key: 'Escape',
+      action: () => cortexTableRef.current?.closePreview(),
+    },
+  ]);
+
   return (
     <div className="max-w-full mx-auto h-screen pt-24 pb-6">
       <Toaster position="top-right" />
@@ -162,9 +203,12 @@ const ManagePage = () => {
                   )}
                 </div>
               )}
-              <TooltipProvider>
-                <ViewSwitcher activeView={viewType} onViewChange={setViewType} />
-              </TooltipProvider>
+              <div className="flex items-center gap-2">
+                <TooltipProvider>
+                  <ViewSwitcher activeView={viewType} onViewChange={setViewType} />
+                </TooltipProvider>
+                <HotkeysSheet />
+              </div>
             </div>
             {isEmptyCustomSpace() ? (
               // Empty state for custom spaces
@@ -185,6 +229,7 @@ const ManagePage = () => {
               </div>
             ) : (
               <CortexTable 
+                ref={cortexTableRef}
                 viewType={viewType} 
                 categoryId={selectedCategory}
                 cortexId={selectedItem}

@@ -33,6 +33,8 @@ interface TableViewProps {
   onSelectItem?: (id: string) => void;
   onUpdateItem?: (id: string, updates: Partial<CortexItem>) => void;
   virtualized?: boolean;
+  selectedRowIndex?: number;
+  onRowClick?: (item: CortexItem, index: number) => void;
 }
 
 const TableView = ({ 
@@ -40,7 +42,9 @@ const TableView = ({
   selectedItems = [], 
   onSelectItem = () => {},
   onUpdateItem = () => {},
-  virtualized = false
+  virtualized = false,
+  selectedRowIndex = -1,
+  onRowClick = () => {}
 }: TableViewProps) => {
   const [editingTitle, setEditingTitle] = useState<string | null>(null);
   const [tempTitle, setTempTitle] = useState('');
@@ -131,14 +135,17 @@ const TableView = ({
   // Render table row component
   const renderTableRow = (item: CortexItem, index: number, virtualRow?: any) => {
     const isSelected = selectedItems.includes(item.id);
+    const isHighlighted = selectedRowIndex === index;
     
     return (
       <TableRow 
         key={item.id}
         className={cn(
-          "hover:bg-muted/30",
-          isSelected && "bg-primary/5"
+          "hover:bg-muted/30 cursor-pointer",
+          isSelected && "bg-primary/5",
+          isHighlighted && "bg-accent/50 ring-2 ring-primary/20"
         )}
+        onClick={() => onRowClick(item, index)}
         style={virtualRow ? {
           height: `${virtualRow.size}px`,
           transform: `translateY(${virtualRow.start}px)`,
@@ -152,7 +159,10 @@ const TableView = ({
         <TableCell className="w-10">
           <div 
             className="cursor-pointer"
-            onClick={() => onSelectItem(item.id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelectItem(item.id);
+            }}
           >
             {isSelected ? (
               <div className="rounded-md bg-primary text-white p-0.5">
@@ -191,7 +201,10 @@ const TableView = ({
             <div className="flex items-center gap-2 group">
               <button
                 className="text-left hover:text-primary cursor-pointer"
-                onClick={() => setPreviewItem(item)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPreviewItem(item);
+                }}
               >
                 {item.title}
               </button>
@@ -199,7 +212,10 @@ const TableView = ({
                 size="icon"
                 variant="ghost"
                 className="h-6 w-6 opacity-0 group-hover:opacity-100"
-                onClick={() => handleTitleEdit(item.id, item.title)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleTitleEdit(item.id, item.title);
+                }}
               >
                 <Edit2 size={12} />
               </Button>
