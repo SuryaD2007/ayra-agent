@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { SearchIcon, ArrowLeft, X, AlertTriangle, RotateCcw } from 'lucide-react';
+import { SearchIcon, ArrowLeft, X, AlertTriangle, RotateCcw, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -13,6 +13,7 @@ import ChatInput from './ChatInput';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
+import { useSignedUrl } from '@/hooks/useSignedUrl';
 
 interface SearchProps {
   itemId?: string | null;
@@ -28,6 +29,15 @@ export const Search: React.FC<SearchProps> = ({ itemId }) => {
   const [showSidebar, setShowSidebar] = useState(true);
   const [preloadedItem, setPreloadedItem] = useState<CortexItem | null>(null);
   const [isItemDeleted, setIsItemDeleted] = useState(false);
+  
+  // Check if PDF needs signed URL
+  const isPdfWithoutContent = preloadedItem?.type === 'PDF' && !preloadedItem.content && !preloadedItem.description;
+  const { url: pdfSignedUrl } = useSignedUrl({
+    bucket: 'ayra-files',
+    path: isPdfWithoutContent ? preloadedItem?.file_path || null : null,
+    expiresIn: 3600,
+    refreshThreshold: 0.8
+  });
   
   // Load preloaded item if itemId is provided
   useEffect(() => {
@@ -66,10 +76,20 @@ export const Search: React.FC<SearchProps> = ({ itemId }) => {
       // If we have a preloaded item, add a system context message
       if (preloadedItem) {
         const contextContent = getItemContent(preloadedItem);
+        
+        let systemMessageContent: string;
+        
+        // Special handling for PDFs without extracted content
+        if (isPdfWithoutContent && pdfSignedUrl) {
+          systemMessageContent = `Use the linked PDF as context: ${pdfSignedUrl}. Start by summarizing.`;
+        } else {
+          systemMessageContent = `I have access to: "${preloadedItem.title}" (${preloadedItem.type}). Feel free to ask questions about this content.`;
+        }
+        
         const systemMessage: ChatMessage = {
           id: generateId(),
           type: 'assistant',
-          content: `I have access to: "${preloadedItem.title}" (${preloadedItem.type}). Feel free to ask questions about this content.`,
+          content: systemMessageContent,
           timestamp: new Date()
         };
         newChat.messages = [systemMessage];
@@ -78,7 +98,7 @@ export const Search: React.FC<SearchProps> = ({ itemId }) => {
       setChats([newChat]);
       setActiveChat(newChat);
     }
-  }, [preloadedItem]);
+  }, [preloadedItem, isPdfWithoutContent, pdfSignedUrl]);
 
   // Create a new chat
   const createNewChat = () => {
@@ -298,9 +318,10 @@ export const Search: React.FC<SearchProps> = ({ itemId }) => {
             </h2>
           </div>
           
-          {/* Preloaded item chip */}
+          {/* Preloaded item chips */}
           {preloadedItem && (
             <div className="flex items-center gap-2">
+              {/* Main item chip */}
               <Badge variant="outline" className="flex items-center gap-1">
                 {preloadedItem.type === 'Note' && '📝'}
                 {preloadedItem.type === 'PDF' && '📄'}
@@ -309,6 +330,15 @@ export const Search: React.FC<SearchProps> = ({ itemId }) => {
                 <span className="max-w-[150px] truncate">{preloadedItem.title}</span>
                 <span className="text-xs text-muted-foreground">• {preloadedItem.type}</span>
               </Badge>
+              
+              {/* PDF context chip */}
+              {isPdfWithoutContent && (
+                <Badge variant="secondary" className="flex items-center gap-1">
+                  <FileText size={12} />
+                  <span className="text-xs">PDF context</span>
+                </Badge>
+              )}
+              
               <Button asChild variant="ghost" size="sm">
                 <Link to={`/manage?itemId=${preloadedItem.id}`} className="flex items-center gap-1">
                   <ArrowLeft size={14} />
