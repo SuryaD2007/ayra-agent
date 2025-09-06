@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { ArrowUpDown, Check, Square, Edit2, FileText, File, Link, Image as ImageIcon, Plus, X } from 'lucide-react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -31,18 +32,30 @@ interface TableViewProps {
   selectedItems?: string[];
   onSelectItem?: (id: string) => void;
   onUpdateItem?: (id: string, updates: Partial<CortexItem>) => void;
+  virtualized?: boolean;
 }
 
 const TableView = ({ 
   items, 
   selectedItems = [], 
   onSelectItem = () => {},
-  onUpdateItem = () => {}
+  onUpdateItem = () => {},
+  virtualized = false
 }: TableViewProps) => {
   const [editingTitle, setEditingTitle] = useState<string | null>(null);
   const [tempTitle, setTempTitle] = useState('');
   const [previewItem, setPreviewItem] = useState<CortexItem | null>(null);
   const [newTag, setNewTag] = useState<{ [key: string]: string }>({});
+  
+  const parentRef = useRef<HTMLDivElement>(null);
+  
+  // Virtualization setup
+  const rowVirtualizer = useVirtualizer({
+    count: items.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 60, // Estimated row height
+    overscan: 5,
+  });
 
   const getTypeIcon = (type: CortexItem['type']) => {
     switch (type) {
@@ -115,173 +128,226 @@ const TableView = ({
     }
   };
 
+  // Render table row component
+  const renderTableRow = (item: CortexItem, index: number, virtualRow?: any) => {
+    const isSelected = selectedItems.includes(item.id);
+    
+    return (
+      <TableRow 
+        key={item.id}
+        className={cn(
+          "hover:bg-muted/30",
+          isSelected && "bg-primary/5"
+        )}
+        style={virtualRow ? {
+          height: `${virtualRow.size}px`,
+          transform: `translateY(${virtualRow.start}px)`,
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+        } : undefined}
+      >
+        {/* Selection checkbox */}
+        <TableCell className="w-10">
+          <div 
+            className="cursor-pointer"
+            onClick={() => onSelectItem(item.id)}
+          >
+            {isSelected ? (
+              <div className="rounded-md bg-primary text-white p-0.5">
+                <Check size={16} />
+              </div>
+            ) : (
+              <div className="rounded-md border border-border p-0.5">
+                <Square size={16} />
+              </div>
+            )}
+          </div>
+        </TableCell>
+
+        {/* Title - Editable with Preview */}
+        <TableCell className="font-medium">
+          {editingTitle === item.id ? (
+            <div className="flex items-center gap-2">
+              <Input
+                value={tempTitle}
+                onChange={(e) => setTempTitle(e.target.value)}
+                className="h-8"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleTitleSave(item.id);
+                  if (e.key === 'Escape') handleTitleCancel();
+                }}
+                autoFocus
+              />
+              <Button size="icon" variant="ghost" onClick={() => handleTitleSave(item.id)} className="h-6 w-6">
+                <Check size={14} className="text-green-500" />
+              </Button>
+              <Button size="icon" variant="ghost" onClick={handleTitleCancel} className="h-6 w-6">
+                <X size={14} className="text-red-500" />
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 group">
+              <button
+                className="text-left hover:text-primary cursor-pointer"
+                onClick={() => setPreviewItem(item)}
+              >
+                {item.title}
+              </button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                onClick={() => handleTitleEdit(item.id, item.title)}
+              >
+                <Edit2 size={12} />
+              </Button>
+            </div>
+          )}
+        </TableCell>
+
+        {/* Type with Icon */}
+        <TableCell>
+          <div className="flex items-center gap-2">
+            {getTypeIcon(item.type)}
+            <span className="text-sm">{item.type}</span>
+          </div>
+        </TableCell>
+
+        {/* Space - Editable Dropdown */}
+        <TableCell>
+          <Select value={item.space} onValueChange={(value: CortexItem['space']) => handleSpaceChange(item.id, value)}>
+            <SelectTrigger className="w-32 h-8">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Personal">Personal</SelectItem>
+              <SelectItem value="Work">Work</SelectItem>
+              <SelectItem value="School">School</SelectItem>
+              <SelectItem value="Team">Team</SelectItem>
+            </SelectContent>
+          </Select>
+        </TableCell>
+
+        {/* Tags - Chips with Add/Remove */}
+        <TableCell>
+          <div className="flex flex-wrap gap-1 items-center">
+            {item.keywords.map((keyword, idx) => (
+              <div 
+                key={idx} 
+                className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary/20 text-xs group"
+              >
+                <span>{keyword}</span>
+                <button
+                  onClick={() => handleRemoveTag(item.id, keyword)}
+                  className="opacity-0 group-hover:opacity-100 hover:text-red-500"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
+            <div className="flex items-center gap-1">
+              <Input
+                placeholder="Add tag"
+                value={newTag[item.id] || ''}
+                onChange={(e) => setNewTag({ ...newTag, [item.id]: e.target.value })}
+                className="h-6 w-20 text-xs"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleAddTag(item.id);
+                }}
+              />
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => handleAddTag(item.id)}
+                className="h-6 w-6"
+              >
+                <Plus size={12} />
+              </Button>
+            </div>
+          </div>
+        </TableCell>
+
+        {/* Date Added */}
+        <TableCell>{item.createdDate}</TableCell>
+
+        {/* Source */}
+        <TableCell>
+          <span className="text-sm text-muted-foreground">
+            {getSourceDisplay(item.source, item.type)}
+          </span>
+        </TableCell>
+      </TableRow>
+    );
+  };
+
   return (
     <>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-10"></TableHead>
-            {columns.map((column) => (
-              <TableHead key={column.id} className="py-2">
-                <div className="flex items-center">
-                  {column.name}
-                  {column.sortable && (
-                    <Button variant="ghost" size="sm" className="ml-1 h-6 w-6 p-0">
-                      <ArrowUpDown size={14} />
-                    </Button>
-                  )}
-                </div>
-              </TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {items.map((item) => {
-            const isSelected = selectedItems.includes(item.id);
-            
-            return (
-              <TableRow 
-                key={item.id} 
-                className={cn(
-                  "hover:bg-muted/30",
-                  isSelected && "bg-primary/5"
-                )}
+      {virtualized ? (
+        <div
+          ref={parentRef}
+          className="h-full overflow-auto"
+          style={{ contain: 'strict' }}
+        >
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-10"></TableHead>
+                {columns.map((column) => (
+                  <TableHead key={column.id} className="py-2">
+                    <div className="flex items-center">
+                      {column.name}
+                      {column.sortable && (
+                        <Button variant="ghost" size="sm" className="ml-1 h-6 w-6 p-0">
+                          <ArrowUpDown size={14} />
+                        </Button>
+                      )}
+                    </div>
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <div
+                style={{
+                  height: `${rowVirtualizer.getTotalSize()}px`,
+                  width: '100%',
+                  position: 'relative',
+                }}
               >
-                {/* Selection checkbox */}
-                <TableCell className="w-10">
-                  <div 
-                    className="cursor-pointer"
-                    onClick={() => onSelectItem(item.id)}
-                  >
-                    {isSelected ? (
-                      <div className="rounded-md bg-primary text-white p-0.5">
-                        <Check size={16} />
-                      </div>
-                    ) : (
-                      <div className="rounded-md border border-border p-0.5">
-                        <Square size={16} />
-                      </div>
+                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                  const item = items[virtualRow.index];
+                  return renderTableRow(item, virtualRow.index, virtualRow);
+                })}
+              </div>
+            </TableBody>
+          </Table>
+        </div>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-10"></TableHead>
+              {columns.map((column) => (
+                <TableHead key={column.id} className="py-2">
+                  <div className="flex items-center">
+                    {column.name}
+                    {column.sortable && (
+                      <Button variant="ghost" size="sm" className="ml-1 h-6 w-6 p-0">
+                        <ArrowUpDown size={14} />
+                      </Button>
                     )}
                   </div>
-                </TableCell>
-
-                {/* Title - Editable with Preview */}
-                <TableCell className="font-medium">
-                  {editingTitle === item.id ? (
-                    <div className="flex items-center gap-2">
-                      <Input
-                        value={tempTitle}
-                        onChange={(e) => setTempTitle(e.target.value)}
-                        className="h-8"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleTitleSave(item.id);
-                          if (e.key === 'Escape') handleTitleCancel();
-                        }}
-                        autoFocus
-                      />
-                      <Button size="icon" variant="ghost" onClick={() => handleTitleSave(item.id)} className="h-6 w-6">
-                        <Check size={14} className="text-green-500" />
-                      </Button>
-                      <Button size="icon" variant="ghost" onClick={handleTitleCancel} className="h-6 w-6">
-                        <X size={14} className="text-red-500" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 group">
-                      <button
-                        className="text-left hover:text-primary cursor-pointer"
-                        onClick={() => setPreviewItem(item)}
-                      >
-                        {item.title}
-                      </button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-6 w-6 opacity-0 group-hover:opacity-100"
-                        onClick={() => handleTitleEdit(item.id, item.title)}
-                      >
-                        <Edit2 size={12} />
-                      </Button>
-                    </div>
-                  )}
-                </TableCell>
-
-                {/* Type with Icon */}
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    {getTypeIcon(item.type)}
-                    <span className="text-sm">{item.type}</span>
-                  </div>
-                </TableCell>
-
-                {/* Space - Editable Dropdown */}
-                <TableCell>
-                  <Select value={item.space} onValueChange={(value: CortexItem['space']) => handleSpaceChange(item.id, value)}>
-                    <SelectTrigger className="w-32 h-8">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Personal">Personal</SelectItem>
-                      <SelectItem value="Work">Work</SelectItem>
-                      <SelectItem value="School">School</SelectItem>
-                      <SelectItem value="Team">Team</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-
-                {/* Tags - Chips with Add/Remove */}
-                <TableCell>
-                  <div className="flex flex-wrap gap-1 items-center">
-                    {item.keywords.map((keyword, idx) => (
-                      <div 
-                        key={idx} 
-                        className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary/20 text-xs group"
-                      >
-                        <span>{keyword}</span>
-                        <button
-                          onClick={() => handleRemoveTag(item.id, keyword)}
-                          className="opacity-0 group-hover:opacity-100 hover:text-red-500"
-                        >
-                          <X size={12} />
-                        </button>
-                      </div>
-                    ))}
-                    <div className="flex items-center gap-1">
-                      <Input
-                        placeholder="Add tag"
-                        value={newTag[item.id] || ''}
-                        onChange={(e) => setNewTag({ ...newTag, [item.id]: e.target.value })}
-                        className="h-6 w-20 text-xs"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleAddTag(item.id);
-                        }}
-                      />
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => handleAddTag(item.id)}
-                        className="h-6 w-6"
-                      >
-                        <Plus size={12} />
-                      </Button>
-                    </div>
-                  </div>
-                </TableCell>
-
-                {/* Date Added */}
-                <TableCell>{item.createdDate}</TableCell>
-
-                {/* Source */}
-                <TableCell>
-                  <span className="text-sm text-muted-foreground">
-                    {getSourceDisplay(item.source, item.type)}
-                  </span>
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {items.map((item, index) => renderTableRow(item, index))}
+          </TableBody>
+        </Table>
+      )}
 
       {/* Preview Drawer */}
       <Sheet open={!!previewItem} onOpenChange={() => setPreviewItem(null)}>

@@ -36,7 +36,9 @@ import NewItemModal from './NewItemModal';
 import PreviewDrawer from './PreviewDrawer';
 import { cortexItems as initialCortexItems, CortexItem } from './cortex-data';
 import { useFilters } from '@/hooks/useFilters';
+import { usePagination } from '@/hooks/usePagination';
 import { toast } from '@/hooks/use-toast';
+import TablePagination from './TablePagination';
 
 interface CortexTableProps {
   viewType?: 'table' | 'grid' | 'list' | 'kanban';
@@ -104,6 +106,26 @@ const CortexTable = ({
   };
 
   const finalItems = searchFilteredItems();
+
+  // Pagination
+  const pagination = usePagination({
+    totalItems: finalItems.length,
+    defaultPageSize: 25,
+  });
+
+  // Reset to page 1 when filters or search change
+  useEffect(() => {
+    pagination.resetToFirstPage();
+  }, [JSON.stringify(filters), searchQuery]);
+
+  // Get paginated items
+  const paginatedItems = finalItems.slice(
+    pagination.startIndex,
+    pagination.endIndex
+  );
+
+  // Use virtualization for large datasets (>100 items)
+  const shouldVirtualize = finalItems.length > 100;
 
   const handleSelectItem = (id: string) => {
     setSelectedItems(prev => 
@@ -281,37 +303,58 @@ const CortexTable = ({
         </div>
       </div>
 
-      <div className="overflow-auto h-[calc(100vh-280px)]">
-        {finalItems.length === 0 ? (
-          <EmptyState />
-        ) : (
-          <>
-            {viewType === 'table' && (
-              <TableView 
-                items={finalItems}
-                selectedItems={selectedItems}
-                onSelectItem={handleSelectItem}
-                onUpdateItem={handleUpdateItem}
-              />
-            )}
-            {viewType === 'grid' && (
-              <GridView 
-                items={finalItems}
-                selectedItems={selectedItems}
-                onSelectItem={handleSelectItem}
-              />
-            )}
-            {viewType === 'list' && (
-              <ListView 
-                items={finalItems}
-                selectedItems={selectedItems}
-                onSelectItem={handleSelectItem}
-              />
-            )}
-            {viewType === 'kanban' && (
-              <KanbanView items={finalItems} />
-            )}
-          </>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 overflow-auto">
+          {finalItems.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <>
+              {viewType === 'table' && (
+                <TableView 
+                  items={shouldVirtualize ? finalItems : paginatedItems}
+                  selectedItems={selectedItems}
+                  onSelectItem={handleSelectItem}
+                  onUpdateItem={handleUpdateItem}
+                  virtualized={shouldVirtualize}
+                />
+              )}
+              {viewType === 'grid' && (
+                <GridView 
+                  items={paginatedItems}
+                  selectedItems={selectedItems}
+                  onSelectItem={handleSelectItem}
+                />
+              )}
+              {viewType === 'list' && (
+                <ListView 
+                  items={paginatedItems}
+                  selectedItems={selectedItems}
+                  onSelectItem={handleSelectItem}
+                />
+              )}
+              {viewType === 'kanban' && (
+                <KanbanView items={paginatedItems} />
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Pagination - only show for non-virtualized tables */}
+        {finalItems.length > 0 && !shouldVirtualize && (
+          <TablePagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            pageSize={pagination.pageSize}
+            totalItems={finalItems.length}
+            hasNextPage={pagination.hasNextPage}
+            hasPreviousPage={pagination.hasPreviousPage}
+            startIndex={pagination.startIndex}
+            endIndex={pagination.endIndex}
+            onPageChange={pagination.goToPage}
+            onPageSizeChange={pagination.changePageSize}
+            onNextPage={pagination.goToNextPage}
+            onPreviousPage={pagination.goToPreviousPage}
+          />
         )}
       </div>
 
