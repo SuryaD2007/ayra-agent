@@ -18,6 +18,8 @@ import Settings from "./pages/Settings";
 import ManagePage from "./pages/ManagePage";
 import PreviewPage from "./pages/PreviewPage";
 import Navbar from "./components/Navbar";
+import ConfigurationBanner from "./components/ConfigurationBanner";
+import { useConfigurationValidation } from "./hooks/useConfigurationValidation";
 import './lib/sampleData'; // Import sample data utilities
 
 const queryClient = new QueryClient();
@@ -124,23 +126,33 @@ const AppRoutes = () => {
   );
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <BrowserRouter>
-      <ThemeProvider>
-        <AuthProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <div className="min-h-screen">
-              <Navbar />
-              <AppRoutes />
-            </div>
-          </TooltipProvider>
-        </AuthProvider>
-      </ThemeProvider>
-    </BrowserRouter>
-  </QueryClientProvider>
-);
+const App = () => {
+  const { showBanner, missingKeys, dismissBanner } = useConfigurationValidation();
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <ThemeProvider>
+          <AuthProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              {showBanner && (
+                <ConfigurationBanner 
+                  missingKeys={missingKeys} 
+                  onDismiss={dismissBanner}
+                />
+              )}
+              <div className={`min-h-screen ${showBanner ? 'pt-20' : ''}`}>
+                <Navbar />
+                <AppRoutes />
+              </div>
+            </TooltipProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

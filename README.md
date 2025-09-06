@@ -67,3 +67,23 @@ Simply open [Lovable](https://lovable.dev/projects/513db1a2-0fcc-4643-bd43-f10d0
 ## I want to use a custom domain - is that possible?
 
 We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+
+## Supabase Configuration
+
+This project uses Supabase for backend functionality. After deployment, you'll need to configure CORS settings:
+
+### CORS Configuration for Deployed Domain
+
+1. Go to your [Supabase Dashboard](https://supabase.com/dashboard)
+2. Navigate to Settings → API
+3. Under "CORS Origins", add your deployed domain URL
+4. For Lovable deployments, add: `https://your-app-name.lovable.app`
+5. For custom domains, add: `https://your-custom-domain.com`
+
+### Required Environment Variables
+
+The app validates these Supabase configuration values on startup:
+- `SUPABASE_URL`: Your Supabase project URL
+- `SUPABASE_ANON_KEY`: Your Supabase anonymous/public key
+
+If these are missing or invalid, a configuration banner will appear with setup instructions.
