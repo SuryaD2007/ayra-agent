@@ -46,6 +46,8 @@ interface FormData {
   description?: string;
   favicon?: string;
   file?: File;
+  pdfDataUrl?: string;
+  metadataFailed?: boolean;
 }
 
 const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: NewItemModalProps) => {
@@ -61,6 +63,7 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: N
     title: '',
     space: 'Personal',
     tags: [],
+    metadataFailed: false,
   });
   const [tagInput, setTagInput] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -104,32 +107,66 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: N
     },
   });
 
-  // Dropzone for PDF uploads
+  // Dropzone for PDF uploads with enhanced validation
   const { getRootProps, getInputProps, isDragActive, acceptedFiles, fileRejections } = useDropzone({
     accept: {
       'application/pdf': ['.pdf'],
     },
-    maxSize: 25 * 1024 * 1024, // 25MB
+    maxSize: 25 * 1024 * 1024, // 25MB hard cap
     maxFiles: 1,
-    onDrop: (files) => {
+    onDrop: async (files) => {
       if (files.length > 0) {
         const file = files[0];
-        setFormData(prev => ({
-          ...prev,
-          file,
-          title: file.name.replace('.pdf', ''),
-        }));
-        setErrors(prev => ({ ...prev, file: '' }));
+        
+        // Validate file size explicitly
+        if (file.size > 25 * 1024 * 1024) {
+          setErrors(prev => ({ 
+            ...prev, 
+            file: 'PDF file must be smaller than 25MB. Please compress your file or split it into smaller parts.' 
+          }));
+          return;
+        }
+
+        try {
+          // Convert to base64 for preview storage
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const dataUrl = e.target?.result as string;
+            setFormData(prev => ({
+              ...prev,
+              file,
+              pdfDataUrl: dataUrl,
+              title: prev.title || file.name.replace('.pdf', ''),
+            }));
+          };
+          reader.readAsDataURL(file);
+          
+          setErrors(prev => ({ ...prev, file: '' }));
+        } catch (error) {
+          setErrors(prev => ({ 
+            ...prev, 
+            file: 'Failed to process PDF file. Please try again.' 
+          }));
+        }
       }
     },
     onDropRejected: (rejections) => {
       const rejection = rejections[0];
       if (rejection.errors.some(e => e.code === 'file-too-large')) {
-        setErrors(prev => ({ ...prev, file: 'PDF file must be smaller than 25MB' }));
+        setErrors(prev => ({ 
+          ...prev, 
+          file: 'PDF file exceeds 25MB limit. Please compress your file or use a smaller PDF.' 
+        }));
       } else if (rejection.errors.some(e => e.code === 'file-invalid-type')) {
-        setErrors(prev => ({ ...prev, file: 'Only PDF files are allowed' }));
+        setErrors(prev => ({ 
+          ...prev, 
+          file: 'Only PDF files are accepted. Please select a valid PDF file.' 
+        }));
       } else {
-        setErrors(prev => ({ ...prev, file: 'Invalid file' }));
+        setErrors(prev => ({ 
+          ...prev, 
+          file: 'Invalid file. Please ensure your PDF is under 25MB and not corrupted.' 
+        }));
       }
     },
   });
@@ -172,13 +209,28 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: N
 
   const fetchMetadata = async (url: string) => {
     setIsFetchingMetadata(true);
+    
+    // Create AbortController for 3-second timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    
     try {
-      // Simulate metadata fetching - in a real app, you'd call an API
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Simulate API call with timeout
+      await Promise.race([
+        new Promise(resolve => setTimeout(resolve, Math.random() * 2000 + 500)), // 0.5-2.5s random delay
+        new Promise((_, reject) => {
+          controller.signal.addEventListener('abort', () => {
+            reject(new Error('Request timeout'));
+          });
+        })
+      ]);
       
-      // Mock metadata
+      clearTimeout(timeoutId);
+      
+      // Mock successful metadata fetch
+      const domain = new URL(url).hostname;
       const mockMetadata = {
-        title: `Page Title from ${new URL(url).hostname}`,
+        title: `Page Title from ${domain}`,
         description: 'This is a sample description fetched from the webpage.',
         favicon: '/placeholder.svg',
       };
@@ -188,12 +240,25 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: N
         title: mockMetadata.title,
         description: mockMetadata.description,
         favicon: mockMetadata.favicon,
+        metadataFailed: false,
       }));
     } catch (error) {
+      clearTimeout(timeoutId);
+      
+      // Fallback: create item with basic info and metadata failed flag
+      const domain = new URL(url).hostname;
+      setFormData(prev => ({
+        ...prev,
+        title: url,
+        description: '',
+        favicon: '',
+        metadataFailed: true,
+      }));
+      
       toast({
-        title: 'Failed to fetch metadata',
-        description: 'Please enter the title and description manually.',
-        variant: 'destructive',
+        title: 'Metadata fetch timed out',
+        description: `Created item with URL as title. You can edit the title manually.`,
+        variant: 'default',
       });
     } finally {
       setIsFetchingMetadata(false);
@@ -201,7 +266,15 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: N
   };
 
   const handleUrlChange = (url: string) => {
-    setFormData(prev => ({ ...prev, url }));
+    setFormData(prev => ({ 
+      ...prev, 
+      url, 
+      metadataFailed: false,  // Reset flag when URL changes
+      title: '',              // Clear title when URL changes
+      description: '',
+      favicon: ''
+    }));
+    
     if (url && /^https?:\/\/.+/.test(url)) {
       fetchMetadata(url);
     }
@@ -258,6 +331,7 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: N
         title: '',
         space: 'Personal',
         tags: [],
+        metadataFailed: false,
       });
       setTagInput('');
       editor?.commands.clearContent();
@@ -324,32 +398,87 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: N
           {/* PDF Tab */}
           <TabsContent value="pdf" className="space-y-4">
             <div>
-              <Label>Upload PDF *</Label>
+              <Label>Upload PDF * (Max 25MB)</Label>
               <div
                 {...getRootProps()}
                 className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
                   isDragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'
-                } ${errors.file ? 'border-destructive' : ''}`}
+                } ${errors.file ? 'border-destructive bg-destructive/5' : ''}`}
               >
                 <input {...getInputProps()} />
                 <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                 {formData.file ? (
                   <div>
-                    <p className="text-sm font-medium">{formData.file.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {(formData.file.size / 1024 / 1024).toFixed(2)} MB
+                    <p className="text-sm font-medium text-green-600 mb-2">✓ {formData.file.name}</p>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      {(formData.file.size / 1024 / 1024).toFixed(2)} MB of 25MB limit
                     </p>
+                    {formData.pdfDataUrl ? (
+                      <div className="mt-4 p-2 bg-muted/30 rounded border">
+                        <p className="text-xs text-green-600 mb-2">✓ Preview ready</p>
+                        <iframe 
+                          src={formData.pdfDataUrl}
+                          className="w-full h-32 border rounded"
+                          title="PDF Preview"
+                        />
+                      </div>
+                    ) : (
+                      <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 rounded border border-amber-200 dark:border-amber-800">
+                        <p className="text-sm text-amber-700 dark:text-amber-300 mb-2">⚠️ Preview unavailable</p>
+                        <p className="text-xs text-amber-600 dark:text-amber-400 mb-3">
+                          File too large or couldn't generate preview
+                        </p>
+                        <div className="flex gap-2 justify-center">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              const url = URL.createObjectURL(formData.file!);
+                              window.open(url, '_blank');
+                            }}
+                          >
+                            Download & View
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              setFormData(prev => ({ 
+                                ...prev, 
+                                file: undefined, 
+                                pdfDataUrl: undefined,
+                                title: ''
+                              }));
+                            }}
+                          >
+                            Re-upload
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div>
-                    <p className="text-sm font-medium">
-                      {isDragActive ? 'Drop the file here' : 'Drag & drop a PDF file here'}
+                    <p className="text-sm font-medium mb-1">
+                      {isDragActive ? 'Drop the PDF here' : 'Drag & drop a PDF file here'}
                     </p>
-                    <p className="text-xs text-muted-foreground">or click to select (max 25MB)</p>
+                    <p className="text-xs text-muted-foreground mb-2">or click to select</p>
+                    <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded px-3 py-1 inline-block">
+                      Maximum file size: 25MB
+                    </div>
                   </div>
                 )}
               </div>
-              {errors.file && <p className="text-sm text-destructive mt-1">{errors.file}</p>}
+              {errors.file && (
+                <div className="mt-2 p-3 bg-destructive/10 border border-destructive/20 rounded">
+                  <p className="text-sm text-destructive font-medium">❌ {errors.file}</p>
+                  <div className="text-xs text-destructive/70 mt-1">
+                    <p>• PDF files only</p>
+                    <p>• Maximum size: 25MB</p>
+                    <p>• Try compressing your PDF online</p>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>
@@ -388,14 +517,26 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: N
 
             <div>
               <Label htmlFor="link-title">Title *</Label>
-              <Input
-                id="link-title"
-                value={formData.title}
-                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                placeholder="Auto-filled from webpage..."
-                className={errors.title ? 'border-destructive' : ''}
-              />
+              <div className="flex items-center gap-2">
+                <Input
+                  id="link-title"
+                  value={formData.title}
+                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="Auto-filled from webpage..."
+                  className={errors.title ? 'border-destructive' : ''}
+                />
+                {formData.metadataFailed && (
+                  <Badge variant="secondary" className="bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300 text-xs px-2 py-1 whitespace-nowrap">
+                    Metadata failed
+                  </Badge>
+                )}
+              </div>
               {errors.title && <p className="text-sm text-destructive mt-1">{errors.title}</p>}
+              {formData.metadataFailed && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                  Metadata fetch timed out. Please edit the title manually.
+                </p>
+              )}
             </div>
 
             <div>
