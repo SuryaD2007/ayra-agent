@@ -13,6 +13,7 @@ import HotkeysSheet from '@/components/manage/HotkeysSheet';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Check, Edit2, X, Plus, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Toaster } from 'sonner';
@@ -29,6 +30,7 @@ const ManagePage = () => {
   const [selectedSpace, setSelectedSpace] = useState<string | null>(null);
   const [newItemModalOpen, setNewItemModalOpen] = useState(false);
   const [customSpaces, setCustomSpaces] = useState<any[]>([]);
+  const [activeFilterCount, setActiveFilterCount] = useState(0);
   
   // Refs for hotkey access
   const cortexTableRef = useRef<CortexTableRef>(null);
@@ -198,6 +200,11 @@ const ManagePage = () => {
                   >
                     {libraryTitle}
                   </h2>
+                  {activeFilterCount > 0 && (
+                    <Badge variant="secondary" className="bg-primary/10 text-primary text-xs px-2 py-1">
+                      Filtered
+                    </Badge>
+                  )}
                   {showSuccess && (
                     <Check size={16} className="text-green-500" />
                   )}
@@ -233,6 +240,7 @@ const ManagePage = () => {
                 viewType={viewType} 
                 categoryId={selectedCategory}
                 cortexId={selectedItem}
+                onFiltersChange={(count) => setActiveFilterCount(count)}
               />
             )}
           </div>

@@ -44,6 +44,7 @@ interface CortexTableProps {
   viewType?: 'table' | 'grid' | 'list' | 'kanban';
   categoryId?: string;
   cortexId?: string | null;
+  onFiltersChange?: (activeCount: number) => void;
 }
 
 export interface CortexTableRef {
@@ -58,7 +59,8 @@ export interface CortexTableRef {
 const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({ 
   viewType = 'table', 
   categoryId = 'private',
-  cortexId = 'overview'
+  cortexId = 'overview',
+  onFiltersChange
 }, ref) => {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
@@ -96,7 +98,12 @@ const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({
     filteredItems, 
     activeFilterCount, 
     availableTags 
-  } = useFilters(cortexItems);
+  } = useFilters(cortexItems, cortexId || undefined);
+
+  // Notify parent of filter changes
+  useEffect(() => {
+    onFiltersChange?.(activeFilterCount);
+  }, [activeFilterCount, onFiltersChange]);
 
   const getActiveCortexName = () => {
     if (categoryId === 'private' && cortexId === 'overview') return 'All Items';
@@ -422,7 +429,6 @@ const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({
         )}
       </div>
 
-      {/* Filter Drawer */}
       <FilterDrawer
         open={filterDrawerOpen}
         onOpenChange={setFilterDrawerOpen}
@@ -430,6 +436,7 @@ const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({
         onFiltersChange={setFilters}
         availableTags={availableTags}
         activeFilterCount={activeFilterCount}
+        currentSpace={cortexId || undefined}
       />
 
       {/* Move Dialog */}

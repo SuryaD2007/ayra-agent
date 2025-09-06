@@ -2,12 +2,22 @@ import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { CortexItem } from '@/components/manage/cortex-data';
 import { FilterState } from '@/components/manage/FilterDrawer';
+import { SavedFiltersService } from '@/utils/savedFilters';
 
-export const useFilters = (items: CortexItem[]) => {
+export const useFilters = (items: CortexItem[], currentSpace?: string) => {
   const [searchParams, setSearchParams] = useSearchParams();
   
-  // Initialize filters from URL params
+  // Initialize filters from space-specific storage or URL params
   const [filters, setFilters] = useState<FilterState>(() => {
+    // First check if there are saved filters for this space
+    if (currentSpace) {
+      const spaceFilters = SavedFiltersService.getSpaceFilters(currentSpace);
+      if (spaceFilters) {
+        return spaceFilters;
+      }
+    }
+    
+    // Fallback to URL params
     const types = searchParams.get('type')?.split(',').filter(Boolean) as CortexItem['type'][] || [];
     const spaces = searchParams.get('space')?.split(',').filter(Boolean) as CortexItem['space'][] || [];
     const tags = searchParams.get('tags')?.split(',').filter(Boolean) || [];
