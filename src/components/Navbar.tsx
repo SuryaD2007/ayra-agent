@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Brain, LogIn, Search, Upload, User, Settings, LogOut, Moon, Sun, Table, Info, HelpCircle, Code } from 'lucide-react';
 import { useRippleEffect } from '@/lib/animations';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import AuthModal from '@/components/AuthModal';
+import NewItemModal from '@/components/manage/NewItemModal';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
@@ -120,8 +121,10 @@ const SubMenuItem = ({ to, icon, label, active, onClick }: NavItemProps) => {
 export const Navbar = () => {
   const [active, setActive] = useState('what');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isNewItemModalOpen, setIsNewItemModalOpen] = useState(false);
   const { isAuthenticated, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const [searchParams] = useSearchParams();
   
   const handleOpenAuthModal = () => {
     setIsAuthModalOpen(true);
@@ -135,6 +138,16 @@ export const Navbar = () => {
     setActive(id);
   };
 
+  const handleImportClick = () => {
+    setIsNewItemModalOpen(true);
+  };
+
+  // Get preselected space from URL params
+  const getPreselectedSpace = () => {
+    const spaceParam = searchParams.get('space');
+    return spaceParam || null;
+  };
+
   const cortexSubmenu = [
     { to: '/', icon: <Info size={18} />, label: 'What', id: 'what' },
     { to: '/why', icon: <HelpCircle size={18} />, label: 'Why', id: 'why' },
@@ -144,10 +157,16 @@ export const Navbar = () => {
   const authNavItems = [
     { to: '/manage', icon: <Table size={20} />, label: 'Manage', id: 'manage' },
     { to: '/search', icon: <Search size={20} />, label: 'Search', id: 'search' },
-    { to: '/import', icon: <Upload size={20} />, label: 'Import', id: 'import' },
     { to: '/profile', icon: <User size={20} />, label: 'Profile', id: 'profile' },
     { to: '/settings', icon: <Settings size={20} />, label: 'Settings', id: 'settings' },
   ];
+
+  const importNavItem = { 
+    icon: <Upload size={20} />, 
+    label: 'Import', 
+    id: 'import',
+    onClick: handleImportClick 
+  };
 
   const navItems = isAuthenticated ? authNavItems : [];
 
@@ -188,6 +207,41 @@ export const Navbar = () => {
                 onClick={() => handleNavItemClick(item.id)}
               />
             ))}
+            
+            {/* Import button (authenticated users only) */}
+            {isAuthenticated && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button 
+                    className={cn(
+                      "relative flex items-center justify-center px-4 py-3 rounded-lg transition-all duration-300",
+                      "hover:bg-primary/10 hover:text-primary",
+                      "overflow-hidden",
+                      active === 'import' ? "bg-primary/10 text-primary" : "text-foreground/80"
+                    )}
+                    onClick={(e) => {
+                      const handleRipple = useRippleEffect();
+                      handleRipple(e);
+                      handleImportClick();
+                      setActive('import');
+                    }}
+                  >
+                    <span className={cn(
+                      "transition-all duration-300",
+                      active === 'import' ? "text-primary" : "text-foreground/60"
+                    )}>
+                      {importNavItem.icon}
+                    </span>
+                    {active === 'import' && (
+                      <span className="ml-2 font-medium">{importNavItem.label}</span>
+                    )}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{importNavItem.label}</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
             
             <Tooltip>
               <TooltipTrigger asChild>
@@ -243,6 +297,15 @@ export const Navbar = () => {
       </TooltipProvider>
       
       <AuthModal isOpen={isAuthModalOpen} onClose={handleCloseAuthModal} />
+      <NewItemModal
+        open={isNewItemModalOpen}
+        onOpenChange={setIsNewItemModalOpen}
+        onItemCreated={() => {
+          setIsNewItemModalOpen(false);
+          // Optionally refresh or update the UI
+        }}
+        preselectedSpace={getPreselectedSpace()}
+      />
     </>
   );
 };

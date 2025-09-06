@@ -49,7 +49,14 @@ interface FormData {
 }
 
 const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: NewItemModalProps) => {
-  const [activeTab, setActiveTab] = useState('note');
+  // Load last used tab from localStorage, default to 'note'
+  const [activeTab, setActiveTab] = useState(() => {
+    try {
+      return localStorage.getItem('new-item-modal-last-tab') || 'note';
+    } catch {
+      return 'note';
+    }
+  });
   const [formData, setFormData] = useState<FormData>({
     title: '',
     space: 'Personal',
@@ -77,6 +84,16 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: N
       setFormData(prev => ({ ...prev, space: preselectedSpace }));
     }
   }, [preselectedSpace]);
+
+  // Persist tab selection to localStorage
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    try {
+      localStorage.setItem('new-item-modal-last-tab', tab);
+    } catch (error) {
+      console.error('Error saving tab to localStorage:', error);
+    }
+  };
 
   // Rich text editor for notes
   const editor = useEditor({
@@ -266,7 +283,7 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: N
           <DialogTitle>Create New Item</DialogTitle>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="note" className="flex items-center gap-2">
               <FileText size={16} />
