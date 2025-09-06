@@ -189,14 +189,13 @@ const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({
     loadData();
   }, [isAuthenticated, cortexId]);
 
-  // Use the filters hook
+  // Use the filters hook - but don't apply client-side filtering since we do server-side now
   const { 
     filters, 
     setFilters, 
-    filteredItems, 
     activeFilterCount, 
     availableTags 
-  } = useFilters(cortexItems, cortexId || undefined);
+  } = useFilters([], cortexId || undefined); // Pass empty array since filtering is server-side
 
   // Notify parent of filter changes
   useEffect(() => {
@@ -218,28 +217,124 @@ const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({
     return 'All Items';
   };
 
-  // Apply search query to already filtered items
+  // Apply search query to already filtered items (now server-side, so just return current items)
   const searchFilteredItems = () => {
-    if (!searchQuery) return filteredItems;
-    
-    return filteredItems.filter(item => 
-      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.keywords.some(keyword => keyword.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
+    return cortexItems; // Items are already filtered server-side
   };
 
   const finalItems = searchFilteredItems();
 
   // Pagination
   const pagination = usePagination({
-    totalItems: finalItems.length,
+    totalItems: totalItems, // Use server-side total, not filtered total
     defaultPageSize: 25,
   });
 
-  // Reset to page 1 when filters or search change
+  // Immediately reset page when filters or search change
   useEffect(() => {
     pagination.resetToFirstPage();
   }, [JSON.stringify(filters), searchQuery]);
+
+  // Server-side filtering and pagination
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setCortexItems([]);
+      setSpaces([]);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
+    const loadData = async (isRetry = false) => {
+      try {
+        if (isRetry) {
+          setRetrying(true);
+        } else {
+          setLoading(true);
+        }
+        setError(null);
+        
+        // Build query object with current filters and pagination
+        const query = {
+          page: pagination.currentPage,
+          pageSize: pagination.pageSize,
+          type: filters.types,
+          spaceId: cortexId === 'overview' ? undefined : cortexId,
+          tags: filters.tags,
+          dateRange: {
+            from: filters.dateRange.from ? filters.dateRange.from.toISOString().split('T')[0] : undefined,
+            to: filters.dateRange.to ? filters.dateRange.to.toISOString().split('T')[0] : undefined
+          },
+          search: searchQuery
+        };
+        
+        setLastQuery(query);
+        
+        // Load spaces for filtering (only once)
+        if (spaces.length === 0) {
+          const spacesData = await getSpaces();
+          setSpaces(spacesData);
+        }
+        
+        // Load items with current filters and pagination
+        const result = await getItems(query);
+        
+        // Convert Supabase items to CortexItem format
+        const convertedItems = result.items.map((item: any) => {
+          const space = spaces.find(s => s.id === item.space_id);
+          const spaceName = space ? space.name : 'Personal';
+          
+          let spaceType: 'Personal' | 'Work' | 'School' | 'Team' = 'Personal';
+          if (spaceName.toLowerCase().includes('work')) spaceType = 'Work';
+          else if (spaceName.toLowerCase().includes('school')) spaceType = 'School';
+          else if (spaceName.toLowerCase().includes('team')) spaceType = 'Team';
+          
+          return {
+            id: item.id,
+            title: item.title,
+            url: item.file_path || '#',
+            type: item.type.charAt(0).toUpperCase() + item.type.slice(1).toLowerCase() as 'Note' | 'PDF' | 'Link' | 'Image',
+            createdDate: new Date(item.created_at).toISOString().split('T')[0],
+            source: item.source || 'Upload',
+            keywords: [], // Will be populated from tags separately
+            space: spaceType,
+            content: item.content,
+            description: item.content?.substring(0, 150),
+          };
+        });
+        
+        setCortexItems(convertedItems);
+        setTotalItems(result.total);
+        
+        // Update cache
+        DataCache.setItems(convertedItems);
+        
+      } catch (error) {
+        console.error('Error loading data:', error);
+        const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+        setError(errorMessage);
+        
+        if (!isRetry) {
+          toast({
+            title: "Error loading data",
+            description: "Failed to load items from database.",
+            variant: "destructive"
+          });
+        }
+        
+        // Fallback to cache or initial data only if not retrying
+        if (!isRetry) {
+          const cached = DataCache.getItems();
+          setCortexItems(cached.length > 0 ? cached : []);
+        }
+      } finally {
+        setLoading(false);
+        setRetrying(false);
+      }
+    };
+
+    loadData();
+  }, [isAuthenticated, cortexId, JSON.stringify(filters), searchQuery, pagination.currentPage, pagination.pageSize]);
 
   // Get paginated items
   const paginatedItems = finalItems.slice(
@@ -590,17 +685,17 @@ const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({
           )}
         </div>
 
-        {/* Pagination - only show for non-virtualized tables */}
-        {finalItems.length > 0 && !shouldVirtualize && (
+        {/* Pagination - show for both virtualized and non-virtualized tables */}
+        {totalItems > 0 && (
           <TablePagination
             currentPage={pagination.currentPage}
             totalPages={pagination.totalPages}
             pageSize={pagination.pageSize}
-            totalItems={finalItems.length}
+            totalItems={totalItems}
             hasNextPage={pagination.hasNextPage}
             hasPreviousPage={pagination.hasPreviousPage}
             startIndex={pagination.startIndex}
-            endIndex={pagination.endIndex}
+            endIndex={Math.min(pagination.endIndex, totalItems)}
             onPageChange={pagination.goToPage}
             onPageSizeChange={pagination.changePageSize}
             onNextPage={pagination.goToNextPage}
