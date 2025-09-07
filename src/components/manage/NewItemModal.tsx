@@ -116,6 +116,11 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: N
   const editor = useEditor({
     extensions: [StarterKit],
     content: '',
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm max-w-none focus:outline-none min-h-[160px] p-0',
+      },
+    },
     onUpdate: ({ editor }) => {
       setFormData(prev => ({ ...prev, content: editor.getHTML() }));
     },
@@ -442,8 +447,16 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: N
             
             <div>
               <Label>Content</Label>
-              <div className="border rounded-md p-3 min-h-[200px] prose prose-sm max-w-none">
+              <div 
+                className="border rounded-md p-3 min-h-[200px] prose prose-sm max-w-none cursor-text"
+                onClick={() => editor?.commands.focus()}
+              >
                 <EditorContent editor={editor} />
+                {(!editor?.getHTML() || editor?.getHTML() === '<p></p>') && (
+                  <p className="text-muted-foreground pointer-events-none absolute mt-0">
+                    Click here to start writing your note...
+                  </p>
+                )}
               </div>
             </div>
           </TabsContent>
