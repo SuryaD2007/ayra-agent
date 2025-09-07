@@ -264,7 +264,7 @@ export const FileImportDrawer = ({ onClose, preselectedSpace }: FileImportDrawer
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Personal">Personal</SelectItem>
+              <SelectItem value="overview">Personal (No Space)</SelectItem>
               <SelectItem value="Work">Work</SelectItem>
               <SelectItem value="Projects">Projects</SelectItem>
             </SelectContent>

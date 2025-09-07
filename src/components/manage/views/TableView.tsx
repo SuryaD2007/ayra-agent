@@ -264,7 +264,7 @@ const TableView = ({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-background border">
-                <SelectItem value="overview">Personal</SelectItem>
+                <SelectItem value="overview">Personal (No Space)</SelectItem>
                 {spaces.map((space) => (
                   <SelectItem key={space.id} value={space.id}>
                     {space.emoji ? `${space.emoji} ${space.name}` : space.name}

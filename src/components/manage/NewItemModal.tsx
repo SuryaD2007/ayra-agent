@@ -79,7 +79,6 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: N
         // Load spaces from database
         const { getSpaces } = await import('@/lib/data');
         const dbSpaces = await getSpaces();
-        console.log('Loaded spaces from database:', dbSpaces);
         setCustomSpaces(dbSpaces);
       } catch (error) {
         console.error('Error loading spaces:', error);
@@ -99,7 +98,6 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: N
 
     // Set preselected space if provided
     if (preselectedSpace) {
-      console.log('Setting preselected space:', preselectedSpace);
       setFormData(prev => ({ ...prev, space: preselectedSpace }));
     }
   }, [preselectedSpace]);
@@ -630,14 +628,11 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: N
               </SelectTrigger>
               <SelectContent className="bg-popover border border-border shadow-lg z-50">
                 <SelectItem value="overview">Personal (No Space)</SelectItem>
-                {customSpaces.map((space) => {
-                  console.log('Rendering space:', space);
-                  return (
-                    <SelectItem key={space.id} value={space.id}>
-                      {space.emoji ? `${space.emoji} ${space.name}` : space.name}
-                    </SelectItem>
-                  );
-                })}
+                {customSpaces.map((space) => (
+                  <SelectItem key={space.id} value={space.id}>
+                    {space.emoji ? `${space.emoji} ${space.name}` : space.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
