@@ -83,7 +83,7 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: N
       console.error('Error loading custom spaces:', error);
     }
 
-    // Set preselected space if provided
+  // Set preselected space if provided
     if (preselectedSpace) {
       setFormData(prev => ({ ...prev, space: preselectedSpace }));
     }
@@ -303,12 +303,23 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: N
 
     setIsLoading(true);
     try {
+      // Determine the space_id based on the selected space
+      let spaceId: string | undefined = undefined;
+      
+      if (preselectedSpace) {
+        // If there's a preselected space (from clicking + next to a space), use it
+        spaceId = preselectedSpace;
+      } else if (formData.space !== 'Personal') {
+        // If a specific space is selected (not the default 'Personal'), use it
+        spaceId = formData.space;
+      }
+
       const payload = {
         title: formData.title,
         type: activeTab as 'note' | 'pdf' | 'link' | 'image',
         content: activeTab === 'note' ? editor?.getHTML() || '' : formData.content,
         source: activeTab === 'link' ? formData.url : 'Upload',
-        space_id: formData.space === 'custom' ? preselectedSpace : undefined,
+        space_id: spaceId,
         file: activeTab === 'pdf' ? formData.file : undefined
       };
 

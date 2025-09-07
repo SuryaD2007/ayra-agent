@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Folder, Share, Users, Lock, Plus, Move, Building, Globe, Trash2, MoreHorizontal } from 'lucide-react';
+import { Folder, Share, Users, Lock, Plus, Move, Building, Globe, Trash2, MoreHorizontal, Unlock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -30,6 +30,8 @@ import { toast } from 'sonner';
 import NewSpaceModal from './NewSpaceModal';
 import NewItemModal from './NewItemModal';
 import NewCategoryModal from './NewCategoryModal';
+import { usePrivateLock } from '@/contexts/PrivateLockContext';
+import { PrivateLockDialog } from '@/components/auth/PrivateLockDialog';
 
 type CortexCategory = {
   id: string;
@@ -86,6 +88,9 @@ const CortexSidebar = ({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [spaceToDelete, setSpaceToDelete] = useState<CustomSpace | null>(null);
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [privateLockDialogOpen, setPrivateLockDialogOpen] = useState(false);
+  
+  const { isPrivateUnlocked, lockPrivate } = usePrivateLock();
 
   // Load custom spaces and categories from localStorage, and filter deleted default spaces
   useEffect(() => {
@@ -195,6 +200,12 @@ const CortexSidebar = ({
   };
 
   const handleItemClick = (categoryId: string, itemId: string, spaceSlug?: string) => {
+    // Check if this is a private category item and if private is locked
+    if (categoryId === 'private' && itemId !== 'overview' && !isPrivateUnlocked()) {
+      setPrivateLockDialogOpen(true);
+      return;
+    }
+    
     onCortexSelect(categoryId, itemId, spaceSlug);
   };
 
@@ -374,6 +385,28 @@ const CortexSidebar = ({
               <div className="flex items-center gap-2">
                 {category.icon}
                 <span>{category.name}</span>
+                {/* Private lock/unlock indicator */}
+                {category.id === 'private' && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (isPrivateUnlocked()) {
+                        lockPrivate();
+                        toast.success('Private items locked');
+                      } else {
+                        setPrivateLockDialogOpen(true);
+                      }
+                    }}
+                    className="p-1 rounded hover:bg-muted"
+                    title={isPrivateUnlocked() ? 'Lock private items' : 'Unlock private items'}
+                  >
+                    {isPrivateUnlocked() ? (
+                      <Unlock size={12} className="text-green-500" />
+                    ) : (
+                      <Lock size={12} className="text-amber-500" />
+                    )}
+                  </button>
+                )}
               </div>
               
               {/* Category Plus Button with Popover */}
@@ -436,7 +469,18 @@ const CortexSidebar = ({
                   >
                     <div className="flex items-center gap-2 flex-1">
                       {item.emoji && <span className="text-sm">{item.emoji}</span>}
-                      <span className="flex-1">{item.name}</span>
+                      <span className={cn(
+                        "flex-1",
+                        category.id === 'private' && item.id !== 'overview' && !isPrivateUnlocked() 
+                          ? "text-muted-foreground" 
+                          : ""
+                      )}>
+                        {item.name}
+                      </span>
+                      {/* Lock indicator for private items */}
+                      {category.id === 'private' && item.id !== 'overview' && !isPrivateUnlocked() && (
+                        <Lock size={12} className="text-amber-500" />
+                      )}
                       {/* Space count badge */}
                       {spaceCounts[item.id] !== undefined && spaceCounts[item.id] > 0 && (
                         <Badge variant="secondary" className="text-xs px-1.5 py-0.5 h-auto">
@@ -511,6 +555,18 @@ const CortexSidebar = ({
         preselectedSpace={preselectedSpace}
       />
 
+      {/* Private Lock Dialog */}
+      <PrivateLockDialog
+        open={privateLockDialogOpen}
+        onOpenChange={setPrivateLockDialogOpen}
+        onUnlocked={() => {
+          // Re-trigger the item click after unlocking
+          if (selectedCategoryId === 'private' && selectedItemId) {
+            onCortexSelect(selectedCategoryId, selectedItemId);
+          }
+        }}
+      />
+
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
@@ -552,6 +608,18 @@ const CortexSidebar = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Private Lock Dialog */}
+      <PrivateLockDialog
+        open={privateLockDialogOpen}
+        onOpenChange={setPrivateLockDialogOpen}
+        onUnlocked={() => {
+          // Re-trigger the item click after unlocking
+          if (selectedCategoryId === 'private' && selectedItemId) {
+            onCortexSelect(selectedCategoryId, selectedItemId);
+          }
+        }}
+      />
     </>
   );
 };
