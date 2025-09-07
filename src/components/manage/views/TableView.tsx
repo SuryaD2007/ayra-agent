@@ -243,41 +243,6 @@ const TableView = ({
           </div>
         </TableCell>
 
-        {/* Space - Move Dropdown */}
-        <TableCell>
-          <div className="flex items-center gap-2">
-            <Select 
-              value={
-                // Find current space ID based on item's space type
-                spaces.find(s => {
-                  const spaceName = s.name.toLowerCase();
-                  if (item.space === 'Work' && spaceName.includes('work')) return true;
-                  if (item.space === 'School' && spaceName.includes('school')) return true;
-                  if (item.space === 'Team' && spaceName.includes('team')) return true;
-                  if (item.space === 'Personal' && !spaceName.includes('work') && !spaceName.includes('school') && !spaceName.includes('team')) return true;
-                  return false;
-                })?.id || 'overview'
-              } 
-              onValueChange={(value: string) => handleSpaceChange(item.id, value)}
-            >
-              <SelectTrigger className="w-40 h-8">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-background border">
-                <SelectItem value="overview">Personal (No Space)</SelectItem>
-                {spaces.map((space) => (
-                  <SelectItem key={space.id} value={space.id}>
-                    {space.emoji ? `${space.emoji} ${space.name}` : space.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {syncingItems.has(item.id) && (
-              <Loader2 size={12} className="animate-spin text-muted-foreground" />
-            )}
-          </div>
-        </TableCell>
-
         {/* Tags - Chips with Add/Remove */}
         <TableCell>
           <div className="flex flex-wrap gap-1 items-center">
