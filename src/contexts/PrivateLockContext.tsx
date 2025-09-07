@@ -13,7 +13,7 @@ const PrivateLockContext = createContext<PrivateLockContextType | undefined>(und
 const PRIVATE_PASSWORD = 'unlock'; // You can make this configurable
 const UNLOCK_DURATION = 30 * 60 * 1000; // 30 minutes in milliseconds
 
-export function PrivateLockProvider({ children }: { children: React.ReactNode }) {
+export const PrivateLockProvider = ({ children }: { children: React.ReactNode }) => {
   const [isPrivateLocked, setIsPrivateLocked] = useState(true);
   const [unlockedUntil, setUnlockedUntil] = useState<number | null>(null);
 
@@ -50,23 +50,25 @@ export function PrivateLockProvider({ children }: { children: React.ReactNode })
     return !isPrivateLocked;
   }, [isPrivateLocked, unlockedUntil]);
 
+  const value = {
+    isPrivateLocked,
+    unlockedUntil,
+    unlockPrivate,
+    lockPrivate,
+    isPrivateUnlocked
+  };
+
   return (
-    <PrivateLockContext.Provider value={{
-      isPrivateLocked,
-      unlockedUntil,
-      unlockPrivate,
-      lockPrivate,
-      isPrivateUnlocked
-    }}>
+    <PrivateLockContext.Provider value={value}>
       {children}
     </PrivateLockContext.Provider>
   );
-}
+};
 
-export function usePrivateLock() {
+export const usePrivateLock = () => {
   const context = useContext(PrivateLockContext);
   if (context === undefined) {
     throw new Error('usePrivateLock must be used within a PrivateLockProvider');
   }
   return context;
-}
+};
