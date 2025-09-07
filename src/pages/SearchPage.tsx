@@ -146,7 +146,7 @@ const SearchPage = () => {
           {/* Left Sidebar */}
           <div className="w-64 border-r border-border/50 bg-muted/30 flex flex-col">
             {/* New Chat Button */}
-            <div className="px-3 pt-8 pb-3 border-b border-border/50">
+            <div className="px-3 pt-12 pb-3 border-b border-border/50">
               <Button 
                 onClick={createNewChat}
                 className="w-full justify-start gap-2"
