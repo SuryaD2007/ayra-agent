@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { ArrowUpDown, ArrowUp, ArrowDown, Check, Square, Edit2, FileText, File, Link, Image as ImageIcon, Plus, X, Loader2 } from 'lucide-react';
+import { ArrowUpDown, Check, Square, Edit2, FileText, File, Link, Image as ImageIcon, Plus, X, Loader2 } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,62 +56,12 @@ const TableView = ({
   const [tempTitle, setTempTitle] = useState('');
   const [previewItem, setPreviewItem] = useState<CortexItem | null>(null);
   const [newTag, setNewTag] = useState<{ [key: string]: string }>({});
-  const [sortField, setSortField] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   
   const parentRef = useRef<HTMLDivElement>(null);
-
-  // Sort items based on current sort field and direction
-  const sortedItems = useMemo(() => {
-    if (!sortField) return items;
-    
-    return [...items].sort((a, b) => {
-      let aValue = '';
-      let bValue = '';
-      
-      switch (sortField) {
-        case 'title':
-          aValue = a.title.toLowerCase();
-          bValue = b.title.toLowerCase();
-          break;
-        case 'type':
-          aValue = a.type.toLowerCase();
-          bValue = b.type.toLowerCase();
-          break;
-        case 'createdDate':
-          aValue = a.createdDate;
-          bValue = b.createdDate;
-          break;
-        case 'source':
-          aValue = a.source.toLowerCase();
-          bValue = b.source.toLowerCase();
-          break;
-        default:
-          return 0;
-      }
-      
-      if (sortDirection === 'asc') {
-        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
-      } else {
-        return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
-      }
-    });
-  }, [items, sortField, sortDirection]);
-
-  const handleSort = (columnId: string) => {
-    if (sortField === columnId) {
-      // Toggle direction if same column
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      // New column, start with ascending
-      setSortField(columnId);
-      setSortDirection('asc');
-    }
-  };
   
   // Virtualization setup
   const rowVirtualizer = useVirtualizer({
-    count: sortedItems.length,
+    count: items.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 60, // Estimated row height
     overscan: 5,
@@ -197,8 +147,8 @@ const TableView = ({
       <TableRow 
         key={item.id}
         className={cn(
-          "hover:bg-muted/30 cursor-pointer transition-colors",
-          isSelected && "bg-primary/10 border-l-4 border-l-primary",
+          "hover:bg-muted/30 cursor-pointer",
+          isSelected && "bg-primary/5",
           isHighlighted && "bg-accent/50 ring-2 ring-primary/20"
         )}
         onClick={() => onRowClick(item, index)}
@@ -221,12 +171,12 @@ const TableView = ({
             }}
           >
             {isSelected ? (
-              <div className="rounded-md bg-black text-white p-1 shadow-sm">
-                <Check size={14} />
+              <div className="rounded-md bg-primary text-white p-0.5">
+                <Check size={16} />
               </div>
             ) : (
-              <div className="rounded-md border-2 border-muted-foreground/20 hover:border-black/40 p-1 transition-colors">
-                <Square size={14} className="text-muted-foreground" />
+              <div className="rounded-md border border-border p-0.5">
+                <Square size={16} />
               </div>
             )}
           </div>
@@ -290,6 +240,41 @@ const TableView = ({
           <div className="flex items-center gap-2">
             {getTypeIcon(item.type)}
             <span className="text-sm">{item.type}</span>
+          </div>
+        </TableCell>
+
+        {/* Space - Move Dropdown */}
+        <TableCell>
+          <div className="flex items-center gap-2">
+            <Select 
+              value={
+                // Find current space ID based on item's space type
+                spaces.find(s => {
+                  const spaceName = s.name.toLowerCase();
+                  if (item.space === 'Work' && spaceName.includes('work')) return true;
+                  if (item.space === 'School' && spaceName.includes('school')) return true;
+                  if (item.space === 'Team' && spaceName.includes('team')) return true;
+                  if (item.space === 'Personal' && !spaceName.includes('work') && !spaceName.includes('school') && !spaceName.includes('team')) return true;
+                  return false;
+                })?.id || 'overview'
+              } 
+              onValueChange={(value: string) => handleSpaceChange(item.id, value)}
+            >
+              <SelectTrigger className="w-40 h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-background border">
+                <SelectItem value="overview">Personal (No Space)</SelectItem>
+                {spaces.map((space) => (
+                  <SelectItem key={space.id} value={space.id}>
+                    {space.emoji ? `${space.emoji} ${space.name}` : space.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {syncingItems.has(item.id) && (
+              <Loader2 size={12} className="animate-spin text-muted-foreground" />
+            )}
           </div>
         </TableCell>
 
@@ -360,31 +345,18 @@ const TableView = ({
             <TableHeader>
               <TableRow>
                 <TableHead className="w-10"></TableHead>
-                 {columns.map((column) => (
-                   <TableHead key={column.id} className="py-2">
-                     <div className="flex items-center">
-                       {column.name}
-                       {column.sortable && (
-                         <Button 
-                           variant="ghost" 
-                           size="sm" 
-                           className="ml-1 h-6 w-6 p-0"
-                           onClick={() => handleSort(column.id)}
-                         >
-                           {sortField === column.id ? (
-                             sortDirection === 'asc' ? (
-                               <ArrowUp size={14} />
-                             ) : (
-                               <ArrowDown size={14} />
-                             )
-                           ) : (
-                             <ArrowUpDown size={14} />
-                           )}
-                         </Button>
-                       )}
-                     </div>
-                   </TableHead>
-                 ))}
+                {columns.map((column) => (
+                  <TableHead key={column.id} className="py-2">
+                    <div className="flex items-center">
+                      {column.name}
+                      {column.sortable && (
+                        <Button variant="ghost" size="sm" className="ml-1 h-6 w-6 p-0">
+                          <ArrowUpDown size={14} />
+                        </Button>
+                      )}
+                    </div>
+                  </TableHead>
+                ))}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -395,10 +367,10 @@ const TableView = ({
                   position: 'relative',
                 }}
               >
-                 {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                   const item = sortedItems[virtualRow.index];
-                   return renderTableRow(item, virtualRow.index, virtualRow);
-                 })}
+                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                  const item = items[virtualRow.index];
+                  return renderTableRow(item, virtualRow.index, virtualRow);
+                })}
               </div>
             </TableBody>
           </Table>
@@ -408,35 +380,22 @@ const TableView = ({
           <TableHeader>
             <TableRow>
               <TableHead className="w-10"></TableHead>
-               {columns.map((column) => (
-                 <TableHead key={column.id} className="py-2">
-                   <div className="flex items-center">
-                     {column.name}
-                     {column.sortable && (
-                       <Button 
-                         variant="ghost" 
-                         size="sm" 
-                         className="ml-1 h-6 w-6 p-0"
-                         onClick={() => handleSort(column.id)}
-                       >
-                         {sortField === column.id ? (
-                           sortDirection === 'asc' ? (
-                             <ArrowUp size={14} />
-                           ) : (
-                             <ArrowDown size={14} />
-                           )
-                         ) : (
-                           <ArrowUpDown size={14} />
-                         )}
-                       </Button>
-                     )}
-                   </div>
-                 </TableHead>
-               ))}
+              {columns.map((column) => (
+                <TableHead key={column.id} className="py-2">
+                  <div className="flex items-center">
+                    {column.name}
+                    {column.sortable && (
+                      <Button variant="ghost" size="sm" className="ml-1 h-6 w-6 p-0">
+                        <ArrowUpDown size={14} />
+                      </Button>
+                    )}
+                  </div>
+                </TableHead>
+              ))}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sortedItems.map((item, index) => renderTableRow(item, index))}
+            {items.map((item, index) => renderTableRow(item, index))}
           </TableBody>
         </Table>
       )}
