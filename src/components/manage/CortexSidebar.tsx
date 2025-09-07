@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Folder, Share, Users, Lock, Plus, Move, Building, Globe } from 'lucide-react';
+import { Folder, Share, Users, Lock, Plus, Move, Building, Globe, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -8,7 +8,18 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import NewSpaceModal from './NewSpaceModal';
 import NewItemModal from './NewItemModal';
 import NewCategoryModal from './NewCategoryModal';
@@ -64,6 +75,8 @@ const CortexSidebar = ({
   const [preselectedSpace, setPreselectedSpace] = useState<string | null>(null);
   const [activePopover, setActivePopover] = useState<string | null>(null);
   const [selectedCategoryForNewSpace, setSelectedCategoryForNewSpace] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [spaceToDelete, setSpaceToDelete] = useState<CustomSpace | null>(null);
 
   // Load custom spaces and categories from localStorage
   useEffect(() => {
@@ -180,6 +193,37 @@ const CortexSidebar = ({
     setCustomCategories(prev => [...prev, category]);
   };
 
+  const handleDeleteSpace = (space: CustomSpace) => {
+    setSpaceToDelete(space);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteSpace = () => {
+    if (!spaceToDelete) return;
+
+    try {
+      // Remove from custom spaces
+      const updatedSpaces = customSpaces.filter(space => space.id !== spaceToDelete.id);
+      setCustomSpaces(updatedSpaces);
+      
+      // Update localStorage
+      localStorage.setItem('custom-spaces', JSON.stringify(updatedSpaces));
+      
+      // If currently viewing this space, navigate to overview
+      if (selectedItemId === spaceToDelete.id) {
+        onCortexSelect('private', 'overview');
+      }
+      
+      toast.success(`Space "${spaceToDelete.name}" deleted successfully`);
+    } catch (error) {
+      console.error('Error deleting space:', error);
+      toast.error('Failed to delete space');
+    } finally {
+      setDeleteDialogOpen(false);
+      setSpaceToDelete(null);
+    }
+  };
+
   const handlePlusClick = (categoryId: string, itemId?: string, isSpace?: boolean) => {
     if (isSpace && itemId) {
       // Plus next to a space - open New Item modal with space preselected
@@ -284,40 +328,62 @@ const CortexSidebar = ({
             </div>
             
             <div className="mt-1">
-              {category.items.map((item) => (
-                <div 
-                  key={item.id}
-                  className={cn(
-                    "flex items-center justify-between px-6 py-2 text-sm cursor-pointer group",
-                    selectedCategoryId === category.id && selectedItemId === item.id
-                      ? "bg-primary/10 text-primary" 
-                      : "hover:bg-muted/50 text-foreground/80"
-                  )}
-                  onClick={() => handleItemClick(category.id, item.id)}
-                >
-                  <div className="flex items-center gap-2 flex-1">
-                    {item.emoji && <span className="text-sm">{item.emoji}</span>}
-                    <span className="flex-1">{item.name}</span>
-                    {/* Space count badge */}
-                    {spaceCounts[item.id] !== undefined && spaceCounts[item.id] > 0 && (
-                      <Badge variant="secondary" className="text-xs px-1.5 py-0.5 h-auto">
-                        {spaceCounts[item.id]}
-                      </Badge>
+              {category.items.map((item) => {
+                const isCustomSpace = customSpaces.find(space => space.id === item.id);
+                
+                return (
+                  <div 
+                    key={item.id}
+                    className={cn(
+                      "flex items-center justify-between px-6 py-2 text-sm cursor-pointer group",
+                      selectedCategoryId === category.id && selectedItemId === item.id
+                        ? "bg-primary/10 text-primary" 
+                        : "hover:bg-muted/50 text-foreground/80"
                     )}
-                  </div>
-                  
-                  {/* Space Plus Button */}
-                  <button
-                    className="opacity-0 group-hover:opacity-100 p-1 rounded-full hover:bg-muted transition-opacity"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handlePlusClick(category.id, item.id, true);
-                    }}
+                    onClick={() => handleItemClick(category.id, item.id)}
                   >
-                    <Plus size={12} />
-                  </button>
-                </div>
-              ))}
+                    <div className="flex items-center gap-2 flex-1">
+                      {item.emoji && <span className="text-sm">{item.emoji}</span>}
+                      <span className="flex-1">{item.name}</span>
+                      {/* Space count badge */}
+                      {spaceCounts[item.id] !== undefined && spaceCounts[item.id] > 0 && (
+                        <Badge variant="secondary" className="text-xs px-1.5 py-0.5 h-auto">
+                          {spaceCounts[item.id]}
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {/* Add Item Button */}
+                      <button
+                        className="p-1 rounded-full hover:bg-muted"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePlusClick(category.id, item.id, true);
+                        }}
+                        title="Add item to space"
+                      >
+                        <Plus size={12} />
+                      </button>
+                      
+                      {/* Delete Space Button - Only for custom spaces */}
+                      {isCustomSpace && (
+                        <button
+                          className="p-1 rounded-full hover:bg-destructive/20 text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteSpace(isCustomSpace);
+                          }}
+                          title="Delete space"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         ))}
@@ -352,6 +418,27 @@ const CortexSidebar = ({
         }}
         preselectedSpace={preselectedSpace}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Space</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{spaceToDelete?.name}"? This action cannot be undone and will remove all items in this space.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeleteSpace}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete Space
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
