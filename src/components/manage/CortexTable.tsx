@@ -783,15 +783,18 @@ const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({
   };
 
   const handleItemCreated = (newItem: CortexItem) => {
-    // Optimistically insert at the top
-    setCortexItems(prev => [newItem, ...prev]);
+    // Don't optimistically add the item - let the real-time listener handle it
+    // This prevents race conditions and duplicate items
     
     // Clear cache to force refresh
     DataCache.clear();
     
-    // Open preview drawer for the new item
-    setPreviewItem(newItem);
-    setPreviewDrawerOpen(true);
+    // Open preview drawer for the new item after a short delay
+    // to allow the real-time listener to add it first
+    setTimeout(() => {
+      setPreviewItem(newItem);
+      setPreviewDrawerOpen(true);
+    }, 100);
   };
 
   const handleDeleteItems = async () => {
