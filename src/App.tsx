@@ -12,7 +12,7 @@ import WhyPage from "./pages/WhyPage";
 import HowPage from "./pages/HowPage";
 import NotFound from "./pages/NotFound";
 import Profile from "./pages/Profile";
-import Import from "./pages/Import";
+import ImportHub from "./pages/ImportHub";
 import SearchPage from "./pages/SearchPage";
 import Settings from "./pages/Settings";
 import ManagePage from "./pages/ManagePage";
@@ -86,7 +86,7 @@ const AppRoutes = () => {
         path="/import" 
         element={
           <PageTransition>
-            <Import />
+            <ImportHub />
           </PageTransition>
         } 
       />

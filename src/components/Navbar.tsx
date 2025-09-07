@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { Brain, LogIn, Search, Upload, User, Settings, LogOut, Moon, Sun, Table, Info, HelpCircle, Code } from 'lucide-react';
 import { useRippleEffect } from '@/lib/animations';
 import { cn } from '@/lib/utils';
@@ -125,6 +125,7 @@ export const Navbar = () => {
   const { isAuthenticated, logout, loading } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   
   const handleOpenAuthModal = () => {
     setIsAuthModalOpen(true);
@@ -139,7 +140,7 @@ export const Navbar = () => {
   };
 
   const handleImportClick = () => {
-    setIsNewItemModalOpen(true);
+    navigate('/import');
   };
 
   // Get preselected space from URL params
