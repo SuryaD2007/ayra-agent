@@ -1,20 +1,35 @@
-
 import React from 'react';
-import { Check, Square } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { CortexItem } from '../cortex-data';
+import { Check, Square, Move } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ListViewProps {
   items: CortexItem[];
   selectedItems?: string[];
   onSelectItem?: (id: string) => void;
+  spaces?: any[];
+  onMoveItem?: (itemId: string, targetSpaceId: string | null) => void;
 }
 
 const ListView = ({ 
   items, 
   selectedItems = [], 
-  onSelectItem = () => {} 
+  onSelectItem = () => {},
+  spaces = [],
+  onMoveItem = () => {}
 }: ListViewProps) => {
+  
+  const handleSpaceChange = (itemId: string, newSpaceId: string) => {
+    onMoveItem(itemId, newSpaceId === 'overview' ? null : newSpaceId);
+  };
+  
   return (
     <div className="flex flex-col gap-3 p-4">
       {items.map((item) => {
@@ -51,7 +66,7 @@ const ListView = ({
                 <span className="text-sm text-muted-foreground">{item.source}</span>
               </div>
               <p className="text-sm text-muted-foreground mb-2">{item.space}</p>
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-wrap gap-1 mb-3">
                 {item.keywords.map((keyword, idx) => (
                   <span 
                     key={idx} 
@@ -60,6 +75,35 @@ const ListView = ({
                     {keyword}
                   </span>
                 ))}
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Move size={14} className="text-muted-foreground" />
+                <Select 
+                  value={
+                    spaces.find(s => {
+                      const spaceName = s.name.toLowerCase();
+                      if (item.space === 'Work' && spaceName.includes('work')) return true;
+                      if (item.space === 'School' && spaceName.includes('school')) return true;
+                      if (item.space === 'Team' && spaceName.includes('team')) return true;
+                      if (item.space === 'Personal' && !spaceName.includes('work') && !spaceName.includes('school') && !spaceName.includes('team')) return true;
+                      return false;
+                    })?.id || 'overview'
+                  } 
+                  onValueChange={(value: string) => handleSpaceChange(item.id, value)}
+                >
+                  <SelectTrigger className="w-40 h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border">
+                    <SelectItem value="overview">Personal</SelectItem>
+                    {spaces.map((space) => (
+                      <SelectItem key={space.id} value={space.id}>
+                        {space.emoji ? `${space.emoji} ${space.name}` : space.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="flex items-center">

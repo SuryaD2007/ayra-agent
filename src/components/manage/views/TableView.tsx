@@ -36,6 +36,8 @@ interface TableViewProps {
   selectedRowIndex?: number;
   onRowClick?: (item: CortexItem, index: number) => void;
   syncingItems?: Set<string>;
+  spaces?: any[];
+  onMoveItem?: (itemId: string, targetSpaceId: string | null) => void;
 }
 
 const TableView = ({ 
@@ -46,7 +48,9 @@ const TableView = ({
   virtualized = false,
   selectedRowIndex = -1,
   onRowClick = () => {},
-  syncingItems = new Set()
+  syncingItems = new Set(),
+  spaces = [],
+  onMoveItem = () => {}
 }: TableViewProps) => {
   const [editingTitle, setEditingTitle] = useState<string | null>(null);
   const [tempTitle, setTempTitle] = useState('');
@@ -95,8 +99,8 @@ const TableView = ({
     setTempTitle('');
   };
 
-  const handleSpaceChange = (itemId: string, newSpace: CortexItem['space']) => {
-    onUpdateItem(itemId, { space: newSpace });
+  const handleSpaceChange = (itemId: string, newSpaceId: string) => {
+    onMoveItem(itemId, newSpaceId === 'overview' ? null : newSpaceId);
   };
 
   const handleAddTag = (itemId: string) => {
@@ -239,18 +243,33 @@ const TableView = ({
           </div>
         </TableCell>
 
-        {/* Space - Editable Dropdown */}
+        {/* Space - Move Dropdown */}
         <TableCell>
           <div className="flex items-center gap-2">
-            <Select value={item.space} onValueChange={(value: CortexItem['space']) => handleSpaceChange(item.id, value)}>
-              <SelectTrigger className="w-32 h-8">
+            <Select 
+              value={
+                // Find current space ID based on item's space type
+                spaces.find(s => {
+                  const spaceName = s.name.toLowerCase();
+                  if (item.space === 'Work' && spaceName.includes('work')) return true;
+                  if (item.space === 'School' && spaceName.includes('school')) return true;
+                  if (item.space === 'Team' && spaceName.includes('team')) return true;
+                  if (item.space === 'Personal' && !spaceName.includes('work') && !spaceName.includes('school') && !spaceName.includes('team')) return true;
+                  return false;
+                })?.id || 'overview'
+              } 
+              onValueChange={(value: string) => handleSpaceChange(item.id, value)}
+            >
+              <SelectTrigger className="w-40 h-8">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Personal">Personal</SelectItem>
-                <SelectItem value="Work">Work</SelectItem>
-                <SelectItem value="School">School</SelectItem>
-                <SelectItem value="Team">Team</SelectItem>
+              <SelectContent className="bg-background border">
+                <SelectItem value="overview">Personal</SelectItem>
+                {spaces.map((space) => (
+                  <SelectItem key={space.id} value={space.id}>
+                    {space.emoji ? `${space.emoji} ${space.name}` : space.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             {syncingItems.has(item.id) && (

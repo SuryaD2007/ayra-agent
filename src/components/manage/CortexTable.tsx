@@ -732,6 +732,56 @@ const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({
     }
   };
 
+  const handleMoveSingleItem = async (itemId: string, targetSpaceId: string | null) => {
+    setSyncingItems(prev => new Set([...prev, itemId]));
+    
+    try {
+      await bulkMoveItems([itemId], targetSpaceId);
+      
+      // Optimistically update the item in the UI
+      setCortexItems(prev => 
+        prev.map(item => {
+          if (item.id === itemId) {
+            // Find space info for the target
+            const targetSpace = spaces.find(s => s.id === targetSpaceId);
+            const spaceName = targetSpace ? targetSpace.name : 'Personal';
+            
+            let spaceType: 'Personal' | 'Work' | 'School' | 'Team' = 'Personal';
+            if (spaceName.toLowerCase().includes('work')) spaceType = 'Work';
+            else if (spaceName.toLowerCase().includes('school')) spaceType = 'School';
+            else if (spaceName.toLowerCase().includes('team')) spaceType = 'Team';
+            
+            return {
+              ...item,
+              space: spaceType
+            };
+          }
+          return item;
+        })
+      );
+      
+      toast({
+        title: "Item moved successfully",
+        description: "Item moved to new space.",
+      });
+    } catch (error) {
+      console.error('Error moving item:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to move item';
+      
+      toast({
+        title: "Failed to move item",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+    
+    setSyncingItems(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(itemId);
+      return newSet;
+    });
+  };
+
   const handleItemCreated = (newItem: CortexItem) => {
     // Optimistically insert at the top
     setCortexItems(prev => [newItem, ...prev]);
@@ -920,18 +970,22 @@ const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({
                 />
               )}
               {viewType === 'grid' && (
-                <GridView 
-                  items={paginatedItems}
-                  selectedItems={selectedItems}
-                  onSelectItem={handleSelectItem}
-                />
+          <GridView 
+            items={paginatedItems} 
+            selectedItems={selectedItems}
+            onSelectItem={handleSelectItem}
+            spaces={spaces}
+            onMoveItem={handleMoveSingleItem}
+          />
               )}
               {viewType === 'list' && (
-                <ListView 
-                  items={paginatedItems}
-                  selectedItems={selectedItems}
-                  onSelectItem={handleSelectItem}
-                />
+          <ListView 
+            items={paginatedItems} 
+            selectedItems={selectedItems}
+            onSelectItem={handleSelectItem}
+            spaces={spaces}
+            onMoveItem={handleMoveSingleItem}
+          />
               )}
               {viewType === 'kanban' && (
                 <KanbanView items={paginatedItems} />
@@ -984,11 +1038,12 @@ const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({
                 <SelectValue placeholder="Select destination cortex" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ai">AI</SelectItem>
-                <SelectItem value="design">Design</SelectItem>
-                <SelectItem value="development">Development</SelectItem>
-                <SelectItem value="team-resources">Team Resources</SelectItem>
-                <SelectItem value="projects">Projects</SelectItem>
+                <SelectItem value="overview">Overview</SelectItem>
+                {spaces.map((space) => (
+                  <SelectItem key={space.id} value={space.id}>
+                    {space.emoji ? `${space.emoji} ${space.name}` : space.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
