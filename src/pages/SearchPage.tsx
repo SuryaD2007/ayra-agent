@@ -264,84 +264,40 @@ const SearchPage = () => {
           </Sidebar>
 
           {/* Main Content */}
-          <div className="flex-1 flex">
-            {/* Search Section - Left Half */}
-            <div className="flex-1 flex flex-col">
-              <header className="h-16 flex items-center border-b px-6">
-                <SidebarTrigger className="mr-4" />
-                <h1 className="text-xl font-semibold">Search Your Second Brain</h1>
-              </header>
-              
-              {authError && (
-                <div className="mb-4 mx-4">
-                  <InlineError 
-                    message={authError}
-                    onSignIn={() => setAuthModalOpen(true)}
-                  />
-                </div>
-              )}
+          <div className="flex-1 flex flex-col">
+            <header className="h-16 flex items-center border-b px-6">
+              <SidebarTrigger className="mr-4" />
+              <h1 className="text-xl font-semibold">New Chat</h1>
+            </header>
+            
+            {authError && (
+              <div className="mb-4 mx-4">
+                <InlineError 
+                  message={authError}
+                  onSignIn={() => setAuthModalOpen(true)}
+                />
+              </div>
+            )}
 
-              <AnimatedTransition show={showContent} animation="slide-up">
-                <div className="flex-1 flex flex-col p-6">
-                  {/* Welcome Message */}
-                  <div className="text-center py-16">
-                    <h2 className="text-3xl font-bold mb-4">Search Your Second Brain</h2>
-                    <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
+            <AnimatedTransition show={showContent} animation="slide-up">
+              <div className="flex-1 flex flex-col">
+                {/* Main Search Interface */}
+                <div className="flex-1 flex flex-col justify-center items-center px-6 pb-32">
+                  <div className="text-center max-w-2xl">
+                    <h2 className="text-4xl font-bold mb-4">Search Your Second Brain</h2>
+                    <p className="text-lg text-muted-foreground mb-12">
                       Ask questions to search across your notes, documents, and knowledge base.
                     </p>
-                    
-                    {/* Search Input */}
-                    <div className="relative max-w-2xl mx-auto">
-                      <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={20} />
-                      <Input
-                        placeholder="Ask your second brain anything..."
-                        className="pl-12 pr-12 py-4 text-lg rounded-full"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter' && searchQuery.trim()) {
-                            handleSendMessage(searchQuery);
-                            setSearchQuery('');
-                          }
-                        }}
-                      />
-                      <Button 
-                        className="absolute right-2 top-1/2 transform -translate-y-1/2 rounded-full"
-                        size="sm"
-                        onClick={() => {
-                          if (searchQuery.trim()) {
-                            handleSendMessage(searchQuery);
-                            setSearchQuery('');
-                          }
-                        }}
-                      >
-                        <Send className="h-4 w-4" />
-                      </Button>
-                    </div>
                   </div>
                 </div>
-              </AnimatedTransition>
-            </div>
-            
-            {/* AI Assistant Section - Right Half */}
-            <div className="w-1/2 border-l flex flex-col">
-              <div className="h-16 flex items-center justify-center border-b">
-                <h2 className="text-lg font-semibold">New Chat</h2>
-              </div>
-              
-              {/* Chat Messages */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                {messages.length === 0 ? (
-                  <div className="text-center text-muted-foreground py-16">
-                    <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p className="text-lg">Ask questions to search across your notes, documents, and knowledge base.</p>
-                  </div>
-                ) : (
-                  messages.map((message) => (
+                
+                {/* Chat Messages Area */}
+                <div className="flex-1 overflow-y-auto px-6 space-y-4 min-h-0">
+                  {messages.map((message) => (
                     <div
                       key={message.id}
                       className={cn(
-                        "p-4 rounded-lg max-w-[85%]",
+                        "p-4 rounded-lg max-w-[70%]",
                         message.sender === 'user'
                           ? "bg-primary text-primary-foreground ml-auto"
                           : "bg-muted"
@@ -352,31 +308,41 @@ const SearchPage = () => {
                         {message.timestamp.toLocaleTimeString()}
                       </p>
                     </div>
-                  ))
-                )}
+                  ))}
+                </div>
+                
+                {/* Bottom Search Input */}
+                <div className="p-6 border-t">
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (chatInput.trim()) {
+                        handleSendMessage(chatInput);
+                      }
+                    }}
+                    className="relative max-w-4xl mx-auto"
+                  >
+                    <div className="relative">
+                      <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={20} />
+                      <Input
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        placeholder="Ask your second brain anything..."
+                        className="pl-12 pr-12 py-4 text-base rounded-full"
+                      />
+                      <Button 
+                        type="submit" 
+                        disabled={!chatInput.trim()}
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 rounded-full h-8 w-8 p-0"
+                        size="sm"
+                      >
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </form>
+                </div>
               </div>
-              
-              {/* Chat Input */}
-              <div className="p-6 border-t">
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    handleSendMessage(chatInput);
-                  }}
-                  className="flex gap-3"
-                >
-                  <Input
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    placeholder="Ask your second brain anything..."
-                    className="flex-1"
-                  />
-                  <Button type="submit" disabled={!chatInput.trim()}>
-                    <Send className="h-4 w-4" />
-                  </Button>
-                </form>
-              </div>
-            </div>
+            </AnimatedTransition>
           </div>
         </div>
 
