@@ -251,7 +251,17 @@ export async function getItems(params: GetItemsParams = {}): Promise<GetItemsRes
     }
 
     if (params.spaceId) {
-      query = query.eq('space_id', params.spaceId);
+      // Check if this is a default space ID (non-UUID format)
+      const isDefaultSpace = /^(shared|team|private)-\d+$|^overview$/.test(params.spaceId);
+      
+      if (!isDefaultSpace) {
+        // Only filter by space_id if it's a real custom space UUID
+        query = query.eq('space_id', params.spaceId);
+      } else {
+        // For default spaces, don't filter by space_id as they don't exist in DB
+        // Instead, show all items or implement specific logic for default spaces
+        console.log('Default space selected, showing all items:', params.spaceId);
+      }
     }
 
     if (params.search) {

@@ -322,16 +322,24 @@ const ManagePage = () => {
               
               setCheckingEmptyState(true);
               try {
-                const result = await getItems({
-                  page: 1,
-                  pageSize: 1,
-                  type: [],
-                  spaceId: space.id,
-                  tags: [],
-                  dateRange: {},
-                  search: ''
-                });
-                setIsEmptySpace(result.total === 0);
+                // Check if this is a custom space that actually exists in the database
+                const isCustomSpace = customSpaces.find(s => s.id === selectedItem);
+                
+                if (isCustomSpace) {
+                  const result = await getItems({
+                    page: 1,
+                    pageSize: 1,
+                    type: [],
+                    spaceId: space.id, // This will be a real UUID for custom spaces
+                    tags: [],
+                    dateRange: {},
+                    search: ''
+                  });
+                  setIsEmptySpace(result.total === 0);
+                } else {
+                  // For default spaces, they're never "empty" since they show all items
+                  setIsEmptySpace(false);
+                }
               } catch {
                 setIsEmptySpace(true);
               } finally {
