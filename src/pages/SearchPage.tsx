@@ -173,7 +173,7 @@ const SearchPage = () => {
                           : "hover:bg-muted/50"
                       )}
                     >
-                      <MessageSquare size={16} className="flex-shrink-0" />
+                      <Search size={16} className="flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         {isEditingTitle === chat.id ? (
                           <form 
