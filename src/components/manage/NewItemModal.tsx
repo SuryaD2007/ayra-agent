@@ -315,7 +315,7 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: N
   };
 
   const handleCreate = async () => {
-    if (!validateForm()) return;
+    if (!validateForm() || isLoading) return;
 
     setIsLoading(true);
     try {
