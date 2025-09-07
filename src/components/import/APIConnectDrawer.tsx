@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { X, Plug, ExternalLink, Clock } from 'lucide-react';
+import { Plug, ExternalLink, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter, DrawerClose } from '@/components/ui/drawer';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -64,18 +63,23 @@ export const APIConnectDrawer = ({ onClose }: APIConnectDrawerProps) => {
   };
 
   return (
-    <DrawerContent>
-      <DrawerHeader>
-        <DrawerTitle className="flex items-center gap-2">
-          <Plug size={20} />
-          API Integrations
-        </DrawerTitle>
-        <DrawerClose className="absolute right-4 top-4">
-          <X size={20} />
-        </DrawerClose>
-      </DrawerHeader>
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-xl font-semibold flex items-center gap-2">
+            <Plug size={20} />
+            API Integrations
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Connect to external APIs and services to import your data.
+          </p>
+        </div>
+        <Button variant="ghost" size="sm" onClick={onClose}>
+          ×
+        </Button>
+      </div>
 
-      <div className="px-6 space-y-6">
+      <div className="space-y-6">
         {/* Available Services */}
         <div className="space-y-4">
           <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
@@ -163,11 +167,11 @@ export const APIConnectDrawer = ({ onClose }: APIConnectDrawerProps) => {
         </div>
       </div>
 
-      <DrawerFooter className="flex flex-row gap-2 justify-end">
+      <div className="flex flex-row gap-2 justify-end pt-6 border-t">
         <Button variant="outline" onClick={onClose}>
           Close
         </Button>
-      </DrawerFooter>
-    </DrawerContent>
+      </div>
+    </div>
   );
 };

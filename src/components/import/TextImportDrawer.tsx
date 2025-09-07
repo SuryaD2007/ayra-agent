@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { X, Type, Loader2 } from 'lucide-react';
+import { Type, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter, DrawerClose } from '@/components/ui/drawer';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -88,18 +87,23 @@ export const TextImportDrawer = ({ onClose, preselectedSpace }: TextImportDrawer
   };
 
   return (
-    <DrawerContent>
-      <DrawerHeader>
-        <DrawerTitle className="flex items-center gap-2">
-          <Type size={20} />
-          Add Text Content
-        </DrawerTitle>
-        <DrawerClose className="absolute right-4 top-4">
-          <X size={20} />
-        </DrawerClose>
-      </DrawerHeader>
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-xl font-semibold flex items-center gap-2">
+            <Type size={20} />
+            Add Text Content
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Directly input or paste text content into your library.
+          </p>
+        </div>
+        <Button variant="ghost" size="sm" onClick={onClose}>
+          ×
+        </Button>
+      </div>
 
-      <div className="px-6 space-y-6">
+      <div className="space-y-6">
         {/* Title */}
         <div className="space-y-2">
           <Label htmlFor="title">Title *</Label>
@@ -154,7 +158,7 @@ export const TextImportDrawer = ({ onClose, preselectedSpace }: TextImportDrawer
         </div>
       </div>
 
-      <DrawerFooter className="flex flex-row gap-2 justify-end">
+      <div className="flex flex-row gap-2 justify-end pt-6 border-t">
         <Button variant="outline" onClick={onClose}>
           Cancel
         </Button>
@@ -171,7 +175,7 @@ export const TextImportDrawer = ({ onClose, preselectedSpace }: TextImportDrawer
             'Create Text'
           )}
         </Button>
-      </DrawerFooter>
-    </DrawerContent>
+      </div>
+    </div>
   );
 };

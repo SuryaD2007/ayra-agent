@@ -155,18 +155,23 @@ export const CSVImportDrawer = ({ onClose, preselectedSpace }: CSVImportDrawerPr
   };
 
   return (
-    <DrawerContent>
-      <DrawerHeader>
-        <DrawerTitle className="flex items-center gap-2">
-          <FileSpreadsheet size={20} />
-          Import CSV File
-        </DrawerTitle>
-        <DrawerClose className="absolute right-4 top-4">
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-xl font-semibold flex items-center gap-2">
+            <FileSpreadsheet size={20} />
+            Import CSV File
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Upload a CSV file to import structured data into your second brain.
+          </p>
+        </div>
+        <Button variant="ghost" size="sm" onClick={onClose}>
           <X size={20} />
-        </DrawerClose>
-      </DrawerHeader>
+        </Button>
+      </div>
 
-      <div className="px-6 space-y-6">
+      <div className="space-y-6">
         {/* File Drop Zone */}
         {!csvFile && (
           <div
@@ -339,7 +344,7 @@ export const CSVImportDrawer = ({ onClose, preselectedSpace }: CSVImportDrawerPr
         )}
       </div>
 
-      <DrawerFooter className="flex flex-row gap-2 justify-end">
+      <div className="flex flex-row gap-2 justify-end pt-6 border-t">
         <Button variant="outline" onClick={onClose}>
           Cancel
         </Button>
@@ -358,7 +363,7 @@ export const CSVImportDrawer = ({ onClose, preselectedSpace }: CSVImportDrawerPr
             )}
           </Button>
         )}
-      </DrawerFooter>
-    </DrawerContent>
+      </div>
+    </div>
   );
 };

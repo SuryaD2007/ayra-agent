@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from '@/components/ui/drawer';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -89,15 +88,20 @@ export const LinkImportDrawer = ({ onClose, preselectedSpace }: LinkImportDrawer
   };
 
   return (
-    <DrawerContent className="h-[80vh]">
-      <DrawerHeader className="text-left">
-        <DrawerTitle>Import from URL</DrawerTitle>
-        <DrawerDescription>
-          Import content from a website or article URL.
-        </DrawerDescription>
-      </DrawerHeader>
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-xl font-semibold">Import from URL</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Import content from a website or article URL.
+          </p>
+        </div>
+        <Button variant="ghost" size="sm" onClick={onClose}>
+          ×
+        </Button>
+      </div>
       
-      <div className="p-6 space-y-6">
+      <div className="space-y-6">
         <div className="space-y-2">
           <Label htmlFor="url">Website URL</Label>
           <Input
@@ -135,6 +139,6 @@ export const LinkImportDrawer = ({ onClose, preselectedSpace }: LinkImportDrawer
           )}
         </Button>
       </div>
-    </DrawerContent>
+    </div>
   );
 };

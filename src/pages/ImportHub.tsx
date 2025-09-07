@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { FileSpreadsheet, Plug, Globe2, Upload, Type } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Drawer } from '@/components/ui/drawer';
 import { CSVImportDrawer } from '@/components/import/CSVImportDrawer';
 import { APIConnectDrawer } from '@/components/import/APIConnectDrawer';  
 import { LinkImportDrawer } from '@/components/import/LinkImportDrawer';
@@ -155,38 +154,40 @@ const ImportHub = () => {
         </div>
       </AnimatedTransition>
 
-      {/* Drawers for each import type */}
-      <Drawer open={activeDrawer === 'csv'} onOpenChange={(open) => !open && closeDrawer()}>
-        <CSVImportDrawer 
-          onClose={closeDrawer} 
-          preselectedSpace={preselectedSpace}
-        />
-      </Drawer>
-
-      <Drawer open={activeDrawer === 'api'} onOpenChange={(open) => !open && closeDrawer()}>
-        <APIConnectDrawer onClose={closeDrawer} />
-      </Drawer>
-
-      <Drawer open={activeDrawer === 'url'} onOpenChange={(open) => !open && closeDrawer()}>
-        <LinkImportDrawer 
-          onClose={closeDrawer} 
-          preselectedSpace={preselectedSpace}
-        />
-      </Drawer>
-
-      <Drawer open={activeDrawer === 'file'} onOpenChange={(open) => !open && closeDrawer()}>
-        <FileImportDrawer 
-          onClose={closeDrawer} 
-          preselectedSpace={preselectedSpace}
-        />
-      </Drawer>
-
-      <Drawer open={activeDrawer === 'text'} onOpenChange={(open) => !open && closeDrawer()}>
-        <TextImportDrawer 
-          onClose={closeDrawer} 
-          preselectedSpace={preselectedSpace}
-        />
-      </Drawer>
+      {/* Inline import content */}
+      {activeDrawer && (
+        <div className="mt-8 max-w-4xl mx-auto">
+          <Card>
+            {activeDrawer === 'csv' && (
+              <CSVImportDrawer 
+                onClose={closeDrawer} 
+                preselectedSpace={preselectedSpace}
+              />
+            )}
+            {activeDrawer === 'api' && (
+              <APIConnectDrawer onClose={closeDrawer} />
+            )}
+            {activeDrawer === 'url' && (
+              <LinkImportDrawer 
+                onClose={closeDrawer} 
+                preselectedSpace={preselectedSpace}
+              />
+            )}
+            {activeDrawer === 'file' && (
+              <FileImportDrawer 
+                onClose={closeDrawer} 
+                preselectedSpace={preselectedSpace}
+              />
+            )}
+            {activeDrawer === 'text' && (
+              <TextImportDrawer 
+                onClose={closeDrawer} 
+                preselectedSpace={preselectedSpace}
+              />
+            )}
+          </Card>
+        </div>
+      )}
     </div>
   );
 };
