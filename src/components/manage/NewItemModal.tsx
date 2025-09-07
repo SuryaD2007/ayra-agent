@@ -40,7 +40,6 @@ interface NewItemModalProps {
 
 interface FormData {
   title: string;
-  space: string;
   tags: string[];
   content?: string;
   url?: string;
@@ -62,7 +61,6 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: N
   });
   const [formData, setFormData] = useState<FormData>({
     title: '',
-    space: 'overview',
     tags: [],
     metadataFailed: false,
   });
@@ -321,25 +319,13 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: N
 
     setIsLoading(true);
     try {
-      // Determine the space_id based on the selected space
-      let spaceId: string | undefined = undefined;
-      
-      if (preselectedSpace) {
-        // Use the preselected space ID directly (it's now a real UUID from database)
-        if (preselectedSpace !== 'overview') {
-          spaceId = preselectedSpace;
-        }
-      } else if (formData.space !== 'overview') {
-        // Use the selected space ID directly (it's now a real UUID from database)
-        spaceId = formData.space;
-      }
-
+      // Create items without space assignment - users can move them later
       const payload = {
         title: formData.title,
         type: activeTab as 'note' | 'pdf' | 'link' | 'image',
         content: activeTab === 'note' ? editor?.getHTML() || '' : formData.content,
         source: activeTab === 'link' ? formData.url : 'Upload',
-        space_id: spaceId,
+        space_id: undefined, // Always create without space initially
         file: activeTab === 'pdf' ? formData.file : undefined
       };
 
@@ -355,7 +341,7 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: N
         createdDate: new Date(createdItem.created_at).toISOString().split('T')[0],
         source: createdItem.source || 'Upload',
         keywords: formData.tags,
-        space: formData.space,
+        space: 'Personal', // Default display value
         content: createdItem.content,
         description: createdItem.content?.substring(0, 150),
       };
@@ -370,7 +356,6 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: N
       // Reset form
       setFormData({
         title: '',
-        space: 'overview',
         tags: [],
         metadataFailed: false,
       });
@@ -620,23 +605,6 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: N
 
         {/* Common Fields */}
         <div className="space-y-4 border-t pt-4">
-          <div>
-            <Label htmlFor="space">Space</Label>
-            <Select value={formData.space} onValueChange={(value) => setFormData(prev => ({ ...prev, space: value }))}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a space..." />
-              </SelectTrigger>
-              <SelectContent className="bg-popover border border-border shadow-lg z-50">
-                <SelectItem value="overview">Personal (No Space)</SelectItem>
-                {customSpaces.map((space) => (
-                  <SelectItem key={space.id} value={space.id}>
-                    {space.emoji ? `${space.emoji} ${space.name}` : space.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           <div>
             <Label htmlFor="tags">Tags</Label>
             <div className="flex gap-2 mb-2">
