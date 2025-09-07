@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Folder, Share, Users, Lock, Plus, Move } from 'lucide-react';
+import { Folder, Share, Users, Lock, Plus, Move, Building, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -11,6 +11,7 @@ import {
 import { cn } from '@/lib/utils';
 import NewSpaceModal from './NewSpaceModal';
 import NewItemModal from './NewItemModal';
+import NewCategoryModal from './NewCategoryModal';
 
 type CortexCategory = {
   id: string;
@@ -29,8 +30,15 @@ type CustomSpace = {
   id: string;
   name: string;
   emoji: string;
-  visibility: 'Private' | 'Team';
+  visibility: string;
   slug: string;
+};
+
+type CustomCategory = {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
 };
 
 interface CortexSidebarProps {
@@ -49,22 +57,43 @@ const CortexSidebar = ({
   spaceCounts = {}
 }: CortexSidebarProps) => {
   const [customSpaces, setCustomSpaces] = useState<CustomSpace[]>([]);
+  const [customCategories, setCustomCategories] = useState<CustomCategory[]>([]);
   const [newSpaceModalOpen, setNewSpaceModalOpen] = useState(false);
   const [newItemModalOpen, setNewItemModalOpen] = useState(false);
+  const [newCategoryModalOpen, setNewCategoryModalOpen] = useState(false);
   const [preselectedSpace, setPreselectedSpace] = useState<string | null>(null);
   const [activePopover, setActivePopover] = useState<string | null>(null);
+  const [selectedCategoryForNewSpace, setSelectedCategoryForNewSpace] = useState<string | null>(null);
 
-  // Load custom spaces from localStorage
+  // Load custom spaces and categories from localStorage
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('custom-spaces');
-      if (saved) {
-        setCustomSpaces(JSON.parse(saved));
+      const savedSpaces = localStorage.getItem('custom-spaces');
+      if (savedSpaces) {
+        setCustomSpaces(JSON.parse(savedSpaces));
+      }
+      
+      const savedCategories = localStorage.getItem('custom-categories');
+      if (savedCategories) {
+        setCustomCategories(JSON.parse(savedCategories));
       }
     } catch (error) {
-      console.error('Error loading custom spaces:', error);
+      console.error('Error loading custom data:', error);
     }
   }, []);
+  // Get icon component by name
+  const getIconComponent = (iconName: string) => {
+    const iconMap: { [key: string]: any } = {
+      'Folder': Folder,
+      'Share': Share,
+      'Users': Users,
+      'Lock': Lock,
+      'Building': Building,
+      'Globe': Globe,
+    };
+    return iconMap[iconName] || Folder;
+  };
+
   // Combine default spaces with custom spaces
   const getSpacesForCategory = (categoryId: string) => {
     const defaultSpaces = {
@@ -88,10 +117,7 @@ const CortexSidebar = ({
 
     const defaultItems = defaultSpaces[categoryId as keyof typeof defaultSpaces] || [];
     const customItems = customSpaces
-      .filter(space => 
-        (categoryId === 'private' && space.visibility === 'Private') ||
-        (categoryId === 'team' && space.visibility === 'Team')
-      )
+      .filter(space => space.visibility === categoryId)
       .map(space => ({
         id: space.id,
         name: space.name,
@@ -101,7 +127,7 @@ const CortexSidebar = ({
     return [...defaultItems, ...customItems];
   };
 
-  const categories: CortexCategory[] = [
+  const defaultCategories: CortexCategory[] = [
     {
       id: 'shared',
       name: 'Shared',
@@ -122,8 +148,22 @@ const CortexSidebar = ({
     }
   ];
 
+  const customCategoryItems: CortexCategory[] = customCategories.map(category => ({
+    id: category.id,
+    name: category.name,
+    icon: React.createElement(getIconComponent(category.icon), {
+      size: 16,
+      className: category.color
+    }),
+    items: getSpacesForCategory(category.id)
+  }));
+
+  const categories: CortexCategory[] = [...defaultCategories, ...customCategoryItems];
+
   const handleCategoryClick = (categoryId: string) => {
-    onCortexSelect(categoryId, null);
+    // When clicking a category header, open new space modal for that category
+    setSelectedCategoryForNewSpace(categoryId);
+    setNewSpaceModalOpen(true);
   };
 
   const handleItemClick = (categoryId: string, itemId: string, spaceSlug?: string) => {
@@ -133,8 +173,11 @@ const CortexSidebar = ({
   const handleSpaceCreated = (space: CustomSpace) => {
     setCustomSpaces(prev => [...prev, space]);
     // Route to the new space
-    const categoryId = space.visibility === 'Private' ? 'private' : 'team';
-    onCortexSelect(categoryId, space.id, space.slug);
+    onCortexSelect(space.visibility, space.id, space.slug);
+  };
+
+  const handleCategoryCreated = (category: CustomCategory) => {
+    setCustomCategories(prev => [...prev, category]);
   };
 
   const handlePlusClick = (categoryId: string, itemId?: string, isSpace?: boolean) => {
@@ -148,8 +191,14 @@ const CortexSidebar = ({
     }
   };
 
-  const handleNewSpace = (visibility: 'Private' | 'Team') => {
+  const handleNewSpace = (visibility: string) => {
+    setSelectedCategoryForNewSpace(visibility);
     setNewSpaceModalOpen(true);
+    setActivePopover(null);
+  };
+
+  const handleNewCategory = () => {
+    setNewCategoryModalOpen(true);
     setActivePopover(null);
   };
 
@@ -162,6 +211,19 @@ const CortexSidebar = ({
   return (
     <>
       <div className="w-60 border-r border-border/50 overflow-y-auto shrink-0">
+        {/* Add Category Button */}
+        <div className="p-4 border-b border-border/50">
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full justify-start"
+            onClick={handleNewCategory}
+          >
+            <Plus size={14} className="mr-2" />
+            Add Category
+          </Button>
+        </div>
+
         {categories.map((category) => (
           <div key={category.id} className="mb-6">
             <div 
@@ -202,7 +264,7 @@ const CortexSidebar = ({
                       variant="ghost"
                       size="sm"
                       className="w-full justify-start"
-                      onClick={() => handleNewSpace(category.id === 'private' ? 'Private' : 'Team')}
+                      onClick={() => handleNewSpace(category.id)}
                     >
                       <Plus size={14} className="mr-2" />
                       New Space
@@ -266,7 +328,18 @@ const CortexSidebar = ({
         open={newSpaceModalOpen}
         onOpenChange={setNewSpaceModalOpen}
         onSpaceCreated={handleSpaceCreated}
-        defaultVisibility={activePopover === 'private' ? 'Private' : 'Team'}
+        selectedCategory={selectedCategoryForNewSpace}
+        onClose={() => {
+          setNewSpaceModalOpen(false);
+          setSelectedCategoryForNewSpace(null);
+        }}
+      />
+
+      {/* New Category Modal */}
+      <NewCategoryModal
+        open={newCategoryModalOpen}
+        onOpenChange={setNewCategoryModalOpen}
+        onCategoryCreated={handleCategoryCreated}
       />
 
       {/* New Item Modal */}

@@ -10,13 +10,14 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 interface NewSpaceModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSpaceCreated: (space: { id: string; name: string; emoji: string; visibility: 'Private' | 'Team'; slug: string }) => void;
-  defaultVisibility?: 'Private' | 'Team';
+  onSpaceCreated: (space: { id: string; name: string; emoji: string; visibility: string; slug: string }) => void;
+  selectedCategory?: string | null;
+  onClose?: () => void;
 }
 
 // Common emojis for spaces
@@ -26,11 +27,36 @@ const spaceEmojis = [
   '📱', '🔒', '👥', '📈', '🎵', '🏆', '🎭', '🍕'
 ];
 
-const NewSpaceModal = ({ open, onOpenChange, onSpaceCreated, defaultVisibility = 'Private' }: NewSpaceModalProps) => {
+const NewSpaceModal = ({ open, onOpenChange, onSpaceCreated, selectedCategory, onClose }: NewSpaceModalProps) => {
   const [name, setName] = useState('');
   const [selectedEmoji, setSelectedEmoji] = useState('🏠');
-  const [visibility, setVisibility] = useState<'Private' | 'Team'>(defaultVisibility);
+  const [visibility, setVisibility] = useState<string>(selectedCategory || 'private');
   const [isCreating, setIsCreating] = useState(false);
+  const [availableCategories, setAvailableCategories] = useState<any[]>([]);
+
+  // Load categories on mount
+  React.useEffect(() => {
+    const defaultCategories = [
+      { id: 'private', name: 'Private', emoji: '🔒' },
+      { id: 'shared', name: 'Shared', emoji: '🔗' },
+      { id: 'team', name: 'Team', emoji: '👥' },
+    ];
+
+    try {
+      const customCategories = JSON.parse(localStorage.getItem('custom-categories') || '[]');
+      const customCategoriesWithEmoji = customCategories.map((cat: any) => ({
+        id: cat.id,
+        name: cat.name,
+        emoji: cat.icon === 'Folder' ? '📁' : 
+               cat.icon === 'Building' ? '🏢' : 
+               cat.icon === 'Globe' ? '🌍' : '📁'
+      }));
+      
+      setAvailableCategories([...defaultCategories, ...customCategoriesWithEmoji]);
+    } catch (error) {
+      setAvailableCategories(defaultCategories);
+    }
+  }, [open]);
 
   const generateSlug = (name: string) => {
     return name
@@ -43,11 +69,7 @@ const NewSpaceModal = ({ open, onOpenChange, onSpaceCreated, defaultVisibility =
 
   const handleCreate = async () => {
     if (!name.trim()) {
-      toast({
-        title: "Name required",
-        description: "Please enter a name for your space.",
-        variant: "destructive",
-      });
+      toast.error('Please enter a name for your space.');
       return;
     }
 
@@ -70,22 +92,19 @@ const NewSpaceModal = ({ open, onOpenChange, onSpaceCreated, defaultVisibility =
 
       onSpaceCreated(newSpace);
       
-      toast({
-        title: "Space created",
-        description: `${selectedEmoji} ${name} has been created successfully.`,
-      });
+      toast.success(`${selectedEmoji} ${name} has been created successfully.`);
 
       // Reset form
       setName('');
       setSelectedEmoji('🏠');
-      setVisibility(defaultVisibility);
-      onOpenChange(false);
+      setVisibility(selectedCategory || 'private');
+      if (onClose) {
+        onClose();
+      } else {
+        onOpenChange(false);
+      }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create space. Please try again.",
-        variant: "destructive",
-      });
+      toast.error('Failed to create space. Please try again.');
     } finally {
       setIsCreating(false);
     }
@@ -94,8 +113,12 @@ const NewSpaceModal = ({ open, onOpenChange, onSpaceCreated, defaultVisibility =
   const handleClose = () => {
     setName('');
     setSelectedEmoji('🏠');
-    setVisibility(defaultVisibility);
-    onOpenChange(false);
+    setVisibility(selectedCategory || 'private');
+    if (onClose) {
+      onClose();
+    } else {
+      onOpenChange(false);
+    }
   };
 
   return (
@@ -141,17 +164,16 @@ const NewSpaceModal = ({ open, onOpenChange, onSpaceCreated, defaultVisibility =
           {/* Visibility Select */}
           <div className="space-y-2">
             <Label htmlFor="visibility">Visibility</Label>
-            <Select value={visibility} onValueChange={(value) => setVisibility(value as 'Private' | 'Team')}>
+            <Select value={visibility} onValueChange={(value) => setVisibility(value)}>
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Private">
-                  🔒 Private - Only you can see this space
-                </SelectItem>
-                <SelectItem value="Team">
-                  👥 Team - Team members can see this space
-                </SelectItem>
+                {availableCategories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.emoji} {category.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -163,7 +185,7 @@ const NewSpaceModal = ({ open, onOpenChange, onSpaceCreated, defaultVisibility =
               <span className="text-lg">{selectedEmoji}</span>
               <span className="font-medium">{name || 'Space Name'}</span>
               <span className="text-xs text-muted-foreground">
-                • {visibility}
+                • {availableCategories.find(cat => cat.id === visibility)?.name || 'Unknown'}
               </span>
             </div>
           </div>
