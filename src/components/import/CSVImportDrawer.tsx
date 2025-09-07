@@ -171,26 +171,18 @@ export const CSVImportDrawer = ({ onClose, preselectedSpace }: CSVImportDrawerPr
         {!csvFile && (
           <div
             {...getRootProps()}
-            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
+            className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors cursor-pointer h-64 flex flex-col items-center justify-center ${
               isDragActive 
                 ? 'border-primary bg-primary/5' 
-                : 'border-border hover:border-primary/50'
+                : 'border-muted-foreground/25 hover:border-primary/50'
             }`}
           >
             <input {...getInputProps()} />
-            <FileSpreadsheet size={40} className="mx-auto mb-4 text-muted-foreground" />
-            {isDragActive ? (
-              <p className="text-primary">Drop CSV file here...</p>
-            ) : (
-              <div>
-                <p className="text-foreground mb-2">
-                  Drag & drop CSV file here, or click to browse
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Only .csv files are accepted
-                </p>
-              </div>
-            )}
+            <FileSpreadsheet size={48} className="mb-6 text-muted-foreground" />
+            <p className="text-muted-foreground mb-6">
+              Drag and drop a CSV file here, or click to browse
+            </p>
+            <Button size="lg" className="px-8">Browse Files</Button>
           </div>
         )}
 
