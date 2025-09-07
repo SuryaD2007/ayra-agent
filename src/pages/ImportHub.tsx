@@ -135,16 +135,16 @@ const ImportHub = () => {
               onClick={() => handleCardClick(card.id)}
               onKeyDown={(e) => handleCardKeyDown(e, card.id)}
             >
-              <CardContent className="p-6">
-                <div className="flex items-center space-x-4">
-                  <div className="p-3 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors flex-shrink-0">
+              <CardContent className="p-4">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors flex-shrink-0">
                     {card.icon}
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-foreground mb-1">
+                    <h3 className="text-base font-semibold text-foreground mb-0.5">
                       {card.title}
                     </h3>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       {card.description}
                     </p>
                   </div>
