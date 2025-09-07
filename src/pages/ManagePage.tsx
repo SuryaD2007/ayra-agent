@@ -305,44 +305,9 @@ const ManagePage = () => {
           onOpenChange={setNewItemModalOpen}
           onItemCreated={(item) => {
             setNewItemModalOpen(false);
-            // Clear cache and trigger table refresh
+            // Real-time updates will handle showing the new item automatically
+            // Clear cache to ensure fresh data on next load
             DataCache.clear();
-            // Force CortexTable to reload by changing key or triggering refresh
-            if (cortexTableRef.current) {
-              // Re-check empty state for current space
-              const checkEmptySpace = async () => {
-                if (!selectedSpace || !selectedItem || !isAuthenticated) {
-                  setIsEmptySpace(false);
-                  return;
-                }
-                
-                const space = customSpaces.find(s => s.id === selectedItem);
-                if (!space) {
-                  setIsEmptySpace(false);
-                  return;
-                }
-                
-                setCheckingEmptyState(true);
-                try {
-                  const result = await getItems({
-                    page: 1,
-                    pageSize: 1,
-                    type: [],
-                    spaceId: space.id,
-                    tags: [],
-                    dateRange: {},
-                    search: ''
-                  });
-                  setIsEmptySpace(result.total === 0);
-                } catch {
-                  setIsEmptySpace(false);
-                } finally {
-                  setCheckingEmptyState(false);
-                }
-              };
-              
-              checkEmptySpace();
-            }
           }}
           preselectedSpace={selectedItem === 'overview' ? undefined : selectedItem}
         />

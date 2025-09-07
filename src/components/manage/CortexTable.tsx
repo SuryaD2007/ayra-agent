@@ -95,7 +95,7 @@ const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({
   // Optimistic update tracking
   const [syncingItems, setSyncingItems] = useState<Set<string>>(new Set());
 
-  // Load data from Supabase
+  // Load data from Supabase with real-time updates
   useEffect(() => {
     if (!isAuthenticated) {
       setCortexItems([]);
@@ -105,13 +105,11 @@ const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({
       return;
     }
 
-    const loadData = async (isRetry = false) => {
+    let channel: any;
+
+    const setupRealtimeAndLoadData = async () => {
       try {
-        if (isRetry) {
-          setRetrying(true);
-        } else {
-          setLoading(true);
-        }
+        setLoading(true);
         setError(null);
         
         // Build query object
@@ -166,31 +164,140 @@ const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({
         // Update cache
         DataCache.setCortexItems(convertedItems);
         
+        // Set up real-time listener for new items
+        const { supabase } = await import('@/integrations/supabase/client');
+        
+        channel = supabase
+          .channel('schema-db-changes')
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'items'
+            },
+            async (payload) => {
+              console.log('New item created:', payload.new);
+              
+              // Check if this item belongs to current space filter
+              const newItem = payload.new as any;
+              const currentSpaceFilter = cortexId === 'overview' ? undefined : cortexId;
+              
+              if (currentSpaceFilter && newItem.space_id !== currentSpaceFilter) {
+                return; // Item doesn't belong to current space, ignore
+              }
+              
+              // Convert the new item to CortexItem format
+              const space = spacesData.find(s => s.id === newItem.space_id);
+              const spaceName = space ? space.name : 'Personal';
+              
+              let spaceType: 'Personal' | 'Work' | 'School' | 'Team' = 'Personal';
+              if (spaceName.toLowerCase().includes('work')) spaceType = 'Work';
+              else if (spaceName.toLowerCase().includes('school')) spaceType = 'School';
+              else if (spaceName.toLowerCase().includes('team')) spaceType = 'Team';
+              
+              const convertedItem = {
+                id: newItem.id,
+                title: newItem.title,
+                url: newItem.file_path || '#',
+                type: newItem.type.charAt(0).toUpperCase() + newItem.type.slice(1).toLowerCase() as 'Note' | 'PDF' | 'Link' | 'Image',
+                createdDate: new Date(newItem.created_at).toISOString().split('T')[0],
+                source: newItem.source || 'Upload',
+                keywords: [],
+                space: spaceType,
+                content: newItem.content,
+                description: newItem.content?.substring(0, 150),
+              };
+              
+              // Add the new item to the beginning of the list (most recent first)
+              setCortexItems(prev => [convertedItem, ...prev]);
+              setTotalItems(prev => prev + 1);
+            }
+          )
+          .on(
+            'postgres_changes',
+            {
+              event: 'UPDATE',
+              schema: 'public',
+              table: 'items'
+            },
+            (payload) => {
+              console.log('Item updated:', payload.new);
+              const updatedItem = payload.new as any;
+              
+              // Update the item in the list
+              setCortexItems(prev => prev.map(item => {
+                if (item.id === updatedItem.id) {
+                  const space = spacesData.find(s => s.id === updatedItem.space_id);
+                  const spaceName = space ? space.name : 'Personal';
+                  
+                  let spaceType: 'Personal' | 'Work' | 'School' | 'Team' = 'Personal';
+                  if (spaceName.toLowerCase().includes('work')) spaceType = 'Work';
+                  else if (spaceName.toLowerCase().includes('school')) spaceType = 'School';
+                  else if (spaceName.toLowerCase().includes('team')) spaceType = 'Team';
+                  
+                  return {
+                    ...item,
+                    title: updatedItem.title,
+                    content: updatedItem.content,
+                    description: updatedItem.content?.substring(0, 150),
+                    space: spaceType,
+                  };
+                }
+                return item;
+              }));
+            }
+          )
+          .on(
+            'postgres_changes',
+            {
+              event: 'DELETE',
+              schema: 'public',
+              table: 'items'
+            },
+            (payload) => {
+              console.log('Item deleted:', payload.old);
+              const deletedItem = payload.old as any;
+              
+              // Remove the item from the list
+              setCortexItems(prev => prev.filter(item => item.id !== deletedItem.id));
+              setTotalItems(prev => prev - 1);
+            }
+          )
+          .subscribe();
+        
       } catch (error) {
         console.error('Error loading data:', error);
         const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
         setError(errorMessage);
         
-        if (!isRetry) {
-          toast({
-            title: "Error loading data",
-            description: "Failed to load items from database.",
-            variant: "destructive"
-          });
-        }
+        toast({
+          title: "Error loading data",
+          description: "Failed to load items from database.",
+          variant: "destructive"
+        });
         
-        // Fallback to cache or initial data only if not retrying
-        if (!isRetry) {
-          const cached = DataCache.getCortexItems();
-          setCortexItems(cached.length > 0 ? cached : initialCortexItems);
-        }
+        // Fallback to cache
+        const cached = DataCache.getCortexItems();
+        setCortexItems(cached.length > 0 ? cached : initialCortexItems);
       } finally {
         setLoading(false);
         setRetrying(false);
       }
     };
 
-    loadData();
+    setupRealtimeAndLoadData();
+
+    // Cleanup function
+    return () => {
+      if (channel) {
+        const cleanup = async () => {
+          const { supabase } = await import('@/integrations/supabase/client');
+          supabase.removeChannel(channel);
+        };
+        cleanup();
+      }
+    };
   }, [isAuthenticated, cortexId]);
 
   // Use the filters hook - but don't apply client-side filtering since we do server-side now
