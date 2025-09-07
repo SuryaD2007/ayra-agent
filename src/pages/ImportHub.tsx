@@ -120,12 +120,12 @@ const ImportHub = () => {
           </p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 max-w-6xl mx-auto">
           {importCards.map((card, index) => (
             <Card
               key={card.id}
               className={cn(
-                "group cursor-pointer transition-all duration-300 min-w-[200px]",
+                "group cursor-pointer transition-all duration-300 min-w-[140px]",
                 "hover:-translate-y-0.5 hover:shadow-lg hover:ring-2 hover:ring-primary/20",
                 "focus:outline-none focus:ring-2 focus:ring-primary focus:-translate-y-0.5"
               )}
@@ -135,22 +135,22 @@ const ImportHub = () => {
               onClick={() => handleCardClick(card.id)}
               onKeyDown={(e) => handleCardKeyDown(e, card.id)}
             >
-              <CardContent className="p-4 text-center">
-                <div className="flex flex-col items-center space-y-3">
-                  <div className="p-2 rounded-full bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
+              <CardContent className="p-3 text-center">
+                <div className="flex flex-col items-center space-y-2">
+                  <div className="p-1.5 rounded-full bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
                     {card.icon}
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-foreground mb-1">
+                    <h3 className="text-sm font-semibold text-foreground mb-0.5">
                       {card.title}
                     </h3>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs text-muted-foreground leading-tight">
                       {card.description}
                     </p>
                   </div>
                 </div>
-                <div className="mt-3 text-xs text-muted-foreground">
-                  Press {index + 1} to open
+                <div className="mt-2 text-xs text-muted-foreground opacity-70">
+                  {index + 1}
                 </div>
               </CardContent>
             </Card>
