@@ -307,11 +307,21 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: N
       let spaceId: string | undefined = undefined;
       
       if (preselectedSpace) {
-        // If there's a preselected space (from clicking + next to a space), use it
-        spaceId = preselectedSpace;
+        // Check if this is a default space (non-UUID format) vs custom space (UUID format)
+        const isDefaultSpace = /^(shared|team|private)-\d+$|^overview$/.test(preselectedSpace);
+        
+        if (!isDefaultSpace) {
+          // Only use space_id for custom spaces that have actual UUIDs
+          spaceId = preselectedSpace;
+        }
+        // For default spaces, leave spaceId as undefined so item isn't tied to a specific space
       } else if (formData.space !== 'Personal') {
-        // If a specific space is selected (not the default 'Personal'), use it
-        spaceId = formData.space;
+        // Check if the selected space is a custom space UUID
+        const isDefaultSpace = /^(shared|team|private)-\d+$|^overview$/.test(formData.space);
+        
+        if (!isDefaultSpace) {
+          spaceId = formData.space;
+        }
       }
 
       const payload = {
