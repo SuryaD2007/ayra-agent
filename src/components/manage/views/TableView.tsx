@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { ArrowUpDown, Check, Square, Edit2, FileText, File, Link, Image as ImageIcon, Plus, X, Loader2 } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, Check, Square, Edit2, FileText, File, Link, Image as ImageIcon, Plus, X, Loader2 } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,12 +56,62 @@ const TableView = ({
   const [tempTitle, setTempTitle] = useState('');
   const [previewItem, setPreviewItem] = useState<CortexItem | null>(null);
   const [newTag, setNewTag] = useState<{ [key: string]: string }>({});
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   
   const parentRef = useRef<HTMLDivElement>(null);
+
+  // Sort items based on current sort field and direction
+  const sortedItems = useMemo(() => {
+    if (!sortField) return items;
+    
+    return [...items].sort((a, b) => {
+      let aValue = '';
+      let bValue = '';
+      
+      switch (sortField) {
+        case 'title':
+          aValue = a.title.toLowerCase();
+          bValue = b.title.toLowerCase();
+          break;
+        case 'type':
+          aValue = a.type.toLowerCase();
+          bValue = b.type.toLowerCase();
+          break;
+        case 'createdDate':
+          aValue = a.createdDate;
+          bValue = b.createdDate;
+          break;
+        case 'source':
+          aValue = a.source.toLowerCase();
+          bValue = b.source.toLowerCase();
+          break;
+        default:
+          return 0;
+      }
+      
+      if (sortDirection === 'asc') {
+        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+      } else {
+        return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+      }
+    });
+  }, [items, sortField, sortDirection]);
+
+  const handleSort = (columnId: string) => {
+    if (sortField === columnId) {
+      // Toggle direction if same column
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // New column, start with ascending
+      setSortField(columnId);
+      setSortDirection('asc');
+    }
+  };
   
   // Virtualization setup
   const rowVirtualizer = useVirtualizer({
-    count: items.length,
+    count: sortedItems.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 60, // Estimated row height
     overscan: 5,
@@ -310,18 +360,31 @@ const TableView = ({
             <TableHeader>
               <TableRow>
                 <TableHead className="w-10"></TableHead>
-                {columns.map((column) => (
-                  <TableHead key={column.id} className="py-2">
-                    <div className="flex items-center">
-                      {column.name}
-                      {column.sortable && (
-                        <Button variant="ghost" size="sm" className="ml-1 h-6 w-6 p-0">
-                          <ArrowUpDown size={14} />
-                        </Button>
-                      )}
-                    </div>
-                  </TableHead>
-                ))}
+                 {columns.map((column) => (
+                   <TableHead key={column.id} className="py-2">
+                     <div className="flex items-center">
+                       {column.name}
+                       {column.sortable && (
+                         <Button 
+                           variant="ghost" 
+                           size="sm" 
+                           className="ml-1 h-6 w-6 p-0"
+                           onClick={() => handleSort(column.id)}
+                         >
+                           {sortField === column.id ? (
+                             sortDirection === 'asc' ? (
+                               <ArrowUp size={14} />
+                             ) : (
+                               <ArrowDown size={14} />
+                             )
+                           ) : (
+                             <ArrowUpDown size={14} />
+                           )}
+                         </Button>
+                       )}
+                     </div>
+                   </TableHead>
+                 ))}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -332,10 +395,10 @@ const TableView = ({
                   position: 'relative',
                 }}
               >
-                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                  const item = items[virtualRow.index];
-                  return renderTableRow(item, virtualRow.index, virtualRow);
-                })}
+                 {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                   const item = sortedItems[virtualRow.index];
+                   return renderTableRow(item, virtualRow.index, virtualRow);
+                 })}
               </div>
             </TableBody>
           </Table>
@@ -345,22 +408,35 @@ const TableView = ({
           <TableHeader>
             <TableRow>
               <TableHead className="w-10"></TableHead>
-              {columns.map((column) => (
-                <TableHead key={column.id} className="py-2">
-                  <div className="flex items-center">
-                    {column.name}
-                    {column.sortable && (
-                      <Button variant="ghost" size="sm" className="ml-1 h-6 w-6 p-0">
-                        <ArrowUpDown size={14} />
-                      </Button>
-                    )}
-                  </div>
-                </TableHead>
-              ))}
+               {columns.map((column) => (
+                 <TableHead key={column.id} className="py-2">
+                   <div className="flex items-center">
+                     {column.name}
+                     {column.sortable && (
+                       <Button 
+                         variant="ghost" 
+                         size="sm" 
+                         className="ml-1 h-6 w-6 p-0"
+                         onClick={() => handleSort(column.id)}
+                       >
+                         {sortField === column.id ? (
+                           sortDirection === 'asc' ? (
+                             <ArrowUp size={14} />
+                           ) : (
+                             <ArrowDown size={14} />
+                           )
+                         ) : (
+                           <ArrowUpDown size={14} />
+                         )}
+                       </Button>
+                     )}
+                   </div>
+                 </TableHead>
+               ))}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {items.map((item, index) => renderTableRow(item, index))}
+            {sortedItems.map((item, index) => renderTableRow(item, index))}
           </TableBody>
         </Table>
       )}
