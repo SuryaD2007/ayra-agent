@@ -62,7 +62,7 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: N
   });
   const [formData, setFormData] = useState<FormData>({
     title: '',
-    space: 'Personal',
+    space: 'overview',
     tags: [],
     metadataFailed: false,
   });
@@ -329,7 +329,7 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: N
         if (preselectedSpace !== 'overview') {
           spaceId = preselectedSpace;
         }
-      } else if (formData.space !== 'Personal') {
+      } else if (formData.space !== 'overview') {
         // Use the selected space ID directly (it's now a real UUID from database)
         spaceId = formData.space;
       }
@@ -370,7 +370,7 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: N
       // Reset form
       setFormData({
         title: '',
-        space: 'Personal',
+        space: 'overview',
         tags: [],
         metadataFailed: false,
       });
@@ -624,16 +624,13 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: N
             <Label htmlFor="space">Space</Label>
             <Select value={formData.space} onValueChange={(value) => setFormData(prev => ({ ...prev, space: value }))}>
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="Select a space..." />
               </SelectTrigger>
               <SelectContent className="bg-popover border border-border shadow-lg z-50">
-                <SelectItem value="Personal">Personal</SelectItem>
-                <SelectItem value="Work">Work</SelectItem>
-                <SelectItem value="School">School</SelectItem>
-                <SelectItem value="Team">Team</SelectItem>
+                <SelectItem value="overview">Personal (No Space)</SelectItem>
                 {customSpaces.map((space) => (
                   <SelectItem key={space.id} value={space.id}>
-                    {space.emoji} {space.name}
+                    {space.emoji ? `${space.emoji} ${space.name}` : space.name}
                   </SelectItem>
                 ))}
               </SelectContent>
