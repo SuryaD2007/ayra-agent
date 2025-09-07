@@ -197,8 +197,8 @@ const TableView = ({
       <TableRow 
         key={item.id}
         className={cn(
-          "hover:bg-muted/30 cursor-pointer",
-          isSelected && "bg-primary/5",
+          "hover:bg-muted/30 cursor-pointer transition-colors",
+          isSelected && "bg-primary/10 border-l-4 border-l-primary",
           isHighlighted && "bg-accent/50 ring-2 ring-primary/20"
         )}
         onClick={() => onRowClick(item, index)}
@@ -221,12 +221,12 @@ const TableView = ({
             }}
           >
             {isSelected ? (
-              <div className="rounded-md bg-primary text-white p-0.5">
-                <Check size={16} />
+              <div className="rounded-md bg-primary text-primary-foreground p-1 shadow-sm">
+                <Check size={14} />
               </div>
             ) : (
-              <div className="rounded-md border border-border p-0.5">
-                <Square size={16} />
+              <div className="rounded-md border-2 border-muted-foreground/20 hover:border-primary/40 p-1 transition-colors">
+                <Square size={14} className="text-muted-foreground" />
               </div>
             )}
           </div>
