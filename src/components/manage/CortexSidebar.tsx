@@ -428,21 +428,32 @@ const CortexSidebar = ({
       setSpaceOrder(prev => {
         const newOrder = { ...prev };
         
-        // Remove from source category
-        if (prev[sourceCategoryId]) {
-          newOrder[sourceCategoryId] = prev[sourceCategoryId].filter(id => id !== draggedItem.id);
+        // Get current arrays or create them
+        const sourceArray = prev[sourceCategoryId] || getSpacesForCategory(sourceCategoryId).map(item => item.id);
+        const targetArray = sourceCategoryId === finalTargetCategoryId 
+          ? [...sourceArray] 
+          : (prev[finalTargetCategoryId] || getSpacesForCategory(finalTargetCategoryId).map(item => item.id));
+        
+        // Remove from source (avoid duplicates)
+        const cleanSourceArray = sourceArray.filter(id => id !== draggedItem.id);
+        const cleanTargetArray = sourceCategoryId === finalTargetCategoryId 
+          ? cleanSourceArray 
+          : targetArray.filter(id => id !== draggedItem.id);
+        
+        // Find target position
+        const targetIndex = cleanTargetArray.indexOf(targetId);
+        if (targetIndex === -1) {
+          // Target not found, add to end
+          cleanTargetArray.push(draggedItem.id);
+        } else {
+          // Insert at correct position
+          const insertIndex = dragOverTarget?.position === 'above' ? targetIndex : targetIndex + 1;
+          cleanTargetArray.splice(insertIndex, 0, draggedItem.id);
         }
         
-        // Add to target category
-        if (!newOrder[finalTargetCategoryId]) {
-          const categorySpaces = getSpacesForCategory(finalTargetCategoryId);
-          newOrder[finalTargetCategoryId] = categorySpaces.map(item => item.id);
-        }
-        
-        const targetIndex = newOrder[finalTargetCategoryId].indexOf(targetId);
-        const insertIndex = dragOverTarget?.position === 'above' ? targetIndex : targetIndex + 1;
-        
-        newOrder[finalTargetCategoryId].splice(insertIndex, 0, draggedItem.id);
+        // Update arrays
+        newOrder[sourceCategoryId] = cleanSourceArray;
+        newOrder[finalTargetCategoryId] = cleanTargetArray;
         
         // If moving between categories, update the space's visibility
         if (sourceCategoryId !== finalTargetCategoryId) {
@@ -471,8 +482,9 @@ const CortexSidebar = ({
         // Remove dragged item
         newOrder.splice(draggedIndex, 1);
         
-        // Insert at new position
-        const insertIndex = dragOverTarget?.position === 'above' ? targetIndex : targetIndex + 1;
+        // Recalculate target index after removal
+        const newTargetIndex = newOrder.indexOf(targetId);
+        const insertIndex = dragOverTarget?.position === 'above' ? newTargetIndex : newTargetIndex + 1;
         newOrder.splice(insertIndex, 0, draggedItem.id);
         
         localStorage.setItem('category-order', JSON.stringify(newOrder));
@@ -489,17 +501,12 @@ const CortexSidebar = ({
           const newOrder = { ...prev };
           
           // Remove from source category
-          if (prev[sourceCategoryId]) {
-            newOrder[sourceCategoryId] = prev[sourceCategoryId].filter(id => id !== draggedItem.id);
-          }
+          const sourceArray = prev[sourceCategoryId] || getSpacesForCategory(sourceCategoryId).map(item => item.id);
+          newOrder[sourceCategoryId] = sourceArray.filter(id => id !== draggedItem.id);
           
           // Add to target category
-          if (!newOrder[targetCategoryId]) {
-            const categorySpaces = getSpacesForCategory(targetCategoryId);
-            newOrder[targetCategoryId] = categorySpaces.map(item => item.id);
-          }
-          
-          newOrder[targetCategoryId].push(draggedItem.id);
+          const targetArray = prev[targetCategoryId] || getSpacesForCategory(targetCategoryId).map(item => item.id);
+          newOrder[targetCategoryId] = [...targetArray.filter(id => id !== draggedItem.id), draggedItem.id];
           
           localStorage.setItem('space-order', JSON.stringify(newOrder));
           return newOrder;
@@ -663,10 +670,10 @@ const CortexSidebar = ({
             </div>
             
             <div className="mt-1">
-              {category.items.map((item) => {                
+              {category.items.map((item, index) => {                
                 return (
                   <div 
-                    key={item.id}
+                    key={`${category.id}-${item.id}-${index}`}
                     className={cn(
                       "flex items-center justify-between px-6 py-2 text-sm cursor-pointer group relative",
                       selectedCategoryId === category.id && selectedItemId === item.id
