@@ -3,7 +3,7 @@ import { AnimatedTransition } from '@/components/AnimatedTransition';
 import { useAnimateIn } from '@/lib/animations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { PlusCircle, MessageSquare, Edit3, Trash2, User, Bot, Send } from 'lucide-react';
+import { PlusCircle, MessageSquare, Edit3, Trash2, User, Bot, Send, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import AuthGuard from '@/components/auth/AuthGuard';
 import InlineError from '@/components/auth/InlineError';
@@ -284,22 +284,34 @@ const SearchPage = () => {
                     e.preventDefault();
                     handleSendMessage(chatInput);
                   }}
-                  className="flex gap-3 items-end"
+                  className="relative w-full"
                 >
-                  <div className="flex-1 relative">
-                    <Input
+                  <div className="backdrop-blur-md bg-card/80 border border-border/50 shadow-sm rounded-2xl px-4 py-3 flex items-center gap-3 transition-all duration-300 focus-within:ring-2 focus-within:ring-primary/30">
+                    <Search 
+                      size={20} 
+                      className={cn(
+                        "text-muted-foreground transition-colors duration-300",
+                        chatInput && "text-primary"
+                      )} 
+                    />
+                    <input
+                      type="text"
                       value={chatInput}
                       onChange={(e) => setChatInput(e.target.value)}
                       placeholder="Ask your second brain anything..."
-                      className="pr-12 py-3 text-base resize-none"
+                      className="w-full bg-transparent border-none outline-none placeholder:text-muted-foreground text-base"
                     />
                     <Button 
                       type="submit" 
                       size="icon"
+                      variant="ghost"
                       disabled={!chatInput.trim()}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8"
+                      className={cn(
+                        "h-8 w-8 transition-all duration-300 hover:text-primary",
+                        chatInput.trim() ? "opacity-100" : "opacity-50"
+                      )}
                     >
-                      <Send size={16} />
+                      <Send size={18} />
                     </Button>
                   </div>
                 </form>
