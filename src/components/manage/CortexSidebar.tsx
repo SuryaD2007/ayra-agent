@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Folder, Share, Users, Lock, Plus, Move, Building, Globe, Trash2, MoreHorizontal, Unlock } from 'lucide-react';
+import { Folder, Share, Users, Lock, Plus, Move, Building, Globe, Trash2, MoreHorizontal, Unlock, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -90,6 +90,10 @@ const CortexSidebar = ({
   const [spaceToDelete, setSpaceToDelete] = useState<CustomSpace | null>(null);
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [privateLockDialogOpen, setPrivateLockDialogOpen] = useState(false);
+  const [draggedItem, setDraggedItem] = useState<{ type: 'space' | 'category', id: string, categoryId?: string } | null>(null);
+  const [dragOverTarget, setDragOverTarget] = useState<{ type: 'space' | 'category', id: string, position?: 'above' | 'below' } | null>(null);
+  const [spaceOrder, setSpaceOrder] = useState<{ [categoryId: string]: string[] }>({});
+  const [categoryOrder, setCategoryOrder] = useState<string[]>([]);
   
   const { isPrivateUnlocked, lockPrivate } = usePrivateLock();
 
@@ -114,6 +118,20 @@ const CortexSidebar = ({
         const savedCategories = localStorage.getItem('custom-categories');
         if (savedCategories) {
           setCustomCategories(JSON.parse(savedCategories));
+        }
+        
+        // Load saved ordering
+        const savedSpaceOrder = localStorage.getItem('space-order');
+        if (savedSpaceOrder) {
+          setSpaceOrder(JSON.parse(savedSpaceOrder));
+        }
+        
+        const savedCategoryOrder = localStorage.getItem('category-order');
+        if (savedCategoryOrder) {
+          setCategoryOrder(JSON.parse(savedCategoryOrder));
+        } else {
+          // Set default category order
+          setCategoryOrder(['shared', 'team', 'private']);
         }
       } catch (error) {
         console.error('Error loading spaces:', error);
@@ -144,7 +162,7 @@ const CortexSidebar = ({
     return iconMap[iconName] || Folder;
   };
 
-  // Get spaces for category from database spaces
+  // Get spaces for category from database spaces with custom ordering
   const getSpacesForCategory = (categoryId: string) => {
     const deletedSpaces = JSON.parse(localStorage.getItem('deleted-default-spaces') || '[]');
     
@@ -166,7 +184,31 @@ const CortexSidebar = ({
         isDeletable: true
       }));
 
-    return [...items, ...dbSpaces];
+    const allItems = [...items, ...dbSpaces];
+    
+    // Apply custom ordering if available
+    const order = spaceOrder[categoryId];
+    if (order) {
+      const orderedItems: CortexItem[] = [];
+      const unorderedItems: CortexItem[] = [];
+      
+      // First add items in the saved order
+      order.forEach(itemId => {
+        const item = allItems.find(i => i.id === itemId);
+        if (item) orderedItems.push(item);
+      });
+      
+      // Then add any new items that weren't in the saved order
+      allItems.forEach(item => {
+        if (!order.includes(item.id)) {
+          unorderedItems.push(item);
+        }
+      });
+      
+      return [...orderedItems, ...unorderedItems];
+    }
+    
+    return allItems;
   };
 
   const defaultCategories: CortexCategory[] = [
@@ -200,7 +242,12 @@ const CortexSidebar = ({
     items: getSpacesForCategory(category.id)
   }));
 
-  const categories: CortexCategory[] = [...defaultCategories, ...customCategoryItems];
+  const allCategories: CortexCategory[] = [...defaultCategories, ...customCategoryItems];
+  
+  // Apply custom category ordering
+  const categories: CortexCategory[] = categoryOrder.length > 0 
+    ? categoryOrder.map(id => allCategories.find(cat => cat.id === id)).filter(Boolean) as CortexCategory[]
+    : allCategories;
 
   const handleCategoryClick = (categoryId: string) => {
     // When clicking a category header, open new space modal for that category
@@ -347,6 +394,139 @@ const CortexSidebar = ({
     setActivePopover(null);
   };
 
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, type: 'space' | 'category', id: string, categoryId?: string) => {
+    setDraggedItem({ type, id, categoryId });
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', id);
+  };
+
+  const handleDragOver = (e: React.DragEvent, type: 'space' | 'category', id: string, position?: 'above' | 'below') => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverTarget({ type, id, position });
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    // Only clear if we're leaving the entire sidebar area
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setDragOverTarget(null);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent, targetType: 'space' | 'category', targetId: string, targetCategoryId?: string) => {
+    e.preventDefault();
+    
+    if (!draggedItem) return;
+    
+    if (draggedItem.type === 'space' && targetType === 'space') {
+      // Reordering spaces within a category or moving between categories
+      const sourceCategoryId = draggedItem.categoryId!;
+      const finalTargetCategoryId = targetCategoryId || sourceCategoryId;
+      
+      // Update space order
+      setSpaceOrder(prev => {
+        const newOrder = { ...prev };
+        
+        // Remove from source category
+        if (prev[sourceCategoryId]) {
+          newOrder[sourceCategoryId] = prev[sourceCategoryId].filter(id => id !== draggedItem.id);
+        }
+        
+        // Add to target category
+        if (!newOrder[finalTargetCategoryId]) {
+          const categorySpaces = getSpacesForCategory(finalTargetCategoryId);
+          newOrder[finalTargetCategoryId] = categorySpaces.map(item => item.id);
+        }
+        
+        const targetIndex = newOrder[finalTargetCategoryId].indexOf(targetId);
+        const insertIndex = dragOverTarget?.position === 'above' ? targetIndex : targetIndex + 1;
+        
+        newOrder[finalTargetCategoryId].splice(insertIndex, 0, draggedItem.id);
+        
+        // If moving between categories, update the space's visibility
+        if (sourceCategoryId !== finalTargetCategoryId) {
+          setCustomSpaces(prevSpaces => 
+            prevSpaces.map(space => 
+              space.id === draggedItem.id 
+                ? { ...space, visibility: finalTargetCategoryId }
+                : space
+            )
+          );
+        }
+        
+        localStorage.setItem('space-order', JSON.stringify(newOrder));
+        return newOrder;
+      });
+      
+    } else if (draggedItem.type === 'category' && targetType === 'category') {
+      // Reordering categories
+      setCategoryOrder(prev => {
+        const newOrder = [...prev];
+        const draggedIndex = newOrder.indexOf(draggedItem.id);
+        const targetIndex = newOrder.indexOf(targetId);
+        
+        if (draggedIndex === -1 || targetIndex === -1) return prev;
+        
+        // Remove dragged item
+        newOrder.splice(draggedIndex, 1);
+        
+        // Insert at new position
+        const insertIndex = dragOverTarget?.position === 'above' ? targetIndex : targetIndex + 1;
+        newOrder.splice(insertIndex, 0, draggedItem.id);
+        
+        localStorage.setItem('category-order', JSON.stringify(newOrder));
+        return newOrder;
+      });
+    } else if (draggedItem.type === 'space' && targetType === 'category') {
+      // Moving space to a different category
+      const sourceCategoryId = draggedItem.categoryId!;
+      const targetCategoryId = targetId;
+      
+      if (sourceCategoryId !== targetCategoryId) {
+        // Update space order
+        setSpaceOrder(prev => {
+          const newOrder = { ...prev };
+          
+          // Remove from source category
+          if (prev[sourceCategoryId]) {
+            newOrder[sourceCategoryId] = prev[sourceCategoryId].filter(id => id !== draggedItem.id);
+          }
+          
+          // Add to target category
+          if (!newOrder[targetCategoryId]) {
+            const categorySpaces = getSpacesForCategory(targetCategoryId);
+            newOrder[targetCategoryId] = categorySpaces.map(item => item.id);
+          }
+          
+          newOrder[targetCategoryId].push(draggedItem.id);
+          
+          localStorage.setItem('space-order', JSON.stringify(newOrder));
+          return newOrder;
+        });
+        
+        // Update the space's visibility
+        setCustomSpaces(prevSpaces => 
+          prevSpaces.map(space => 
+            space.id === draggedItem.id 
+              ? { ...space, visibility: targetCategoryId }
+              : space
+          )
+        );
+        
+        toast.success(`Space moved to ${targetCategoryId}`);
+      }
+    }
+    
+    setDraggedItem(null);
+    setDragOverTarget(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedItem(null);
+    setDragOverTarget(null);
+  };
+
   return (
     <>
       <div className="w-60 border-r border-border/50 overflow-y-auto shrink-0">
@@ -389,12 +569,28 @@ const CortexSidebar = ({
           <div key={category.id} className="mb-6">
             <div 
               className={cn(
-                "flex items-center justify-between px-4 py-2 text-sm font-medium cursor-pointer",
-                selectedCategoryId === category.id && !selectedItemId ? "text-primary" : "text-foreground/80"
+                "flex items-center justify-between px-4 py-2 text-sm font-medium cursor-pointer relative",
+                selectedCategoryId === category.id && !selectedItemId ? "text-primary" : "text-foreground/80",
+                draggedItem?.id === category.id ? "opacity-50" : "",
+                dragOverTarget?.type === 'category' && dragOverTarget.id === category.id ? "bg-primary/10" : ""
               )}
+              draggable
+              onDragStart={(e) => handleDragStart(e, 'category', category.id)}
+              onDragOver={(e) => handleDragOver(e, 'category', category.id)}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, 'category', category.id)}
+              onDragEnd={handleDragEnd}
               onClick={() => handleCategoryClick(category.id)}
             >
+              {/* Drop indicator lines */}
+              {dragOverTarget?.type === 'category' && dragOverTarget.id === category.id && dragOverTarget.position === 'above' && (
+                <div className="absolute -top-px left-4 right-4 h-0.5 bg-primary rounded-full" />
+              )}
+              {dragOverTarget?.type === 'category' && dragOverTarget.id === category.id && dragOverTarget.position === 'below' && (
+                <div className="absolute -bottom-px left-4 right-4 h-0.5 bg-primary rounded-full" />
+              )}
               <div className="flex items-center gap-2">
+                <GripVertical size={14} className="text-muted-foreground" />
                 {category.icon}
                 <span>{category.name}</span>
                 {/* Private lock/unlock indicator */}
@@ -472,14 +668,32 @@ const CortexSidebar = ({
                   <div 
                     key={item.id}
                     className={cn(
-                      "flex items-center justify-between px-6 py-2 text-sm cursor-pointer group",
+                      "flex items-center justify-between px-6 py-2 text-sm cursor-pointer group relative",
                       selectedCategoryId === category.id && selectedItemId === item.id
                         ? "bg-primary/10 text-primary" 
-                        : "hover:bg-muted/50 text-foreground/80"
+                        : "hover:bg-muted/50 text-foreground/80",
+                      draggedItem?.id === item.id ? "opacity-50" : "",
+                      dragOverTarget?.type === 'space' && dragOverTarget.id === item.id ? "bg-primary/10" : ""
                     )}
+                    draggable={item.isDeletable !== false}
+                    onDragStart={(e) => item.isDeletable !== false && handleDragStart(e, 'space', item.id, category.id)}
+                    onDragOver={(e) => handleDragOver(e, 'space', item.id)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, 'space', item.id, category.id)}
+                    onDragEnd={handleDragEnd}
                     onClick={() => handleItemClick(category.id, item.id)}
                   >
+                    {/* Drop indicator lines */}
+                    {dragOverTarget?.type === 'space' && dragOverTarget.id === item.id && dragOverTarget.position === 'above' && (
+                      <div className="absolute -top-px left-6 right-6 h-0.5 bg-primary rounded-full" />
+                    )}
+                    {dragOverTarget?.type === 'space' && dragOverTarget.id === item.id && dragOverTarget.position === 'below' && (
+                      <div className="absolute -bottom-px left-6 right-6 h-0.5 bg-primary rounded-full" />
+                    )}
                     <div className="flex items-center gap-2 flex-1">
+                      {item.isDeletable !== false && (
+                        <GripVertical size={12} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                      )}
                       {item.emoji && <span className="text-sm">{item.emoji}</span>}
                       <span className={cn(
                         "flex-1",
