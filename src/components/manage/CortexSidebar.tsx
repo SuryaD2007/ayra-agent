@@ -42,6 +42,7 @@ type CortexItem = {
   id: string;
   name: string;
   emoji?: string;
+  isDeletable?: boolean;
 };
 
 type CustomSpace = {
@@ -86,7 +87,7 @@ const CortexSidebar = ({
   const [spaceToDelete, setSpaceToDelete] = useState<CustomSpace | null>(null);
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
 
-  // Load custom spaces and categories from localStorage
+  // Load custom spaces and categories from localStorage, and filter deleted default spaces
   useEffect(() => {
     try {
       const savedSpaces = localStorage.getItem('custom-spaces');
@@ -115,34 +116,40 @@ const CortexSidebar = ({
     return iconMap[iconName] || Folder;
   };
 
-  // Combine default spaces with custom spaces
+  // Combine default spaces with custom spaces, filtering out deleted ones
   const getSpacesForCategory = (categoryId: string) => {
+    const deletedSpaces = JSON.parse(localStorage.getItem('deleted-default-spaces') || '[]');
+    
     const defaultSpaces = {
       'shared': [
-        { id: 'shared-1', name: 'Second Brain', emoji: '🧠' },
-        { id: 'shared-2', name: 'OSS', emoji: '⚡' },
-        { id: 'shared-3', name: 'Artificial Intelligence', emoji: '🤖' },
+        { id: 'shared-1', name: 'Second Brain', emoji: '🧠', isDeletable: true },
+        { id: 'shared-2', name: 'OSS', emoji: '⚡', isDeletable: true },
+        { id: 'shared-3', name: 'Artificial Intelligence', emoji: '🤖', isDeletable: true },
       ],
       'team': [
-        { id: 'team-1', name: 'Brainboard Competitors', emoji: '🎯' },
-        { id: 'team-2', name: 'Visualize Terraform', emoji: '🏗️' },
-        { id: 'team-3', name: 'CI/CD Engine', emoji: '⚙️' },
+        { id: 'team-1', name: 'Brainboard Competitors', emoji: '🎯', isDeletable: true },
+        { id: 'team-2', name: 'Visualize Terraform', emoji: '🏗️', isDeletable: true },
+        { id: 'team-3', name: 'CI/CD Engine', emoji: '⚙️', isDeletable: true },
       ],
       'private': [
-        { id: 'overview', name: 'Overview', emoji: '📊' },
-        { id: 'private-1', name: 'UXUI', emoji: '🎨' },
-        { id: 'private-2', name: 'Space', emoji: '🚀' },
-        { id: 'private-3', name: 'Cloud Computing', emoji: '☁️' },
+        { id: 'overview', name: 'Overview', emoji: '📊', isDeletable: false }, // Keep Overview as non-deletable
+        { id: 'private-1', name: 'UXUI', emoji: '🎨', isDeletable: true },
+        { id: 'private-2', name: 'Space', emoji: '🚀', isDeletable: true },
+        { id: 'private-3', name: 'Cloud Computing', emoji: '☁️', isDeletable: true },
       ]
     };
 
-    const defaultItems = defaultSpaces[categoryId as keyof typeof defaultSpaces] || [];
+    // Filter out deleted default spaces
+    const defaultItems = (defaultSpaces[categoryId as keyof typeof defaultSpaces] || [])
+      .filter(item => !deletedSpaces.includes(item.id));
+    
     const customItems = customSpaces
       .filter(space => space.visibility === categoryId)
       .map(space => ({
         id: space.id,
         name: space.name,
-        emoji: space.emoji
+        emoji: space.emoji,
+        isDeletable: true
       }));
 
     return [...defaultItems, ...customItems];
@@ -201,8 +208,17 @@ const CortexSidebar = ({
     setCustomCategories(prev => [...prev, category]);
   };
 
-  const handleDeleteSpace = (space: CustomSpace) => {
-    setSpaceToDelete(space);
+  const handleDeleteSpace = (item: CortexItem) => {
+    // Create a space object for deletion
+    const spaceToDelete: CustomSpace = {
+      id: item.id,
+      name: item.name,
+      emoji: item.emoji || '📁',
+      visibility: selectedCategoryId,
+      slug: item.name.toLowerCase().replace(/\s+/g, '-')
+    };
+    
+    setSpaceToDelete(spaceToDelete);
     setDeleteDialogOpen(true);
   };
 
@@ -210,12 +226,20 @@ const CortexSidebar = ({
     if (!spaceToDelete) return;
 
     try {
-      // Remove from custom spaces
-      const updatedSpaces = customSpaces.filter(space => space.id !== spaceToDelete.id);
-      setCustomSpaces(updatedSpaces);
+      // Check if it's a custom space (from localStorage)
+      const isCustomSpace = customSpaces.find(space => space.id === spaceToDelete.id);
       
-      // Update localStorage
-      localStorage.setItem('custom-spaces', JSON.stringify(updatedSpaces));
+      if (isCustomSpace) {
+        // Remove from custom spaces
+        const updatedSpaces = customSpaces.filter(space => space.id !== spaceToDelete.id);
+        setCustomSpaces(updatedSpaces);
+        localStorage.setItem('custom-spaces', JSON.stringify(updatedSpaces));
+      } else {
+        // For default spaces, add to a "deleted-spaces" list in localStorage
+        const deletedSpaces = JSON.parse(localStorage.getItem('deleted-default-spaces') || '[]');
+        deletedSpaces.push(spaceToDelete.id);
+        localStorage.setItem('deleted-default-spaces', JSON.stringify(deletedSpaces));
+      }
       
       // If currently viewing this space, navigate to overview
       if (selectedItemId === spaceToDelete.id) {
@@ -223,6 +247,10 @@ const CortexSidebar = ({
       }
       
       toast.success(`Space "${spaceToDelete.name}" deleted successfully`);
+      
+      // Force re-render by updating a state
+      setCustomSpaces(prev => [...prev]);
+      
     } catch (error) {
       console.error('Error deleting space:', error);
       toast.error('Failed to delete space');
@@ -242,13 +270,24 @@ const CortexSidebar = ({
       setCustomSpaces([]);
       localStorage.setItem('custom-spaces', JSON.stringify([]));
       
-      // Navigate to overview if currently viewing a custom space
-      const currentlyViewingCustomSpace = customSpaces.find(space => space.id === selectedItemId);
-      if (currentlyViewingCustomSpace) {
+      // Mark all default spaces as deleted (except Overview)
+      const allSpaceIds = categories.flatMap(cat => 
+        cat.items.filter(item => item.isDeletable !== false).map(item => item.id)
+      );
+      localStorage.setItem('deleted-default-spaces', JSON.stringify(allSpaceIds));
+      
+      // Navigate to overview if currently viewing any space that will be deleted
+      const shouldNavigateToOverview = allSpaceIds.includes(selectedItemId || '');
+      if (shouldNavigateToOverview) {
         onCortexSelect('private', 'overview');
       }
       
-      toast.success(`All custom spaces (${customSpaces.length}) deleted successfully`);
+      const totalSpaces = customSpaces.length + allSpaceIds.filter(id => !id.startsWith('overview')).length;
+      toast.success(`All spaces (${totalSpaces}) deleted successfully`);
+      
+      // Force re-render
+      setCustomSpaces([]);
+      
     } catch (error) {
       console.error('Error deleting all spaces:', error);
       toast.error('Failed to delete all spaces');
@@ -302,7 +341,7 @@ const CortexSidebar = ({
             </Button>
             
             {/* Bulk Actions Menu */}
-            {customSpaces.length > 0 && (
+            {(customSpaces.length > 0 || categories.some(cat => cat.items.some(item => item.isDeletable !== false))) && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="px-2">
@@ -315,7 +354,7 @@ const CortexSidebar = ({
                     className="text-destructive focus:text-destructive"
                   >
                     <Trash2 size={14} className="mr-2" />
-                    Delete All Spaces ({customSpaces.length})
+                    Delete All Spaces
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -383,9 +422,7 @@ const CortexSidebar = ({
             </div>
             
             <div className="mt-1">
-              {category.items.map((item) => {
-                const isCustomSpace = customSpaces.find(space => space.id === item.id);
-                
+              {category.items.map((item) => {                
                 return (
                   <div 
                     key={item.id}
@@ -422,13 +459,13 @@ const CortexSidebar = ({
                         <Plus size={12} />
                       </button>
                       
-                      {/* Delete Space Button - Only for custom spaces */}
-                      {isCustomSpace && (
+                      {/* Delete Space Button - For all deletable spaces */}
+                      {item.isDeletable !== false && (
                         <button
                           className="p-1 rounded-full hover:bg-destructive/20 text-destructive"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDeleteSpace(isCustomSpace);
+                            handleDeleteSpace(item);
                           }}
                           title="Delete space"
                         >
@@ -501,7 +538,7 @@ const CortexSidebar = ({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete All Spaces</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete all {customSpaces.length} custom spaces? This action cannot be undone and will remove all items in these spaces.
+              Are you sure you want to delete all spaces? This action cannot be undone and will remove all items in these spaces. The Overview space will be preserved.    
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
