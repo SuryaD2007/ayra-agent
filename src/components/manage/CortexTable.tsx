@@ -164,7 +164,7 @@ const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({
         setTotalItems(result.total);
         
         // Update cache
-        DataCache.setItems(convertedItems);
+        DataCache.setCortexItems(convertedItems);
         
       } catch (error) {
         console.error('Error loading data:', error);
@@ -181,7 +181,7 @@ const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({
         
         // Fallback to cache or initial data only if not retrying
         if (!isRetry) {
-          const cached = DataCache.getItems();
+          const cached = DataCache.getCortexItems();
           setCortexItems(cached.length > 0 ? cached : initialCortexItems);
         }
       } finally {
@@ -311,7 +311,7 @@ const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({
         setTotalItems(result.total);
         
         // Update cache
-        DataCache.setItems(convertedItems);
+        DataCache.setCortexItems(convertedItems);
         
       } catch (error) {
         console.error('Error loading data:', error);
@@ -328,7 +328,7 @@ const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({
         
         // Fallback to cache or initial data only if not retrying
         if (!isRetry) {
-          const cached = DataCache.getItems();
+          const cached = DataCache.getCortexItems();
           setCortexItems(cached.length > 0 ? cached : []);
         }
       } finally {
@@ -395,7 +395,7 @@ const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({
           
           setCortexItems(convertedItems);
           setTotalItems(result.total);
-          DataCache.setItems(convertedItems);
+          DataCache.setCortexItems(convertedItems);
           
         } catch (error) {
           console.error('Retry failed:', error);

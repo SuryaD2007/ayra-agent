@@ -164,6 +164,14 @@ class DataCache {
     return this.get('items') || [];
   }
 
+  static setCortexItems(data: any[]) {
+    this.set('cortex-items', data);
+  }
+
+  static getCortexItems(): any[] | null {
+    return this.get('cortex-items') || [];
+  }
+
   static setTags(data: Tag[]) {
     this.set('tags', data);
   }
