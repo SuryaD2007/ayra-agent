@@ -286,7 +286,7 @@ const SearchPage = () => {
                   }}
                   className="relative w-full"
                 >
-                  <div className="backdrop-blur-md bg-card/80 border border-border/50 shadow-sm rounded-2xl px-4 py-3 flex items-center gap-3 transition-all duration-300 focus-within:ring-2 focus-within:ring-primary/30">
+                  <div className="backdrop-blur-md bg-card/80 border border-border/50 shadow-sm rounded-2xl px-5 py-4 flex items-center gap-3 transition-all duration-300 focus-within:ring-2 focus-within:ring-primary/30">
                     <Search 
                       size={20} 
                       className={cn(
