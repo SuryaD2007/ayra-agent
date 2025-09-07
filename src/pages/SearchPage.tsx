@@ -14,8 +14,6 @@ import { ChatSidebar } from '@/components/search/ChatSidebar';
 import { ChatHeader } from '@/components/search/ChatHeader';
 import { MessageList } from '@/components/search/MessageList';
 import { Composer } from '@/components/search/Composer';
-import { RightPane } from '@/components/search/RightPane';
-import { ContextChips } from '@/components/search/ContextChips';
 
 interface Message {
   id: string;
@@ -323,25 +321,7 @@ const SearchPage = () => {
           )}>
             {/* Chat Header - only show on desktop */}
             {!isMobile && (
-              <ChatHeader
-                chatTitle={getHeaderTitle()}
-                contextItems={contextItems}
-                onRemoveContext={removeContext}
-                onToggleRightPane={() => setRightPaneOpen(!rightPaneOpen)}
-                isRightPaneOpen={rightPaneOpen}
-                onBackToLibrary={backToLibrary}
-              />
-            )}
-
-            {/* Context Chips - mobile version */}
-            {isMobile && contextItems.length > 0 && (
-              <div className="p-4 border-b border-border/50">
-                <ContextChips
-                  items={contextItems}
-                  onRemoveItem={removeContext}
-                  onBackToLibrary={backToLibrary}
-                />
-              </div>
+              <ChatHeader chatTitle={getHeaderTitle()} />
             )}
 
             {/* Messages Area */}
@@ -361,12 +341,8 @@ const SearchPage = () => {
             />
           </div>
 
-          {/* Right Pane */}
-          <RightPane
-            isOpen={rightPaneOpen && !isMobile}
-            onClose={() => setRightPaneOpen(false)}
-            sources={mockSources}
-          />
+          {/* Right Pane - hidden in this design */}
+          {/* RightPane component removed to match reference */}
         </AnimatedTransition>
 
         <AuthModal 

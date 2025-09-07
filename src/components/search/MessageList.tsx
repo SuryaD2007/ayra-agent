@@ -166,8 +166,8 @@ export const MessageList: React.FC<MessageListProps> = ({
   if (messages.length === 0) {
     return (
       <div className={cn("flex-1 flex items-center justify-center px-6", className)}>
-        <div className="text-center max-w-2xl mx-auto">
-          <h2 className="text-2xl font-semibold mb-3 text-foreground">
+        <div className="text-center max-w-md mx-auto">
+          <h2 className="text-xl font-medium mb-2 text-foreground">
             Search Your Second Brain
           </h2>
           <p className="text-muted-foreground">
