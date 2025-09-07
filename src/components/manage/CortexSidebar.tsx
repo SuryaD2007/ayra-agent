@@ -92,21 +92,43 @@ const CortexSidebar = ({
   
   const { isPrivateUnlocked, lockPrivate } = usePrivateLock();
 
-  // Load custom spaces and categories from localStorage, and filter deleted default spaces
+  // Load spaces from Supabase and categories from localStorage
   useEffect(() => {
-    try {
-      const savedSpaces = localStorage.getItem('custom-spaces');
-      if (savedSpaces) {
-        setCustomSpaces(JSON.parse(savedSpaces));
+    const loadData = async () => {
+      try {
+        // Load real spaces from database
+        const { getSpaces } = await import('@/lib/data');
+        const dbSpaces = await getSpaces();
+        
+        // Convert database spaces to CustomSpace format with slugs
+        const spacesWithSlugs = dbSpaces.map(space => ({
+          ...space,
+          emoji: space.emoji || '📁', // Provide default emoji if missing
+          slug: space.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+        }));
+        
+        setCustomSpaces(spacesWithSlugs);
+        
+        // Load custom categories from localStorage
+        const savedCategories = localStorage.getItem('custom-categories');
+        if (savedCategories) {
+          setCustomCategories(JSON.parse(savedCategories));
+        }
+      } catch (error) {
+        console.error('Error loading spaces:', error);
+        // Fallback to localStorage for custom spaces only
+        try {
+          const savedSpaces = localStorage.getItem('custom-spaces');
+          if (savedSpaces) {
+            setCustomSpaces(JSON.parse(savedSpaces));
+          }
+        } catch (e) {
+          console.error('Error loading custom data:', e);
+        }
       }
-      
-      const savedCategories = localStorage.getItem('custom-categories');
-      if (savedCategories) {
-        setCustomCategories(JSON.parse(savedCategories));
-      }
-    } catch (error) {
-      console.error('Error loading custom data:', error);
-    }
+    };
+
+    loadData();
   }, []);
   // Get icon component by name
   const getIconComponent = (iconName: string) => {
@@ -121,35 +143,21 @@ const CortexSidebar = ({
     return iconMap[iconName] || Folder;
   };
 
-  // Combine default spaces with custom spaces, filtering out deleted ones
+  // Get spaces for category from database spaces
   const getSpacesForCategory = (categoryId: string) => {
     const deletedSpaces = JSON.parse(localStorage.getItem('deleted-default-spaces') || '[]');
     
-    const defaultSpaces = {
-      'shared': [
-        { id: 'shared-1', name: 'Second Brain', emoji: '🧠', isDeletable: true },
-        { id: 'shared-2', name: 'OSS', emoji: '⚡', isDeletable: true },
-        { id: 'shared-3', name: 'Artificial Intelligence', emoji: '🤖', isDeletable: true },
-      ],
-      'team': [
-        { id: 'team-1', name: 'Brainboard Competitors', emoji: '🎯', isDeletable: true },
-        { id: 'team-2', name: 'Visualize Terraform', emoji: '🏗️', isDeletable: true },
-        { id: 'team-3', name: 'CI/CD Engine', emoji: '⚙️', isDeletable: true },
-      ],
-      'private': [
-        { id: 'overview', name: 'Overview', emoji: '📊', isDeletable: false }, // Keep Overview as non-deletable
-        { id: 'private-1', name: 'UXUI', emoji: '🎨', isDeletable: true },
-        { id: 'private-2', name: 'Space', emoji: '🚀', isDeletable: true },
-        { id: 'private-3', name: 'Cloud Computing', emoji: '☁️', isDeletable: true },
-      ]
-    };
-
-    // Filter out deleted default spaces
-    const defaultItems = (defaultSpaces[categoryId as keyof typeof defaultSpaces] || [])
-      .filter(item => !deletedSpaces.includes(item.id));
+    // Overview is special - it's not a real space
+    const items: CortexItem[] = [];
     
-    const customItems = customSpaces
+    if (categoryId === 'private') {
+      items.push({ id: 'overview', name: 'Overview', emoji: '📊', isDeletable: false });
+    }
+    
+    // Add real spaces from database
+    const dbSpaces = customSpaces
       .filter(space => space.visibility === categoryId)
+      .filter(space => !deletedSpaces.includes(space.id))
       .map(space => ({
         id: space.id,
         name: space.name,
@@ -157,7 +165,7 @@ const CortexSidebar = ({
         isDeletable: true
       }));
 
-    return [...defaultItems, ...customItems];
+    return [...items, ...dbSpaces];
   };
 
   const defaultCategories: CortexCategory[] = [
@@ -212,7 +220,7 @@ const CortexSidebar = ({
   const handleSpaceCreated = (space: CustomSpace) => {
     setCustomSpaces(prev => [...prev, space]);
     // Route to the new space
-    onCortexSelect(space.visibility, space.id, space.slug);
+    onCortexSelect(space.visibility, space.id);
   };
 
   const handleCategoryCreated = (category: CustomCategory) => {
@@ -237,20 +245,10 @@ const CortexSidebar = ({
     if (!spaceToDelete) return;
 
     try {
-      // Check if it's a custom space (from localStorage)
-      const isCustomSpace = customSpaces.find(space => space.id === spaceToDelete.id);
-      
-      if (isCustomSpace) {
-        // Remove from custom spaces
-        const updatedSpaces = customSpaces.filter(space => space.id !== spaceToDelete.id);
-        setCustomSpaces(updatedSpaces);
-        localStorage.setItem('custom-spaces', JSON.stringify(updatedSpaces));
-      } else {
-        // For default spaces, add to a "deleted-spaces" list in localStorage
-        const deletedSpaces = JSON.parse(localStorage.getItem('deleted-default-spaces') || '[]');
-        deletedSpaces.push(spaceToDelete.id);
-        localStorage.setItem('deleted-default-spaces', JSON.stringify(deletedSpaces));
-      }
+      // All spaces are now from database, so just mark as deleted in localStorage
+      const deletedSpaces = JSON.parse(localStorage.getItem('deleted-default-spaces') || '[]');
+      deletedSpaces.push(spaceToDelete.id);
+      localStorage.setItem('deleted-default-spaces', JSON.stringify(deletedSpaces));
       
       // If currently viewing this space, navigate to overview
       if (selectedItemId === spaceToDelete.id) {
@@ -259,7 +257,7 @@ const CortexSidebar = ({
       
       toast.success(`Space "${spaceToDelete.name}" deleted successfully`);
       
-      // Force re-render by updating a state
+      // Force re-render by updating state
       setCustomSpaces(prev => [...prev]);
       
     } catch (error) {

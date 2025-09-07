@@ -303,53 +303,48 @@ const ManagePage = () => {
         <NewItemModal
           open={newItemModalOpen}
           onOpenChange={setNewItemModalOpen}
-          onItemCreated={() => {
+          onItemCreated={(item) => {
             setNewItemModalOpen(false);
-            // Clear cache and trigger a refresh
+            // Clear cache and trigger table refresh
             DataCache.clear();
-            // Re-check empty state
-            const checkEmptySpace = async () => {
-              if (!selectedSpace || !selectedItem || !isAuthenticated) {
-                setIsEmptySpace(false);
-                return;
-              }
-              
-              const space = customSpaces.find(s => s.id === selectedItem);
-              if (!space) {
-                setIsEmptySpace(false);
-                return;
-              }
-              
-              setCheckingEmptyState(true);
-              try {
-                // Check if this is a custom space that actually exists in the database
-                const isCustomSpace = customSpaces.find(s => s.id === selectedItem);
+            // Force CortexTable to reload by changing key or triggering refresh
+            if (cortexTableRef.current) {
+              // Re-check empty state for current space
+              const checkEmptySpace = async () => {
+                if (!selectedSpace || !selectedItem || !isAuthenticated) {
+                  setIsEmptySpace(false);
+                  return;
+                }
                 
-                if (isCustomSpace) {
+                const space = customSpaces.find(s => s.id === selectedItem);
+                if (!space) {
+                  setIsEmptySpace(false);
+                  return;
+                }
+                
+                setCheckingEmptyState(true);
+                try {
                   const result = await getItems({
                     page: 1,
                     pageSize: 1,
                     type: [],
-                    spaceId: space.id, // This will be a real UUID for custom spaces
+                    spaceId: space.id,
                     tags: [],
                     dateRange: {},
                     search: ''
                   });
                   setIsEmptySpace(result.total === 0);
-                } else {
-                  // For default spaces, they're never "empty" since they show all items
+                } catch {
                   setIsEmptySpace(false);
+                } finally {
+                  setCheckingEmptyState(false);
                 }
-              } catch {
-                setIsEmptySpace(true);
-              } finally {
-                setCheckingEmptyState(false);
-              }
-            };
-            
-            checkEmptySpace();
+              };
+              
+              checkEmptySpace();
+            }
           }}
-          preselectedSpace={selectedItem}
+          preselectedSpace={selectedItem === 'overview' ? undefined : selectedItem}
         />
 
         <AuthModal 

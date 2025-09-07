@@ -72,18 +72,31 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: N
   const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
   const [customSpaces, setCustomSpaces] = useState<any[]>([]);
 
-  // Load custom spaces and handle preselected space
+  // Load custom spaces from Supabase and handle preselected space
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('custom-spaces');
-      if (saved) {
-        setCustomSpaces(JSON.parse(saved));
+    const loadSpaces = async () => {
+      try {
+        // Load spaces from database
+        const { getSpaces } = await import('@/lib/data');
+        const dbSpaces = await getSpaces();
+        setCustomSpaces(dbSpaces);
+      } catch (error) {
+        console.error('Error loading spaces:', error);
+        // Fallback to localStorage
+        try {
+          const saved = localStorage.getItem('custom-spaces');
+          if (saved) {
+            setCustomSpaces(JSON.parse(saved));
+          }
+        } catch (e) {
+          console.error('Error loading custom spaces:', e);
+        }
       }
-    } catch (error) {
-      console.error('Error loading custom spaces:', error);
-    }
+    };
 
-  // Set preselected space if provided
+    loadSpaces();
+
+    // Set preselected space if provided
     if (preselectedSpace) {
       setFormData(prev => ({ ...prev, space: preselectedSpace }));
     }
@@ -307,21 +320,13 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: N
       let spaceId: string | undefined = undefined;
       
       if (preselectedSpace) {
-        // Check if this is a default space (non-UUID format) vs custom space (UUID format)
-        const isDefaultSpace = /^(shared|team|private)-\d+$|^overview$/.test(preselectedSpace);
-        
-        if (!isDefaultSpace) {
-          // Only use space_id for custom spaces that have actual UUIDs
+        // Use the preselected space ID directly (it's now a real UUID from database)
+        if (preselectedSpace !== 'overview') {
           spaceId = preselectedSpace;
         }
-        // For default spaces, leave spaceId as undefined so item isn't tied to a specific space
       } else if (formData.space !== 'Personal') {
-        // Check if the selected space is a custom space UUID
-        const isDefaultSpace = /^(shared|team|private)-\d+$|^overview$/.test(formData.space);
-        
-        if (!isDefaultSpace) {
-          spaceId = formData.space;
-        }
+        // Use the selected space ID directly (it's now a real UUID from database)
+        spaceId = formData.space;
       }
 
       const payload = {
