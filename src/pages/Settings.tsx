@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { PasswordManagement } from '@/components/auth/PasswordManagement';
 
 const Settings = () => {
   const showContent = useAnimateIn(false, 300);
@@ -22,8 +23,9 @@ const Settings = () => {
         
         <div className="max-w-3xl mx-auto">
           <Tabs defaultValue="general" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-8">
+            <TabsList className="grid w-full grid-cols-4 mb-8">
               <TabsTrigger value="general">General</TabsTrigger>
+              <TabsTrigger value="security">Security</TabsTrigger>
               <TabsTrigger value="appearance">Appearance</TabsTrigger>
               <TabsTrigger value="integrations">Integrations</TabsTrigger>
             </TabsList>
@@ -68,6 +70,42 @@ const Settings = () => {
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+            
+            <TabsContent value="security">
+              <div className="space-y-6">
+                <PasswordManagement />
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Privacy Settings</CardTitle>
+                    <CardDescription>
+                      Control your data privacy and security options
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="auto-lock" className="text-base">Auto-lock Private Items</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Automatically lock private items after 30 minutes of inactivity
+                        </p>
+                      </div>
+                      <Switch id="auto-lock" defaultChecked />
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="secure-delete" className="text-base">Secure Delete</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Permanently delete files instead of moving to trash
+                        </p>
+                      </div>
+                      <Switch id="secure-delete" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
             
             <TabsContent value="appearance">
