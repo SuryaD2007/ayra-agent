@@ -28,21 +28,36 @@ const hashPassword = (password: string): string => {
   return hash.toString();
 };
 
-export const PrivateLockProvider = ({ children }: { children: React.ReactNode }) => {
+export const PrivateLockProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isPrivateLocked, setIsPrivateLocked] = useState(true);
   const [unlockedUntil, setUnlockedUntil] = useState<number | null>(null);
   const [passwordHash, setPasswordHash] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Load password hash from localStorage on mount
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setPasswordHash(stored);
+    let mounted = true;
+    
+    const initialize = async () => {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored && mounted) {
+          setPasswordHash(stored);
+        }
+      } catch (error) {
+        console.error('Error loading password hash:', error);
+      } finally {
+        if (mounted) {
+          setIsInitialized(true);
+        }
       }
-    } catch (error) {
-      console.error('Error loading password hash:', error);
-    }
+    };
+
+    initialize();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const setPrivatePassword = useCallback((password: string) => {
@@ -111,7 +126,7 @@ export const PrivateLockProvider = ({ children }: { children: React.ReactNode })
     }
   }, []);
 
-  const value = {
+  const contextValue: PrivateLockContextType = {
     isPrivateLocked,
     unlockedUntil,
     hasPassword: !!passwordHash,
@@ -123,14 +138,19 @@ export const PrivateLockProvider = ({ children }: { children: React.ReactNode })
     resetPassword
   };
 
+  // Don't render children until initialized to prevent hook calls before context is ready
+  if (!isInitialized) {
+    return null;
+  }
+
   return (
-    <PrivateLockContext.Provider value={value}>
+    <PrivateLockContext.Provider value={contextValue}>
       {children}
     </PrivateLockContext.Provider>
   );
 };
 
-export const usePrivateLock = () => {
+export const usePrivateLock = (): PrivateLockContextType => {
   const context = useContext(PrivateLockContext);
   if (context === undefined) {
     throw new Error('usePrivateLock must be used within a PrivateLockProvider');

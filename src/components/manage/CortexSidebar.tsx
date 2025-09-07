@@ -90,7 +90,9 @@ const CortexSidebar = ({
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [privateLockDialogOpen, setPrivateLockDialogOpen] = useState(false);
   
+  console.log('CortexSidebar rendering, about to call usePrivateLock');
   const { isPrivateUnlocked, lockPrivate } = usePrivateLock();
+  console.log('CortexSidebar successfully got usePrivateLock result');
 
   // Load spaces from Supabase and categories from localStorage
   useEffect(() => {
