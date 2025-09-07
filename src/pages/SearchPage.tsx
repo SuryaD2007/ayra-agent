@@ -2,30 +2,12 @@ import React, { useState } from 'react';
 import { AnimatedTransition } from '@/components/AnimatedTransition';
 import { useAnimateIn } from '@/lib/animations';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Search, Filter, Grid, List, Calendar, Tag, FileText, Link, Image, File } from 'lucide-react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { PlusCircle, MessageSquare, Edit3, Trash2, User, Bot, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
 import AuthGuard from '@/components/auth/AuthGuard';
 import InlineError from '@/components/auth/InlineError';
 import AuthModal from '@/components/AuthModal';
-import { AuthError } from '@/lib/data';
-
 interface Message {
   id: string;
   content: string;
@@ -33,49 +15,68 @@ interface Message {
   timestamp: Date;
 }
 
+interface Chat {
+  id: string;
+  title: string;
+  messages: Message[];
+  createdAt: Date;
+}
+
 const SearchPage = () => {
   const showContent = useAnimateIn(false, 300);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [selectedType, setSelectedType] = useState<string>('all');
-  const [selectedDate, setSelectedDate] = useState<Date>();
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [activeChat, setActiveChat] = useState<Chat | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [authError, setAuthError] = useState<string | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [chatInput, setChatInput] = useState('');
+  const [isEditingTitle, setIsEditingTitle] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
 
-  // Mock data for demonstration
-  const searchResults = [
-    {
-      id: '1',
-      title: 'Machine Learning Fundamentals',
-      type: 'PDF',
-      preview: 'Introduction to machine learning concepts including supervised and unsupervised learning...',
-      tags: ['AI', 'Machine Learning', 'Data Science'],
-      date: '2024-01-15',
-      space: 'Work'
-    },
-    {
-      id: '2',
-      title: 'React Best Practices',
-      type: 'Link',
-      preview: 'A comprehensive guide to React development best practices and patterns...',
-      tags: ['React', 'JavaScript', 'Frontend'],
-      date: '2024-01-20',
-      space: 'Personal'
-    },
-    {
-      id: '3',
-      title: 'Design System Notes',
-      type: 'Note',
-      preview: 'Notes on building a comprehensive design system with reusable components...',
-      tags: ['Design', 'UI/UX', 'System'],
-      date: '2024-01-25',
-      space: 'Work'
+  const createNewChat = () => {
+    const newChat: Chat = {
+      id: Date.now().toString(),
+      title: 'New Chat',
+      messages: [],
+      createdAt: new Date()
+    };
+    setChats(prev => [newChat, ...prev]);
+    setActiveChat(newChat);
+    setMessages([]);
+    setIsEditingTitle(newChat.id);
+    setEditTitle(newChat.title);
+  };
+
+  const deleteChat = (chatId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setChats(prev => prev.filter(chat => chat.id !== chatId));
+    if (activeChat?.id === chatId) {
+      setActiveChat(null);
+      setMessages([]);
     }
-  ];
+  };
+
+  const startEditingTitle = (chatId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const chat = chats.find(c => c.id === chatId);
+    if (chat) {
+      setIsEditingTitle(chatId);
+      setEditTitle(chat.title);
+    }
+  };
+
+  const saveTitle = (chatId: string) => {
+    if (editTitle.trim()) {
+      setChats(prev => prev.map(chat => 
+        chat.id === chatId ? { ...chat, title: editTitle.trim() } : chat
+      ));
+      if (activeChat?.id === chatId) {
+        setActiveChat(prev => prev ? { ...prev, title: editTitle.trim() } : null);
+      }
+    }
+    setIsEditingTitle(null);
+    setEditTitle('');
+  };
 
   const handleSendMessage = (content: string) => {
     if (!content.trim()) return;
@@ -87,46 +88,53 @@ const SearchPage = () => {
       timestamp: new Date(),
     };
     
-    setMessages(prev => [...prev, newMessage]);
+    const updatedMessages = [...messages, newMessage];
+    setMessages(updatedMessages);
     setChatInput('');
+    
+    // Update active chat
+    if (activeChat) {
+      const updatedChat = { ...activeChat, messages: updatedMessages };
+      setActiveChat(updatedChat);
+      setChats(prev => prev.map(chat => 
+        chat.id === activeChat.id ? updatedChat : chat
+      ));
+    }
     
     // Simulate AI response
     setTimeout(() => {
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
-        content: `I found ${searchResults.length} items related to "${content}". Here are the most relevant results...`,
+        content: `I can help you search through your knowledge base. What would you like to find?`,
         sender: 'ai',
         timestamp: new Date(),
       };
-      setMessages(prev => [...prev, aiResponse]);
+      const finalMessages = [...updatedMessages, aiResponse];
+      setMessages(finalMessages);
+      
+      if (activeChat) {
+        const finalChat = { ...activeChat, messages: finalMessages };
+        setActiveChat(finalChat);
+        setChats(prev => prev.map(chat => 
+          chat.id === activeChat.id ? finalChat : chat
+        ));
+      }
     }, 1000);
   };
 
-  const filteredResults = searchResults.filter(result => {
-    if (searchQuery && !result.title.toLowerCase().includes(searchQuery.toLowerCase()) && 
-        !result.preview.toLowerCase().includes(searchQuery.toLowerCase())) {
-      return false;
-    }
-    
-    if (selectedType !== 'all' && result.type.toLowerCase() !== selectedType.toLowerCase()) {
-      return false;
-    }
-    
-    if (selectedTags.length > 0 && !selectedTags.some(tag => result.tags.includes(tag))) {
-      return false;
-    }
-    
-    return true;
-  });
+  const handleChatSelect = (chat: Chat) => {
+    setActiveChat(chat);
+    setMessages(chat.messages);
+  };
 
   return (
     <AuthGuard 
       title="Search your knowledge"
       description="Sign in to search through your notes, documents, and saved content."
     >
-      <div className="max-w-full mx-auto min-h-screen pt-24 pb-6">
+      <div className="flex h-screen">
         {authError && (
-          <div className="mb-4 mx-4">
+          <div className="absolute top-4 left-4 right-4 z-50">
             <InlineError 
               message={authError}
               onSignIn={() => setAuthModalOpen(true)}
@@ -134,188 +142,166 @@ const SearchPage = () => {
           </div>
         )}
         
-        <AnimatedTransition show={showContent} animation="slide-up">
-          <div className="flex h-[calc(100vh-130px)]">
-            {/* Main Content */}
-            <div className="flex-1 flex flex-col overflow-hidden">
-              {/* Header */}
-              <div className="p-6 border-b border-border/50">
-                <h1 className="text-2xl font-bold mb-4">Search & Discovery</h1>
-                
-                {/* Search Bar */}
-                <div className="relative mb-4">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={20} />
-                  <Input
-                    placeholder="Search your knowledge base..."
-                    className="pl-10 pr-4 py-3 text-lg"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-                
-                {/* Filters */}
-                <div className="flex flex-wrap items-center gap-4">
-                  <Select value={selectedType} onValueChange={setSelectedType}>
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Types</SelectItem>
-                      <SelectItem value="note">Notes</SelectItem>
-                      <SelectItem value="pdf">PDFs</SelectItem>
-                      <SelectItem value="link">Links</SelectItem>
-                      <SelectItem value="image">Images</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  
-                  <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="justify-start text-left font-normal">
-                        <Calendar className="mr-2 h-4 w-4" />
-                        {selectedDate ? format(selectedDate, 'PPP') : 'Pick a date'}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <CalendarComponent
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={(date) => {
-                          setSelectedDate(date);
-                          setDatePickerOpen(false);
-                        }}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant={viewMode === 'grid' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setViewMode('grid')}
-                    >
-                      <Grid className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant={viewMode === 'list' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setViewMode('list')}
-                    >
-                      <List className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Results */}
-              <div className="flex-1 overflow-auto p-6">
-                <div className="mb-4">
-                  <p className="text-muted-foreground">
-                    Found {filteredResults.length} results
-                    {searchQuery && ` for "${searchQuery}"`}
-                  </p>
-                </div>
-                
-                <div className={cn(
-                  "gap-4",
-                  viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "flex flex-col"
-                )}>
-                  {filteredResults.map((result) => (
-                    <Card key={result.id} className="hover:shadow-lg transition-shadow cursor-pointer">
-                      <CardHeader className="pb-3">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-2">
-                            {result.type === 'PDF' && <File className="h-5 w-5 text-red-500" />}
-                            {result.type === 'Link' && <Link className="h-5 w-5 text-blue-500" />}
-                            {result.type === 'Note' && <FileText className="h-5 w-5 text-green-500" />}
-                            {result.type === 'Image' && <Image className="h-5 w-5 text-purple-500" />}
-                            <Badge variant="secondary">{result.type}</Badge>
-                          </div>
-                          <Badge variant="outline">{result.space}</Badge>
-                        </div>
-                        <CardTitle className="text-lg">{result.title}</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <CardDescription className="mb-3">
-                          {result.preview}
-                        </CardDescription>
-                        <div className="flex flex-wrap gap-1 mb-3">
-                          {result.tags.map((tag) => (
-                            <Badge key={tag} variant="outline" className="text-xs">
-                              <Tag className="h-3 w-3 mr-1" />
-                              {tag}
-                            </Badge>
-                          ))}
-                        </div>
-                        <p className="text-xs text-muted-foreground">{result.date}</p>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-                
-                {filteredResults.length === 0 && (
-                  <div className="text-center py-12">
-                    <Search className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <h3 className="text-lg font-semibold mb-2">No results found</h3>
-                    <p className="text-muted-foreground">
-                      Try adjusting your search terms or filters
-                    </p>
-                  </div>
-                )}
-              </div>
+        <AnimatedTransition show={showContent} animation="slide-up" className="flex w-full">
+          {/* Left Sidebar */}
+          <div className="w-64 border-r border-border/50 bg-muted/30 flex flex-col">
+            {/* New Chat Button */}
+            <div className="p-3 border-b border-border/50">
+              <Button 
+                onClick={createNewChat}
+                className="w-full justify-start gap-2"
+                variant="outline"
+              >
+                <PlusCircle size={16} />
+                New Chat
+              </Button>
             </div>
             
-            {/* Chat Panel */}
-            <div className="w-80 border-l border-border/50 flex flex-col">
-              <div className="p-4 border-b border-border/50">
-                <h3 className="font-semibold">AI Assistant</h3>
-                <p className="text-sm text-muted-foreground">Ask questions about your content</p>
-              </div>
-              
-              {/* Chat Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {messages.length === 0 ? (
-                  <div className="text-center text-muted-foreground py-8">
-                    <p>Ask me anything about your content!</p>
-                  </div>
-                ) : (
-                  messages.map((message) => (
-                    <div
-                      key={message.id}
+            {/* Chat List */}
+            <div className="flex-1 overflow-y-auto">
+              {chats.length > 0 && (
+                <div className="p-2">
+                  <h3 className="text-xs font-medium text-muted-foreground px-2 mb-2">Today</h3>
+                  {chats.map(chat => (
+                    <div 
+                      key={chat.id}
+                      onClick={() => handleChatSelect(chat)}
                       className={cn(
-                        "p-3 rounded-lg max-w-[90%]",
-                        message.sender === 'user'
-                          ? "bg-primary text-primary-foreground ml-auto"
-                          : "bg-muted"
+                        "p-3 rounded-lg flex items-center gap-2 cursor-pointer group mb-1",
+                        activeChat?.id === chat.id 
+                          ? "bg-primary/10 text-primary border-l-2 border-primary" 
+                          : "hover:bg-muted/50"
                       )}
                     >
-                      <p className="text-sm">{message.content}</p>
-                      <p className="text-xs opacity-70 mt-1">
-                        {message.timestamp.toLocaleTimeString()}
-                      </p>
+                      <MessageSquare size={16} className="flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        {isEditingTitle === chat.id ? (
+                          <form 
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              saveTitle(chat.id);
+                            }}
+                          >
+                            <Input
+                              value={editTitle}
+                              onChange={(e) => setEditTitle(e.target.value)}
+                              autoFocus
+                              onBlur={() => saveTitle(chat.id)}
+                              onClick={(e) => e.stopPropagation()}
+                              className="h-6 py-0 text-sm"
+                            />
+                          </form>
+                        ) : (
+                          <p className="text-sm truncate">{chat.title}</p>
+                        )}
+                      </div>
+                      <div className={cn(
+                        "flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity",
+                        activeChat?.id === chat.id ? "opacity-100" : ""
+                      )}>
+                        <Button 
+                          size="icon" 
+                          variant="ghost" 
+                          className="h-7 w-7" 
+                          onClick={(e) => startEditingTitle(chat.id, e)}
+                        >
+                          <Edit3 size={12} />
+                        </Button>
+                        <Button 
+                          size="icon" 
+                          variant="ghost" 
+                          className="h-7 w-7" 
+                          onClick={(e) => deleteChat(chat.id, e)}
+                        >
+                          <Trash2 size={12} />
+                        </Button>
+                      </div>
                     </div>
-                  ))
-                )}
-              </div>
-              
-              {/* Chat Input */}
-              <div className="p-4 border-t border-border/50">
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Main Chat Area */}
+          <div className="flex-1 flex flex-col">
+            {/* Chat Messages */}
+            <div className="flex-1 overflow-y-auto">
+              {messages.length === 0 ? (
+                <div className="h-full flex items-center justify-center">
+                  <div className="text-center space-y-2 max-w-md">
+                    <h2 className="text-2xl font-semibold">Search Your Second Brain</h2>
+                    <p className="text-muted-foreground">
+                      Ask questions to search across your notes, documents, and knowledge base.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="max-w-3xl mx-auto p-6 space-y-6">
+                  {messages.map((message) => (
+                    <div 
+                      key={message.id}
+                      className={cn(
+                        "flex gap-4",
+                        message.sender === 'user' ? "justify-end" : "justify-start"
+                      )}
+                    >
+                      {message.sender === 'ai' && (
+                        <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                          <Bot size={16} className="text-primary" />
+                        </div>
+                      )}
+                      <div className={cn(
+                        "max-w-[80%] p-4 rounded-xl",
+                        message.sender === 'user' 
+                          ? "bg-primary text-primary-foreground" 
+                          : "bg-muted"
+                      )}>
+                        <p className="text-sm leading-relaxed">{message.content}</p>
+                        <p className="text-xs opacity-70 mt-2">
+                          {message.timestamp.toLocaleTimeString('en-US', { 
+                            hour: '2-digit', 
+                            minute: '2-digit'
+                          })}
+                        </p>
+                      </div>
+                      {message.sender === 'user' && (
+                        <div className="w-8 h-8 bg-secondary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                          <User size={16} className="text-secondary-foreground" />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {/* Chat Input */}
+            <div className="border-t border-border/50 p-4">
+              <div className="max-w-3xl mx-auto">
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
                     handleSendMessage(chatInput);
                   }}
-                  className="flex gap-2"
+                  className="flex gap-3 items-end"
                 >
-                  <Input
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    placeholder="Ask a question..."
-                    className="flex-1"
-                  />
-                  <Button type="submit" disabled={!chatInput.trim()}>
-                    Send
-                  </Button>
+                  <div className="flex-1 relative">
+                    <Input
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      placeholder="Ask your second brain anything..."
+                      className="pr-12 py-3 text-base resize-none"
+                    />
+                    <Button 
+                      type="submit" 
+                      size="icon"
+                      disabled={!chatInput.trim()}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8"
+                    >
+                      <Send size={16} />
+                    </Button>
+                  </div>
                 </form>
               </div>
             </div>
