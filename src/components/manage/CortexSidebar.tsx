@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Folder, Share, Users, Lock, Plus, Move, Building, Globe, Trash2 } from 'lucide-react';
+import { Folder, Share, Users, Lock, Plus, Move, Building, Globe, Trash2, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -8,6 +8,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -77,6 +84,7 @@ const CortexSidebar = ({
   const [selectedCategoryForNewSpace, setSelectedCategoryForNewSpace] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [spaceToDelete, setSpaceToDelete] = useState<CustomSpace | null>(null);
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
 
   // Load custom spaces and categories from localStorage
   useEffect(() => {
@@ -224,6 +232,31 @@ const CortexSidebar = ({
     }
   };
 
+  const handleBulkDeleteSpaces = () => {
+    setBulkDeleteDialogOpen(true);
+  };
+
+  const confirmBulkDeleteSpaces = () => {
+    try {
+      // Clear all custom spaces
+      setCustomSpaces([]);
+      localStorage.setItem('custom-spaces', JSON.stringify([]));
+      
+      // Navigate to overview if currently viewing a custom space
+      const currentlyViewingCustomSpace = customSpaces.find(space => space.id === selectedItemId);
+      if (currentlyViewingCustomSpace) {
+        onCortexSelect('private', 'overview');
+      }
+      
+      toast.success(`All custom spaces (${customSpaces.length}) deleted successfully`);
+    } catch (error) {
+      console.error('Error deleting all spaces:', error);
+      toast.error('Failed to delete all spaces');
+    } finally {
+      setBulkDeleteDialogOpen(false);
+    }
+  };
+
   const handlePlusClick = (categoryId: string, itemId?: string, isSpace?: boolean) => {
     if (isSpace && itemId) {
       // Plus next to a space - open New Item modal with space preselected
@@ -255,17 +288,39 @@ const CortexSidebar = ({
   return (
     <>
       <div className="w-60 border-r border-border/50 overflow-y-auto shrink-0">
-        {/* Add Category Button */}
+        {/* Add Category Button and Bulk Actions */}
         <div className="p-4 border-b border-border/50">
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full justify-start"
-            onClick={handleNewCategory}
-          >
-            <Plus size={14} className="mr-2" />
-            Add Category
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 justify-start"
+              onClick={handleNewCategory}
+            >
+              <Plus size={14} className="mr-2" />
+              Add Category
+            </Button>
+            
+            {/* Bulk Actions Menu */}
+            {customSpaces.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="px-2">
+                    <MoreHorizontal size={14} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={handleBulkDeleteSpaces}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 size={14} className="mr-2" />
+                    Delete All Spaces ({customSpaces.length})
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         </div>
 
         {categories.map((category) => (
@@ -435,6 +490,27 @@ const CortexSidebar = ({
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete Space
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete All Spaces</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete all {customSpaces.length} custom spaces? This action cannot be undone and will remove all items in these spaces.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmBulkDeleteSpaces}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete All Spaces
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
