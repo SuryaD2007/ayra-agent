@@ -1,348 +1,325 @@
-import React, { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Menu } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React, { useState } from 'react';
 import { AnimatedTransition } from '@/components/AnimatedTransition';
 import { useAnimateIn } from '@/lib/animations';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Search, Filter, Grid, List, Calendar, Tag, FileText, Link, Image, File } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 import AuthGuard from '@/components/auth/AuthGuard';
 import InlineError from '@/components/auth/InlineError';
 import AuthModal from '@/components/AuthModal';
-
-// Import new modular components
-import { ChatSidebar } from '@/components/search/ChatSidebar';
-import { ChatHeader } from '@/components/search/ChatHeader';
-import { MessageList } from '@/components/search/MessageList';
-import { Composer } from '@/components/search/Composer';
+import { AuthError } from '@/lib/data';
 
 interface Message {
   id: string;
   content: string;
   sender: 'user' | 'ai';
   timestamp: Date;
-  sources?: Array<{
-    id: string;
-    title: string;
-    domain: string;
-    favicon?: string;
-  }>;
-  isStreaming?: boolean;
-}
-
-interface Chat {
-  id: string;
-  title: string;
-  messages: Message[];
-  createdAt: Date;
-}
-
-interface ContextItem {
-  id: string;
-  title: string;
-  type: string;
-  isPdf?: boolean;
-  hasExtractedText?: boolean;
 }
 
 const SearchPage = () => {
   const showContent = useAnimateIn(false, 300);
-  const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
-  
-  // UI State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [selectedType, setSelectedType] = useState<string>('all');
+  const [selectedDate, setSelectedDate] = useState<Date>();
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [authError, setAuthError] = useState<string | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [rightPaneOpen, setRightPaneOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  
-  // Chat State (preserve existing functionality)
-  const [chats, setChats] = useState<Chat[]>([
+  const [chatInput, setChatInput] = useState('');
+
+  // Mock data for demonstration
+  const searchResults = [
     {
       id: '1',
-      title: 'New Chat',
-      messages: [],
-      createdAt: new Date()
+      title: 'Machine Learning Fundamentals',
+      type: 'PDF',
+      preview: 'Introduction to machine learning concepts including supervised and unsupervised learning...',
+      tags: ['AI', 'Machine Learning', 'Data Science'],
+      date: '2024-01-15',
+      space: 'Work'
+    },
+    {
+      id: '2',
+      title: 'React Best Practices',
+      type: 'Link',
+      preview: 'A comprehensive guide to React development best practices and patterns...',
+      tags: ['React', 'JavaScript', 'Frontend'],
+      date: '2024-01-20',
+      space: 'Personal'
+    },
+    {
+      id: '3',
+      title: 'Design System Notes',
+      type: 'Note',
+      preview: 'Notes on building a comprehensive design system with reusable components...',
+      tags: ['Design', 'UI/UX', 'System'],
+      date: '2024-01-25',
+      space: 'Work'
     }
-  ]);
-  
-  // Get active chat from URL or default to first chat
-  const chatId = searchParams.get('chat') || '1';
-  const [activeChat, setActiveChat] = useState<string>(chatId);
-  
-  // Context items from URL itemId parameter
-  const itemId = searchParams.get('itemId');
-  const [contextItems, setContextItems] = useState<ContextItem[]>([]);
-  
-  // Responsive handling
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-      if (window.innerWidth < 768) {
-        setSidebarOpen(false);
-      } else {
-        setSidebarOpen(true);
-      }
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  ];
 
-  // Handle itemId from URL parameters
-  useEffect(() => {
-    if (itemId) {
-      // Mock context item - in real app, fetch from Supabase
-      const mockContextItem: ContextItem = {
-        id: itemId,
-        title: 'Sample Document',
-        type: 'PDF',
-        isPdf: true,
-        hasExtractedText: false
-      };
-      setContextItems([mockContextItem]);
-    } else {
-      setContextItems([]);
-    }
-  }, [itemId]);
-
-  // Update URL when chat changes
-  useEffect(() => {
-    if (activeChat !== chatId) {
-      const newParams = new URLSearchParams(searchParams);
-      newParams.set('chat', activeChat);
-      setSearchParams(newParams);
-    }
-  }, [activeChat, chatId, searchParams, setSearchParams]);
-
-  const currentChat = chats.find(chat => chat.id === activeChat);
-  const messages = currentChat?.messages || [];
-
-  // Chat Management Functions (preserve existing functionality)
-  const createNewChat = () => {
-    const newChat: Chat = {
-      id: Date.now().toString(),
-      title: 'New Chat',
-      messages: [],
-      createdAt: new Date()
-    };
-    setChats(prev => [newChat, ...prev]);
-    setActiveChat(newChat.id);
-  };
-
-  const deleteChat = (chatId: string) => {
-    setChats(prev => {
-      const filtered = prev.filter(chat => chat.id !== chatId);
-      if (activeChat === chatId && filtered.length > 0) {
-        setActiveChat(filtered[0].id);
-      } else if (filtered.length === 0) {
-        const newChat: Chat = {
-          id: Date.now().toString(),
-          title: 'New Chat',
-          messages: [],
-          createdAt: new Date()
-        };
-        setActiveChat(newChat.id);
-        return [newChat];
-      }
-      return filtered;
-    });
-  };
-
-  const editChat = (chatId: string, newTitle: string) => {
-    setChats(prev => prev.map(chat =>
-      chat.id === chatId ? { ...chat, title: newTitle } : chat
-    ));
-  };
-
-  const sendMessage = (content: string) => {
+  const handleSendMessage = (content: string) => {
     if (!content.trim()) return;
-
+    
     const newMessage: Message = {
       id: Date.now().toString(),
       content,
       sender: 'user',
       timestamp: new Date(),
     };
-
-    // Update chat with new message and auto-generate title if first message
-    setChats(prev => prev.map(chat => {
-      if (chat.id === activeChat) {
-        const isFirstMessage = chat.messages.length === 0;
-        const title = isFirstMessage 
-          ? (content.length > 25 ? content.slice(0, 25) + '...' : content)
-          : chat.title;
-        
-        return {
-          ...chat,
-          title,
-          messages: [...chat.messages, newMessage]
-        };
-      }
-      return chat;
-    }));
-
-    // Simulate AI response with streaming
+    
+    setMessages(prev => [...prev, newMessage]);
+    setChatInput('');
+    
+    // Simulate AI response
     setTimeout(() => {
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
-        content: `Based on your search for '${content}', I found several relevant notes in your second brain. Would you like me to summarize the key insights?`,
+        content: `I found ${searchResults.length} items related to "${content}". Here are the most relevant results...`,
         sender: 'ai',
         timestamp: new Date(),
-        sources: [
-          {
-            id: '1',
-            title: 'Machine Learning Fundamentals',
-            domain: 'example.com',
-            favicon: '/favicon.ico'
-          }
-        ]
       };
-
-      setChats(prev => prev.map(chat => 
-        chat.id === activeChat 
-          ? { ...chat, messages: [...chat.messages, aiResponse] }
-          : chat
-      ));
-    }, 800);
+      setMessages(prev => [...prev, aiResponse]);
+    }, 1000);
   };
 
-  // Context Management
-  const removeContext = (itemId: string) => {
-    setContextItems(prev => prev.filter(item => item.id !== itemId));
-    // Also remove from URL
-    const newParams = new URLSearchParams(searchParams);
-    newParams.delete('itemId');
-    setSearchParams(newParams);
-  };
-
-  const backToLibrary = (itemId: string) => {
-    navigate(`/manage?itemId=${itemId}`);
-  };
-
-  // Right Pane Management
-  const mockSources = messages
-    .filter(m => m.sender === 'ai' && m.sources)
-    .flatMap(m => m.sources?.map(s => ({ ...s, messageId: m.id, url: `https://${s.domain}` })) || []);
-
-  const getHeaderTitle = () => {
-    if (currentChat && currentChat.messages.length > 0) {
-      return currentChat.title;
+  const filteredResults = searchResults.filter(result => {
+    if (searchQuery && !result.title.toLowerCase().includes(searchQuery.toLowerCase()) && 
+        !result.preview.toLowerCase().includes(searchQuery.toLowerCase())) {
+      return false;
     }
-    return "New Chat";
-  };
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyboard = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-        return;
-      }
-
-      if (e.key === 'n') {
-        e.preventDefault();
-        createNewChat();
-      }
-      if (e.key === 'Escape') {
-        setRightPaneOpen(false);
-        if (isMobile) {
-          setSidebarOpen(false);
-        }
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault();
-        // Focus search in sidebar (could be implemented)
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyboard);
-    return () => document.removeEventListener('keydown', handleKeyboard);
-  }, [isMobile]);
+    
+    if (selectedType !== 'all' && result.type.toLowerCase() !== selectedType.toLowerCase()) {
+      return false;
+    }
+    
+    if (selectedTags.length > 0 && !selectedTags.some(tag => result.tags.includes(tag))) {
+      return false;
+    }
+    
+    return true;
+  });
 
   return (
     <AuthGuard 
       title="Search your knowledge"
       description="Sign in to search through your notes, documents, and saved content."
     >
-      <div className="h-screen flex overflow-hidden bg-background">
+      <div className="max-w-full mx-auto min-h-screen pt-24 pb-6">
         {authError && (
-          <div className="absolute top-4 left-4 right-4 z-50">
+          <div className="mb-4 mx-4">
             <InlineError 
               message={authError}
               onSignIn={() => setAuthModalOpen(true)}
             />
           </div>
         )}
-
-        <AnimatedTransition show={showContent} animation="fade">
-          {/* Mobile Header */}
-          {isMobile && (
-            <div className="absolute top-0 left-0 right-0 z-40 h-14 bg-background border-b border-border/50 flex items-center px-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="mr-3"
-              >
-                <Menu className="w-4 h-4" />
-              </Button>
-              <h1 className="font-semibold text-sm truncate">
-                {getHeaderTitle()}
-              </h1>
+        
+        <AnimatedTransition show={showContent} animation="slide-up">
+          <div className="flex h-[calc(100vh-130px)]">
+            {/* Main Content */}
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Header */}
+              <div className="p-6 border-b border-border/50">
+                <h1 className="text-2xl font-bold mb-4">Search & Discovery</h1>
+                
+                {/* Search Bar */}
+                <div className="relative mb-4">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={20} />
+                  <Input
+                    placeholder="Search your knowledge base..."
+                    className="pl-10 pr-4 py-3 text-lg"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                
+                {/* Filters */}
+                <div className="flex flex-wrap items-center gap-4">
+                  <Select value={selectedType} onValueChange={setSelectedType}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Types</SelectItem>
+                      <SelectItem value="note">Notes</SelectItem>
+                      <SelectItem value="pdf">PDFs</SelectItem>
+                      <SelectItem value="link">Links</SelectItem>
+                      <SelectItem value="image">Images</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="justify-start text-left font-normal">
+                        <Calendar className="mr-2 h-4 w-4" />
+                        {selectedDate ? format(selectedDate, 'PPP') : 'Pick a date'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={(date) => {
+                          setSelectedDate(date);
+                          setDatePickerOpen(false);
+                        }}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant={viewMode === 'grid' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setViewMode('grid')}
+                    >
+                      <Grid className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant={viewMode === 'list' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setViewMode('list')}
+                    >
+                      <List className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Results */}
+              <div className="flex-1 overflow-auto p-6">
+                <div className="mb-4">
+                  <p className="text-muted-foreground">
+                    Found {filteredResults.length} results
+                    {searchQuery && ` for "${searchQuery}"`}
+                  </p>
+                </div>
+                
+                <div className={cn(
+                  "gap-4",
+                  viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "flex flex-col"
+                )}>
+                  {filteredResults.map((result) => (
+                    <Card key={result.id} className="hover:shadow-lg transition-shadow cursor-pointer">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-2">
+                            {result.type === 'PDF' && <File className="h-5 w-5 text-red-500" />}
+                            {result.type === 'Link' && <Link className="h-5 w-5 text-blue-500" />}
+                            {result.type === 'Note' && <FileText className="h-5 w-5 text-green-500" />}
+                            {result.type === 'Image' && <Image className="h-5 w-5 text-purple-500" />}
+                            <Badge variant="secondary">{result.type}</Badge>
+                          </div>
+                          <Badge variant="outline">{result.space}</Badge>
+                        </div>
+                        <CardTitle className="text-lg">{result.title}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <CardDescription className="mb-3">
+                          {result.preview}
+                        </CardDescription>
+                        <div className="flex flex-wrap gap-1 mb-3">
+                          {result.tags.map((tag) => (
+                            <Badge key={tag} variant="outline" className="text-xs">
+                              <Tag className="h-3 w-3 mr-1" />
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                        <p className="text-xs text-muted-foreground">{result.date}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+                
+                {filteredResults.length === 0 && (
+                  <div className="text-center py-12">
+                    <Search className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <h3 className="text-lg font-semibold mb-2">No results found</h3>
+                    <p className="text-muted-foreground">
+                      Try adjusting your search terms or filters
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
-          )}
-
-          {/* Mobile Overlay */}
-          {isMobile && sidebarOpen && (
-            <div 
-              className="absolute inset-0 bg-black/20 z-30"
-              onClick={() => setSidebarOpen(false)}
-            />
-          )}
-
-          {/* Left Sidebar */}
-          <ChatSidebar
-            isOpen={sidebarOpen}
-            chats={chats}
-            activeChat={activeChat}
-            onNewChat={createNewChat}
-            onSelectChat={setActiveChat}
-            onEditChat={editChat}
-            onDeleteChat={deleteChat}
-            isMobile={isMobile}
-            onToggle={() => setSidebarOpen(!sidebarOpen)}
-          />
-
-          {/* Main Content Area */}
-          <div className={cn(
-            "flex-1 flex flex-col min-w-0",
-            isMobile && "mt-14"
-          )}>
-            {/* Chat Header - only show on desktop */}
-            {!isMobile && (
-              <ChatHeader chatTitle={getHeaderTitle()} />
-            )}
-
-            {/* Messages Area */}
-            <MessageList
-              messages={messages}
-              onSourceClick={(messageId, sourceId) => {
-                setRightPaneOpen(true);
-                // Could scroll to specific source
-              }}
-              className="flex-1"
-            />
-
-            {/* Composer */}
-            <Composer
-              onSendMessage={sendMessage}
-              disabled={false}
-            />
+            
+            {/* Chat Panel */}
+            <div className="w-80 border-l border-border/50 flex flex-col">
+              <div className="p-4 border-b border-border/50">
+                <h3 className="font-semibold">AI Assistant</h3>
+                <p className="text-sm text-muted-foreground">Ask questions about your content</p>
+              </div>
+              
+              {/* Chat Messages */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {messages.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-8">
+                    <p>Ask me anything about your content!</p>
+                  </div>
+                ) : (
+                  messages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={cn(
+                        "p-3 rounded-lg max-w-[90%]",
+                        message.sender === 'user'
+                          ? "bg-primary text-primary-foreground ml-auto"
+                          : "bg-muted"
+                      )}
+                    >
+                      <p className="text-sm">{message.content}</p>
+                      <p className="text-xs opacity-70 mt-1">
+                        {message.timestamp.toLocaleTimeString()}
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
+              
+              {/* Chat Input */}
+              <div className="p-4 border-t border-border/50">
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleSendMessage(chatInput);
+                  }}
+                  className="flex gap-2"
+                >
+                  <Input
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    placeholder="Ask a question..."
+                    className="flex-1"
+                  />
+                  <Button type="submit" disabled={!chatInput.trim()}>
+                    Send
+                  </Button>
+                </form>
+              </div>
+            </div>
           </div>
-
-          {/* Right Pane - hidden in this design */}
-          {/* RightPane component removed to match reference */}
         </AnimatedTransition>
 
         <AuthModal 
