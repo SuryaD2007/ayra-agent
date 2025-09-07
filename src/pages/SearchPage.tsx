@@ -281,37 +281,40 @@ const SearchPage = () => {
 
             <AnimatedTransition show={showContent} animation="slide-up">
               <div className="flex-1 flex flex-col">
-                {/* Main Search Interface */}
-                <div className="flex-1 flex flex-col justify-center items-center px-6 pb-32">
-                  <div className="text-center max-w-2xl">
-                    <h2 className="text-4xl font-bold mb-4">Search Your Second Brain</h2>
-                    <p className="text-lg text-muted-foreground mb-12">
-                      Ask questions to search across your notes, documents, and knowledge base.
-                    </p>
-                  </div>
-                </div>
-                
-                {/* Chat Messages Area */}
-                <div className="flex-1 overflow-y-auto px-6 space-y-4 min-h-0">
-                  {messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={cn(
-                        "p-4 rounded-lg max-w-[70%]",
-                        message.sender === 'user'
-                          ? "bg-primary text-primary-foreground ml-auto"
-                          : "bg-muted"
-                      )}
-                    >
-                      <p className="text-sm leading-relaxed">{message.content}</p>
-                      <p className="text-xs opacity-70 mt-2">
-                        {message.timestamp.toLocaleTimeString()}
+                {/* Chat Messages Area - takes up most space when empty */}
+                <div className="flex-1 flex flex-col justify-center items-center px-6">
+                  {messages.length === 0 ? (
+                    /* Centered welcome content when no messages */
+                    <div className="text-center max-w-2xl">
+                      <h2 className="text-3xl font-bold mb-4">Search Your Second Brain</h2>
+                      <p className="text-base text-muted-foreground">
+                        Ask questions to search across your notes, documents, and knowledge base.
                       </p>
                     </div>
-                  ))}
+                  ) : (
+                    /* Chat messages when conversation exists */
+                    <div className="w-full max-w-4xl space-y-4">
+                      {messages.map((message) => (
+                        <div
+                          key={message.id}
+                          className={cn(
+                            "p-4 rounded-lg max-w-[70%]",
+                            message.sender === 'user'
+                              ? "bg-primary text-primary-foreground ml-auto"
+                              : "bg-muted"
+                          )}
+                        >
+                          <p className="text-sm leading-relaxed">{message.content}</p>
+                          <p className="text-xs opacity-70 mt-2">
+                            {message.timestamp.toLocaleTimeString()}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 
-                {/* Bottom Search Input */}
+                {/* Fixed bottom search input */}
                 <div className="p-6 border-t">
                   <form
                     onSubmit={(e) => {
@@ -328,7 +331,7 @@ const SearchPage = () => {
                         value={chatInput}
                         onChange={(e) => setChatInput(e.target.value)}
                         placeholder="Ask your second brain anything..."
-                        className="pl-12 pr-12 py-4 text-base rounded-full"
+                        className="pl-12 pr-12 py-4 text-base rounded-full border-2 border-border/50"
                       />
                       <Button 
                         type="submit" 
