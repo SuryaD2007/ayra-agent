@@ -221,11 +221,11 @@ const TableView = ({
             }}
           >
             {isSelected ? (
-              <div className="rounded-md bg-primary text-primary-foreground p-1 shadow-sm">
+              <div className="rounded-md bg-black text-white p-1 shadow-sm">
                 <Check size={14} />
               </div>
             ) : (
-              <div className="rounded-md border-2 border-muted-foreground/20 hover:border-primary/40 p-1 transition-colors">
+              <div className="rounded-md border-2 border-muted-foreground/20 hover:border-black/40 p-1 transition-colors">
                 <Square size={14} className="text-muted-foreground" />
               </div>
             )}
