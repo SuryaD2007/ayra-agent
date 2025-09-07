@@ -144,9 +144,9 @@ const SearchPage = () => {
         
         <AnimatedTransition show={showContent} animation="slide-up" className="flex w-full">
           {/* Left Sidebar */}
-          <div className="w-64 border-r border-border/50 bg-muted/30 flex flex-col">
+          <div className="w-64 h-full bg-muted/30 border-r border-border/50 flex flex-col transition-all duration-300">
             {/* New Chat Button */}
-            <div className="px-3 pt-12 pb-3 border-b border-border/50">
+            <div className="p-3">
               <Button 
                 onClick={createNewChat}
                 className="w-full justify-start gap-2"
@@ -158,18 +158,18 @@ const SearchPage = () => {
             </div>
             
             {/* Chat List */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto p-2 space-y-4">
               {chats.length > 0 && (
-                <div className="p-2">
+                <div>
                   <h3 className="text-xs font-medium text-muted-foreground px-2 mb-2">Today</h3>
                   {chats.map(chat => (
                     <div 
                       key={chat.id}
                       onClick={() => handleChatSelect(chat)}
                       className={cn(
-                        "p-3 rounded-lg flex items-center gap-2 cursor-pointer group mb-1",
+                        "p-2 rounded-lg flex items-center gap-2 cursor-pointer group transition-all duration-300",
                         activeChat?.id === chat.id 
-                          ? "bg-primary/10 text-primary border-l-2 border-primary" 
+                          ? "bg-primary/10 text-primary" 
                           : "hover:bg-muted/50"
                       )}
                     >
@@ -196,7 +196,8 @@ const SearchPage = () => {
                         )}
                       </div>
                       <div className={cn(
-                        "flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity",
+                        "flex gap-1 transition-opacity duration-300",
+                        "opacity-0 group-hover:opacity-100",
                         activeChat?.id === chat.id ? "opacity-100" : ""
                       )}>
                         <Button 
@@ -205,7 +206,7 @@ const SearchPage = () => {
                           className="h-7 w-7" 
                           onClick={(e) => startEditingTitle(chat.id, e)}
                         >
-                          <Edit3 size={12} />
+                          <Edit3 size={14} />
                         </Button>
                         <Button 
                           size="icon" 
@@ -213,7 +214,7 @@ const SearchPage = () => {
                           className="h-7 w-7" 
                           onClick={(e) => deleteChat(chat.id, e)}
                         >
-                          <Trash2 size={12} />
+                          <Trash2 size={14} />
                         </Button>
                       </div>
                     </div>
