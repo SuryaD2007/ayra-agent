@@ -71,7 +71,6 @@ export const cortexItems: CortexItem[] = [
 export const columns = [
   { id: 'title', name: 'Title', sortable: true },
   { id: 'type', name: 'Type', sortable: true },
-  { id: 'space', name: 'Space', sortable: true },
   { id: 'keywords', name: 'Tags', sortable: false },
   { id: 'createdDate', name: 'Date Added', sortable: true },
   { id: 'source', name: 'Source', sortable: true }
