@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,11 +11,12 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { Space } from '@/lib/data';
 
 interface NewSpaceModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSpaceCreated: (space: { id: string; name: string; emoji: string; visibility: string; slug: string }) => void;
+  onSpaceCreated: (space: Space) => void;
   selectedCategory?: string | null;
   onClose?: () => void;
 }
@@ -30,7 +31,9 @@ const spaceEmojis = [
 const NewSpaceModal = ({ open, onOpenChange, onSpaceCreated, selectedCategory, onClose }: NewSpaceModalProps) => {
   const [name, setName] = useState('');
   const [selectedEmoji, setSelectedEmoji] = useState('🏠');
-  const [visibility, setVisibility] = useState<string>(selectedCategory || 'private');
+  const [visibility, setVisibility] = useState<'private' | 'public'>(
+    (selectedCategory === 'private' || selectedCategory === 'public') ? selectedCategory : 'private'
+  );
   const [isCreating, setIsCreating] = useState(false);
   const [availableCategories, setAvailableCategories] = useState<any[]>([]);
 
@@ -76,19 +79,14 @@ const NewSpaceModal = ({ open, onOpenChange, onSpaceCreated, selectedCategory, o
     setIsCreating(true);
     
     try {
-      const slug = generateSlug(name);
-      const newSpace = {
-        id: `space-${Date.now()}`,
+      // Create space in database instead of localStorage
+      const { createSpace } = await import('@/lib/data');
+      
+      const newSpace = await createSpace({
         name: name.trim(),
         emoji: selectedEmoji,
         visibility,
-        slug,
-      };
-
-      // Save to localStorage (in a real app, this would be an API call)
-      const existingSpaces = JSON.parse(localStorage.getItem('custom-spaces') || '[]');
-      const updatedSpaces = [...existingSpaces, newSpace];
-      localStorage.setItem('custom-spaces', JSON.stringify(updatedSpaces));
+      });
 
       onSpaceCreated(newSpace);
       
@@ -97,13 +95,14 @@ const NewSpaceModal = ({ open, onOpenChange, onSpaceCreated, selectedCategory, o
       // Reset form
       setName('');
       setSelectedEmoji('🏠');
-      setVisibility(selectedCategory || 'private');
+      setVisibility((selectedCategory === 'private' || selectedCategory === 'public') ? selectedCategory : 'private');
       if (onClose) {
         onClose();
       } else {
         onOpenChange(false);
       }
     } catch (error) {
+      console.error('Error creating space:', error);
       toast.error('Failed to create space. Please try again.');
     } finally {
       setIsCreating(false);
@@ -113,7 +112,7 @@ const NewSpaceModal = ({ open, onOpenChange, onSpaceCreated, selectedCategory, o
   const handleClose = () => {
     setName('');
     setSelectedEmoji('🏠');
-    setVisibility(selectedCategory || 'private');
+      setVisibility((selectedCategory === 'private' || selectedCategory === 'public') ? selectedCategory : 'private');
     if (onClose) {
       onClose();
     } else {
@@ -164,16 +163,13 @@ const NewSpaceModal = ({ open, onOpenChange, onSpaceCreated, selectedCategory, o
           {/* Visibility Select */}
           <div className="space-y-2">
             <Label htmlFor="visibility">Visibility</Label>
-            <Select value={visibility} onValueChange={(value) => setVisibility(value)}>
+            <Select value={visibility} onValueChange={(value) => setVisibility(value as 'private' | 'public')}>
               <SelectTrigger>
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent>
-                {availableCategories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.emoji} {category.name}
-                  </SelectItem>
-                ))}
+                <SelectItem value="private">🔒 Private</SelectItem>
+                <SelectItem value="public">🔗 Public</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -185,7 +181,7 @@ const NewSpaceModal = ({ open, onOpenChange, onSpaceCreated, selectedCategory, o
               <span className="text-lg">{selectedEmoji}</span>
               <span className="font-medium">{name || 'Space Name'}</span>
               <span className="text-xs text-muted-foreground">
-                • {availableCategories.find(cat => cat.id === visibility)?.name || 'Unknown'}
+                • {visibility === 'private' ? 'Private' : 'Public'}
               </span>
             </div>
           </div>

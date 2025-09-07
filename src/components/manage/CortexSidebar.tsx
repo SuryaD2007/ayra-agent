@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { Space, DataCache } from '@/lib/data';
 import NewSpaceModal from './NewSpaceModal';
 import NewItemModal from './NewItemModal';
 import NewCategoryModal from './NewCategoryModal';
@@ -90,9 +91,7 @@ const CortexSidebar = ({
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [privateLockDialogOpen, setPrivateLockDialogOpen] = useState(false);
   
-  console.log('CortexSidebar rendering, about to call usePrivateLock');
   const { isPrivateUnlocked, lockPrivate } = usePrivateLock();
-  console.log('CortexSidebar successfully got usePrivateLock result');
 
   // Load spaces from Supabase and categories from localStorage
   useEffect(() => {
@@ -219,10 +218,23 @@ const CortexSidebar = ({
     onCortexSelect(categoryId, itemId, spaceSlug);
   };
 
-  const handleSpaceCreated = (space: CustomSpace) => {
-    setCustomSpaces(prev => [...prev, space]);
-    // Route to the new space
+  const handleSpaceCreated = (space: Space) => {
+    // Convert Space to CustomSpace format for the UI
+    const customSpace: CustomSpace = {
+      id: space.id,
+      name: space.name,
+      emoji: space.emoji || '📁',
+      visibility: space.visibility,
+      slug: space.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+    };
+    
+    setCustomSpaces(prev => [...prev, customSpace]);
+    
+    // Navigate to the new space
     onCortexSelect(space.visibility, space.id);
+    
+    // Clear cache to ensure fresh data loads
+    DataCache.clear();
   };
 
   const handleCategoryCreated = (category: CustomCategory) => {
