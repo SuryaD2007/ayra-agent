@@ -280,7 +280,7 @@ const SearchPage = () => {
             )}
 
             <AnimatedTransition show={showContent} animation="slide-up">
-              <div className="flex-1 flex flex-col">
+              <div className="flex-1 flex flex-col pb-32">
                 {/* Chat Messages Area - takes up most space when empty */}
                 <div className="flex-1 flex flex-col justify-center items-center px-6">
                   {messages.length === 0 ? (
@@ -315,7 +315,7 @@ const SearchPage = () => {
                 </div>
                 
                 {/* Fixed bottom search input */}
-                <div className="p-6 border-t">
+                <div className="fixed bottom-0 left-0 right-0 p-6 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t">
                   <form
                     onSubmit={(e) => {
                       e.preventDefault();
