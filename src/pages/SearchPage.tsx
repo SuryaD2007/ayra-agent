@@ -1,18 +1,34 @@
-import React, { useState } from 'react';
-import { Search as SearchIcon } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AnimatedTransition } from '@/components/AnimatedTransition';
 import { useAnimateIn } from '@/lib/animations';
-import { ChatSidebar, ChatMessages, ChatInput } from '@/components/search';
+import { cn } from '@/lib/utils';
 import AuthGuard from '@/components/auth/AuthGuard';
 import InlineError from '@/components/auth/InlineError';
 import AuthModal from '@/components/AuthModal';
+
+// Import new modular components
+import { ChatSidebar } from '@/components/search/ChatSidebar';
+import { ChatHeader } from '@/components/search/ChatHeader';
+import { MessageList } from '@/components/search/MessageList';
+import { Composer } from '@/components/search/Composer';
+import { RightPane } from '@/components/search/RightPane';
+import { ContextChips } from '@/components/search/ContextChips';
 
 interface Message {
   id: string;
   content: string;
   sender: 'user' | 'ai';
   timestamp: Date;
+  sources?: Array<{
+    id: string;
+    title: string;
+    domain: string;
+    favicon?: string;
+  }>;
+  isStreaming?: boolean;
 }
 
 interface Chat {
@@ -22,12 +38,27 @@ interface Chat {
   createdAt: Date;
 }
 
+interface ContextItem {
+  id: string;
+  title: string;
+  type: string;
+  isPdf?: boolean;
+  hasExtractedText?: boolean;
+}
+
 const SearchPage = () => {
   const showContent = useAnimateIn(false, 300);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  
+  // UI State
   const [authError, setAuthError] = useState<string | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [rightPaneOpen, setRightPaneOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   
-  // Chat state management
+  // Chat State (preserve existing functionality)
   const [chats, setChats] = useState<Chat[]>([
     {
       id: '1',
@@ -36,12 +67,61 @@ const SearchPage = () => {
       createdAt: new Date()
     }
   ]);
-  const [activeChat, setActiveChat] = useState<string>('1');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  
+  // Get active chat from URL or default to first chat
+  const chatId = searchParams.get('chat') || '1';
+  const [activeChat, setActiveChat] = useState<string>(chatId);
+  
+  // Context items from URL itemId parameter
+  const itemId = searchParams.get('itemId');
+  const [contextItems, setContextItems] = useState<ContextItem[]>([]);
+  
+  // Responsive handling
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+      if (window.innerWidth < 768) {
+        setSidebarOpen(false);
+      } else {
+        setSidebarOpen(true);
+      }
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Handle itemId from URL parameters
+  useEffect(() => {
+    if (itemId) {
+      // Mock context item - in real app, fetch from Supabase
+      const mockContextItem: ContextItem = {
+        id: itemId,
+        title: 'Sample Document',
+        type: 'PDF',
+        isPdf: true,
+        hasExtractedText: false
+      };
+      setContextItems([mockContextItem]);
+    } else {
+      setContextItems([]);
+    }
+  }, [itemId]);
+
+  // Update URL when chat changes
+  useEffect(() => {
+    if (activeChat !== chatId) {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set('chat', activeChat);
+      setSearchParams(newParams);
+    }
+  }, [activeChat, chatId, searchParams, setSearchParams]);
 
   const currentChat = chats.find(chat => chat.id === activeChat);
   const messages = currentChat?.messages || [];
 
+  // Chat Management Functions (preserve existing functionality)
   const createNewChat = () => {
     const newChat: Chat = {
       id: Date.now().toString(),
@@ -59,7 +139,6 @@ const SearchPage = () => {
       if (activeChat === chatId && filtered.length > 0) {
         setActiveChat(filtered[0].id);
       } else if (filtered.length === 0) {
-        // Create a new chat if all are deleted
         const newChat: Chat = {
           id: Date.now().toString(),
           title: 'New Chat',
@@ -106,13 +185,21 @@ const SearchPage = () => {
       return chat;
     }));
 
-    // Simulate AI response after delay
+    // Simulate AI response with streaming
     setTimeout(() => {
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
         content: `Based on your search for '${content}', I found several relevant notes in your second brain. Would you like me to summarize the key insights?`,
         sender: 'ai',
         timestamp: new Date(),
+        sources: [
+          {
+            id: '1',
+            title: 'Machine Learning Fundamentals',
+            domain: 'example.com',
+            favicon: '/favicon.ico'
+          }
+        ]
       };
 
       setChats(prev => prev.map(chat => 
@@ -123,23 +210,64 @@ const SearchPage = () => {
     }, 800);
   };
 
-  const handleSuggestionClick = (suggestion: string) => {
-    sendMessage(suggestion);
+  // Context Management
+  const removeContext = (itemId: string) => {
+    setContextItems(prev => prev.filter(item => item.id !== itemId));
+    // Also remove from URL
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete('itemId');
+    setSearchParams(newParams);
   };
+
+  const backToLibrary = (itemId: string) => {
+    navigate(`/manage?itemId=${itemId}`);
+  };
+
+  // Right Pane Management
+  const mockSources = messages
+    .filter(m => m.sender === 'ai' && m.sources)
+    .flatMap(m => m.sources?.map(s => ({ ...s, messageId: m.id, url: `https://${s.domain}` })) || []);
 
   const getHeaderTitle = () => {
     if (currentChat && currentChat.messages.length > 0) {
       return currentChat.title;
     }
-    return "Universal Search";
+    return "New Chat";
   };
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyboard = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      if (e.key === 'n') {
+        e.preventDefault();
+        createNewChat();
+      }
+      if (e.key === 'Escape') {
+        setRightPaneOpen(false);
+        if (isMobile) {
+          setSidebarOpen(false);
+        }
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        // Focus search in sidebar (could be implemented)
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyboard);
+    return () => document.removeEventListener('keydown', handleKeyboard);
+  }, [isMobile]);
 
   return (
     <AuthGuard 
       title="Search your knowledge"
       description="Sign in to search through your notes, documents, and saved content."
     >
-      <div className="h-screen flex overflow-hidden">
+      <div className="h-screen flex overflow-hidden bg-background">
         {authError && (
           <div className="absolute top-4 left-4 right-4 z-50">
             <InlineError 
@@ -150,7 +278,32 @@ const SearchPage = () => {
         )}
 
         <AnimatedTransition show={showContent} animation="fade">
-          {/* Sidebar */}
+          {/* Mobile Header */}
+          {isMobile && (
+            <div className="absolute top-0 left-0 right-0 z-40 h-14 bg-background border-b border-border/50 flex items-center px-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="mr-3"
+              >
+                <Menu className="w-4 h-4" />
+              </Button>
+              <h1 className="font-semibold text-sm truncate">
+                {getHeaderTitle()}
+              </h1>
+            </div>
+          )}
+
+          {/* Mobile Overlay */}
+          {isMobile && sidebarOpen && (
+            <div 
+              className="absolute inset-0 bg-black/20 z-30"
+              onClick={() => setSidebarOpen(false)}
+            />
+          )}
+
+          {/* Left Sidebar */}
           <ChatSidebar
             isOpen={sidebarOpen}
             chats={chats}
@@ -159,35 +312,61 @@ const SearchPage = () => {
             onSelectChat={setActiveChat}
             onEditChat={editChat}
             onDeleteChat={deleteChat}
+            isMobile={isMobile}
+            onToggle={() => setSidebarOpen(!sidebarOpen)}
           />
 
-          {/* Main Chat Area */}
-          <div className="flex-1 flex flex-col min-w-0">
-            {/* Header */}
-            <header className="h-16 flex items-center gap-4 px-6 border-b border-border/50">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="flex-shrink-0"
-              >
-                <SearchIcon className="w-4 h-4" />
-              </Button>
-              <h1 className="text-lg font-semibold truncate">
-                {getHeaderTitle()}
-              </h1>
-            </header>
+          {/* Main Content Area */}
+          <div className={cn(
+            "flex-1 flex flex-col min-w-0",
+            isMobile && "mt-14"
+          )}>
+            {/* Chat Header - only show on desktop */}
+            {!isMobile && (
+              <ChatHeader
+                chatTitle={getHeaderTitle()}
+                contextItems={contextItems}
+                onRemoveContext={removeContext}
+                onToggleRightPane={() => setRightPaneOpen(!rightPaneOpen)}
+                isRightPaneOpen={rightPaneOpen}
+                onBackToLibrary={backToLibrary}
+              />
+            )}
+
+            {/* Context Chips - mobile version */}
+            {isMobile && contextItems.length > 0 && (
+              <div className="p-4 border-b border-border/50">
+                <ContextChips
+                  items={contextItems}
+                  onRemoveItem={removeContext}
+                  onBackToLibrary={backToLibrary}
+                />
+              </div>
+            )}
 
             {/* Messages Area */}
-            <ChatMessages
+            <MessageList
               messages={messages}
-              showSuggestions={messages.length > 0}
-              onSuggestionClick={handleSuggestionClick}
+              onSourceClick={(messageId, sourceId) => {
+                setRightPaneOpen(true);
+                // Could scroll to specific source
+              }}
+              className="flex-1"
             />
 
-            {/* Input Area */}
-            <ChatInput onSendMessage={sendMessage} />
+            {/* Composer */}
+            <Composer
+              onSendMessage={sendMessage}
+              disabled={false}
+            />
           </div>
+
+          {/* Right Pane */}
+          <RightPane
+            isOpen={rightPaneOpen && !isMobile}
+            onClose={() => setRightPaneOpen(false)}
+            sources={mockSources}
+          />
         </AnimatedTransition>
 
         <AuthModal 

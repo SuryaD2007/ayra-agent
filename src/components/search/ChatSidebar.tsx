@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { PlusCircle, Search, Edit3, Trash2 } from 'lucide-react';
+import { Plus, Search, Edit3, Trash2, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 interface Chat {
   id: string;
@@ -19,6 +20,8 @@ interface ChatSidebarProps {
   onSelectChat: (chatId: string) => void;
   onEditChat: (chatId: string, newTitle: string) => void;
   onDeleteChat: (chatId: string) => void;
+  isMobile?: boolean;
+  onToggle?: () => void;
 }
 
 export const ChatSidebar: React.FC<ChatSidebarProps> = ({
@@ -28,10 +31,13 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onNewChat,
   onSelectChat,
   onEditChat,
-  onDeleteChat
+  onDeleteChat,
+  isMobile = false,
+  onToggle
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
+  const { toast } = useToast();
 
   const startEdit = (chat: Chat) => {
     setEditingId(chat.id);
@@ -40,7 +46,16 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
 
   const saveEdit = () => {
     if (editingId && editTitle.trim()) {
-      onEditChat(editingId, editTitle.trim());
+      const trimmedTitle = editTitle.trim();
+      if (trimmedTitle.length >= 1 && trimmedTitle.length <= 80) {
+        onEditChat(editingId, trimmedTitle);
+      } else {
+        toast({
+          title: "Invalid title",
+          description: "Chat title must be between 1 and 80 characters",
+          variant: "destructive",
+        });
+      }
     }
     setEditingId(null);
   };
@@ -82,17 +97,30 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
 
   return (
     <div className={cn(
-      "bg-muted/30 border-r border-border/50 flex flex-col transition-all duration-300",
-      isOpen ? "w-64" : "w-0 overflow-hidden"
+      "bg-background border-r border-border/50 flex flex-col transition-all duration-300",
+      isOpen ? "w-80" : "w-0 overflow-hidden"
     )}>
       {/* Header */}
       <div className="p-4 border-b border-border/50">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-semibold text-sm text-foreground">Conversations</h2>
+          {isMobile && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onToggle}
+              className="h-6 w-6 p-0"
+            >
+              <Menu className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
         <Button
           variant="outline"
-          className="w-full justify-start"
+          className="w-full justify-start bg-background hover:bg-accent"
           onClick={onNewChat}
         >
-          <PlusCircle className="mr-2 h-4 w-4" />
+          <Plus className="mr-2 h-4 w-4" />
           New Chat
         </Button>
       </div>
@@ -119,7 +147,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     )}
                     onClick={() => onSelectChat(chat.id)}
                   >
-                    <Search className="h-4 w-4 flex-shrink-0" />
+                    <Search className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
                     
                     {editingId === chat.id ? (
                       <Input
@@ -130,20 +158,20 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                           if (e.key === 'Escape') cancelEdit();
                         }}
                         onBlur={saveEdit}
-                        className="h-6 text-xs"
+                        className="h-7 text-sm border-0 bg-transparent p-0 focus-visible:ring-1 focus-visible:ring-primary"
                         autoFocus
                       />
                     ) : (
-                      <span className="flex-1 text-sm truncate">
+                      <span className="flex-1 text-sm truncate font-medium">
                         {chat.title}
                       </span>
                     )}
 
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 ml-auto">
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-6 w-6 p-0"
+                        className="h-7 w-7 p-0 hover:bg-accent"
                         onClick={(e) => {
                           e.stopPropagation();
                           startEdit(chat);
@@ -154,7 +182,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                        className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                         onClick={(e) => {
                           e.stopPropagation();
                           onDeleteChat(chat.id);
