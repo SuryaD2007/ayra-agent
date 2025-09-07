@@ -56,12 +56,34 @@ const TableView = ({
   const [tempTitle, setTempTitle] = useState('');
   const [previewItem, setPreviewItem] = useState<CortexItem | null>(null);
   const [newTag, setNewTag] = useState<{ [key: string]: string }>({});
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   
   const parentRef = useRef<HTMLDivElement>(null);
+
+  // Sort items based on current sort configuration
+  const sortedItems = useMemo(() => {
+    if (!sortColumn) return items;
+    
+    return [...items].sort((a, b) => {
+      let aValue: string;
+      let bValue: string;
+      
+      if (sortColumn === 'title') {
+        aValue = a.title.toLowerCase();
+        bValue = b.title.toLowerCase();
+      } else {
+        return 0;
+      }
+      
+      const comparison = aValue.localeCompare(bValue);
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [items, sortColumn, sortDirection]);
   
   // Virtualization setup
   const rowVirtualizer = useVirtualizer({
-    count: items.length,
+    count: sortedItems.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 60, // Estimated row height
     overscan: 5,
@@ -122,6 +144,15 @@ const TableView = ({
       onUpdateItem(itemId, { 
         keywords: item.keywords.filter(tag => tag !== tagToRemove) 
       });
+    }
+  };
+
+  const handleSort = (columnId: string) => {
+    if (sortColumn === columnId) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(columnId);
+      setSortDirection('asc');
     }
   };
 
@@ -350,7 +381,12 @@ const TableView = ({
                     <div className="flex items-center">
                       {column.name}
                       {column.sortable && (
-                        <Button variant="ghost" size="sm" className="ml-1 h-6 w-6 p-0">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="ml-1 h-6 w-6 p-0"
+                          onClick={() => handleSort(column.id)}
+                        >
                           <ArrowUpDown size={14} />
                         </Button>
                       )}
@@ -368,7 +404,7 @@ const TableView = ({
                 }}
               >
                 {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                  const item = items[virtualRow.index];
+                  const item = sortedItems[virtualRow.index];
                   return renderTableRow(item, virtualRow.index, virtualRow);
                 })}
               </div>
@@ -385,7 +421,12 @@ const TableView = ({
                   <div className="flex items-center">
                     {column.name}
                     {column.sortable && (
-                      <Button variant="ghost" size="sm" className="ml-1 h-6 w-6 p-0">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="ml-1 h-6 w-6 p-0"
+                        onClick={() => handleSort(column.id)}
+                      >
                         <ArrowUpDown size={14} />
                       </Button>
                     )}
@@ -395,7 +436,7 @@ const TableView = ({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {items.map((item, index) => renderTableRow(item, index))}
+            {sortedItems.map((item, index) => renderTableRow(item, index))}
           </TableBody>
         </Table>
       )}
