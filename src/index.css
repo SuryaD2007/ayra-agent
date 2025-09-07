@@ -98,7 +98,5 @@
   50% {
     opacity: 0.7;
     transform: scale(0.95);
-/* Add glass panel utility */
-.glass-panel {
-  @apply bg-background/50 backdrop-blur-sm border border-border/50;
+  }
 }
