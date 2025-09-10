@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Folder, Share, Users, Lock, Plus, Move, Building, Globe, Trash2, MoreHorizontal, Unlock, GripVertical } from 'lucide-react';
+import { Folder, Share, Users, Lock, Plus, Move, Building, Globe, Trash2, MoreHorizontal, Unlock, GripVertical, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -94,6 +94,7 @@ const CortexSidebar = ({
   const [dragOverTarget, setDragOverTarget] = useState<{ type: 'space' | 'category', id: string, position?: 'above' | 'below' } | null>(null);
   const [spaceOrder, setSpaceOrder] = useState<{ [categoryId: string]: string[] }>({});
   const [categoryOrder, setCategoryOrder] = useState<string[]>([]);
+  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
   
   const { isPrivateUnlocked, lockPrivate } = usePrivateLock();
 
@@ -132,6 +133,12 @@ const CortexSidebar = ({
         } else {
           // Set default category order
           setCategoryOrder(['shared', 'team', 'private']);
+        }
+        
+        // Load collapsed categories state
+        const savedCollapsed = localStorage.getItem('collapsed-categories');
+        if (savedCollapsed) {
+          setCollapsedCategories(new Set(JSON.parse(savedCollapsed)));
         }
       } catch (error) {
         console.error('Error loading spaces:', error);
@@ -250,7 +257,23 @@ const CortexSidebar = ({
     : allCategories;
 
   const handleCategoryClick = (categoryId: string) => {
-    // When clicking a category header, open new space modal for that category
+    // Toggle collapsed state for the category
+    setCollapsedCategories(prev => {
+      const newCollapsed = new Set(prev);
+      if (newCollapsed.has(categoryId)) {
+        newCollapsed.delete(categoryId);
+      } else {
+        newCollapsed.add(categoryId);
+      }
+      
+      // Save to localStorage
+      localStorage.setItem('collapsed-categories', JSON.stringify(Array.from(newCollapsed)));
+      return newCollapsed;
+    });
+  };
+
+  const handleAddSpaceToCategory = (categoryId: string) => {
+    // When clicking the add button, open new space modal for that category
     setSelectedCategoryForNewSpace(categoryId);
     setNewSpaceModalOpen(true);
   };
@@ -587,7 +610,6 @@ const CortexSidebar = ({
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, 'category', category.id)}
               onDragEnd={handleDragEnd}
-              onClick={() => handleCategoryClick(category.id)}
             >
               {/* Drop indicator lines */}
               {dragOverTarget?.type === 'category' && dragOverTarget.id === category.id && dragOverTarget.position === 'above' && (
@@ -596,8 +618,14 @@ const CortexSidebar = ({
               {dragOverTarget?.type === 'category' && dragOverTarget.id === category.id && dragOverTarget.position === 'below' && (
                 <div className="absolute -bottom-px left-4 right-4 h-0.5 bg-primary rounded-full" />
               )}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2" onClick={() => handleCategoryClick(category.id)}>
                 <GripVertical size={14} className="text-muted-foreground" />
+                {/* Collapse/Expand Icon */}
+                {collapsedCategories.has(category.id) ? (
+                  <ChevronRight size={14} className="text-muted-foreground transition-transform" />
+                ) : (
+                  <ChevronDown size={14} className="text-muted-foreground transition-transform" />
+                )}
                 {category.icon}
                 <span>{category.name}</span>
                 {/* Private lock/unlock indicator */}
@@ -650,7 +678,7 @@ const CortexSidebar = ({
                       variant="ghost"
                       size="sm"
                       className="w-full justify-start"
-                      onClick={() => handleNewSpace(category.id)}
+                      onClick={() => handleAddSpaceToCategory(category.id)}
                     >
                       <Plus size={14} className="mr-2" />
                       New Space
@@ -669,8 +697,14 @@ const CortexSidebar = ({
               </Popover>
             </div>
             
-            <div className="mt-1">
-              {category.items.map((item, index) => {                
+            {/* Collapsible Items Section */}
+            <div 
+              className={cn(
+                "mt-1 overflow-hidden transition-all duration-300 ease-out",
+                collapsedCategories.has(category.id) ? "max-h-0 opacity-0" : "max-h-[1000px] opacity-100"
+              )}
+            >
+              {category.items.map((item, index) => {
                 return (
                   <div 
                     key={`${category.id}-${item.id}-${index}`}
