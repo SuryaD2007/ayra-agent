@@ -395,7 +395,10 @@ const PreviewDrawer = ({ open, onOpenChange, item, onDelete }: PreviewDrawerProp
                 <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-2">
                   Description
                 </h3>
-                <p className="text-sm leading-relaxed">{item.description}</p>
+                <div 
+                  className="prose prose-sm max-w-none dark:prose-invert text-sm leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: item.description }}
+                />
               </CardContent>
             </Card>
           )}
