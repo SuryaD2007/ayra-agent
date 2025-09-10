@@ -388,20 +388,6 @@ const PreviewDrawer = ({ open, onOpenChange, item, onDelete }: PreviewDrawerProp
 
         {/* Content Section */}
         <div className="p-6 space-y-6">
-          {/* Description */}
-          {item.description && (
-            <Card>
-              <CardContent className="p-4">
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-                  Description
-                </h3>
-                <div 
-                  className="prose prose-sm max-w-none dark:prose-invert text-sm leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: item.description }}
-                />
-              </CardContent>
-            </Card>
-          )}
 
           {/* Content based on type */}
           {item.type === 'PDF' && (
