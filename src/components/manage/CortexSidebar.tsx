@@ -680,19 +680,24 @@ const CortexSidebar = ({
               
               {/* Collapsible Items Section */}
               <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
-                <div className="mt-1">
+                <div className="mt-1 space-y-0.5">
                   {category.items.map((item, index) => {
                     return (
                       <div 
                         key={`${category.id}-${item.id}-${index}`}
                         className={cn(
-                          "flex items-center justify-between px-6 py-2 text-sm cursor-pointer group relative",
+                          "flex items-center justify-between px-6 py-2 text-sm cursor-pointer group relative transition-all duration-300 ease-out-expo transform",
+                          "opacity-0 translate-y-2 animate-fade-in rounded-md mx-2",
                           selectedCategoryId === category.id && selectedItemId === item.id
-                            ? "bg-primary/10 text-primary" 
-                            : "hover:bg-muted/50 text-foreground/80",
-                          draggedItem?.id === item.id ? "opacity-50" : "",
-                          dragOverTarget?.type === 'space' && dragOverTarget.id === item.id ? "bg-primary/10" : ""
+                            ? "bg-primary/15 text-primary shadow-sm scale-[1.02] translate-x-1" 
+                            : "hover:bg-muted/70 text-foreground/80 hover:translate-x-2 hover:scale-[1.01] hover:shadow-sm",
+                          draggedItem?.id === item.id ? "opacity-50 scale-95" : "",
+                          dragOverTarget?.type === 'space' && dragOverTarget.id === item.id ? "bg-primary/20 scale-[1.02]" : ""
                         )}
+                        style={{
+                          animationDelay: `${index * 75}ms`,
+                          animationFillMode: 'forwards'
+                        }}
                         draggable={item.isDeletable !== false}
                         onDragStart={(e) => item.isDeletable !== false && handleDragStart(e, 'space', item.id, category.id)}
                         onDragOver={(e) => handleDragOver(e, 'space', item.id)}
@@ -703,18 +708,18 @@ const CortexSidebar = ({
                       >
                         {/* Drop indicator lines */}
                         {dragOverTarget?.type === 'space' && dragOverTarget.id === item.id && dragOverTarget.position === 'above' && (
-                          <div className="absolute -top-px left-6 right-6 h-0.5 bg-primary rounded-full" />
+                          <div className="absolute -top-px left-6 right-6 h-0.5 bg-primary rounded-full animate-scale-in" />
                         )}
                         {dragOverTarget?.type === 'space' && dragOverTarget.id === item.id && dragOverTarget.position === 'below' && (
-                          <div className="absolute -bottom-px left-6 right-6 h-0.5 bg-primary rounded-full" />
+                          <div className="absolute -bottom-px left-6 right-6 h-0.5 bg-primary rounded-full animate-scale-in" />
                         )}
                         <div className="flex items-center gap-2 flex-1">
                           {item.isDeletable !== false && (
-                            <GripVertical size={12} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <GripVertical size={12} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-all duration-300 ease-out-expo group-hover:scale-110 transform group-hover:rotate-90" />
                           )}
-                          {item.emoji && <span className="text-sm">{item.emoji}</span>}
+                          {item.emoji && <span className="text-sm transition-transform duration-200 ease-out-expo group-hover:scale-125">{item.emoji}</span>}
                           <span className={cn(
-                            "flex-1",
+                            "flex-1 transition-all duration-200 ease-out-expo",
                             category.id === 'private' && item.id !== 'overview' && !isPrivateUnlocked() 
                               ? "text-muted-foreground" 
                               : ""
@@ -723,41 +728,41 @@ const CortexSidebar = ({
                           </span>
                           {/* Lock indicator for private items */}
                           {category.id === 'private' && item.id !== 'overview' && !isPrivateUnlocked() && (
-                            <Lock size={12} className="text-amber-500" />
+                            <Lock size={12} className="text-amber-500 transition-transform duration-200 ease-out-expo group-hover:scale-110 animate-pulse-slow" />
                           )}
                           {/* Space count badge */}
                           {spaceCounts[item.id] !== undefined && spaceCounts[item.id] > 0 && (
-                            <Badge variant="secondary" className="text-xs px-1.5 py-0.5 h-auto">
+                            <Badge variant="secondary" className="text-xs px-1.5 py-0.5 h-auto transition-all duration-200 ease-out-expo hover:scale-110">
                               {spaceCounts[item.id]}
                             </Badge>
                           )}
                         </div>
                         
                         {/* Action Buttons */}
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-300 ease-out-expo transform translate-x-2 group-hover:translate-x-0">
                           {/* Add Item Button */}
                           <button
-                            className="p-1 rounded-full hover:bg-muted"
+                            className="p-1 rounded-full hover:bg-primary/20 transition-all duration-200 ease-out-expo hover:scale-125 transform active:scale-95"
                             onClick={(e) => {
                               e.stopPropagation();
                               handlePlusClick(category.id, item.id, true);
                             }}
                             title="Add item to space"
                           >
-                            <Plus size={12} />
+                            <Plus size={12} className="transition-transform duration-200 ease-out-expo hover:rotate-90" />
                           </button>
                           
                           {/* Delete Space Button - For all deletable spaces */}
                           {item.isDeletable !== false && (
                             <button
-                              className="p-1 rounded-full hover:bg-destructive/20 text-destructive"
+                              className="p-1 rounded-full hover:bg-destructive/20 text-destructive transition-all duration-200 ease-out-expo hover:scale-125 transform active:scale-95"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleDeleteSpace(item);
                               }}
                               title="Delete space"
                             >
-                              <Trash2 size={12} />
+                              <Trash2 size={12} className="transition-transform duration-200 ease-out-expo hover:rotate-12" />
                             </button>
                           )}
                         </div>
