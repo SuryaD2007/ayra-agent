@@ -1,7 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { Folder, Share, Users, Lock, Plus, Move, Building, Globe, Trash2, MoreHorizontal, Unlock, GripVertical, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
 import {
   Popover,
@@ -156,6 +156,7 @@ const CortexSidebar = ({
 
     loadData();
   }, []);
+
   // Get icon component by name
   const getIconComponent = (iconName: string) => {
     const iconMap: { [key: string]: any } = {
@@ -500,52 +501,23 @@ const CortexSidebar = ({
         const draggedIndex = newOrder.indexOf(draggedItem.id);
         const targetIndex = newOrder.indexOf(targetId);
         
-        if (draggedIndex === -1 || targetIndex === -1) return prev;
-        
-        // Remove dragged item
-        newOrder.splice(draggedIndex, 1);
-        
-        // Recalculate target index after removal
-        const newTargetIndex = newOrder.indexOf(targetId);
-        const insertIndex = dragOverTarget?.position === 'above' ? newTargetIndex : newTargetIndex + 1;
-        newOrder.splice(insertIndex, 0, draggedItem.id);
+        if (draggedIndex !== -1 && targetIndex !== -1) {
+          // Remove dragged item
+          newOrder.splice(draggedIndex, 1);
+          
+          // Calculate new insertion position
+          const adjustedTargetIndex = draggedIndex < targetIndex ? targetIndex - 1 : targetIndex;
+          const insertIndex = dragOverTarget?.position === 'above' 
+            ? adjustedTargetIndex 
+            : adjustedTargetIndex + 1;
+          
+          // Insert at new position
+          newOrder.splice(insertIndex, 0, draggedItem.id);
+        }
         
         localStorage.setItem('category-order', JSON.stringify(newOrder));
         return newOrder;
       });
-    } else if (draggedItem.type === 'space' && targetType === 'category') {
-      // Moving space to a different category
-      const sourceCategoryId = draggedItem.categoryId!;
-      const targetCategoryId = targetId;
-      
-      if (sourceCategoryId !== targetCategoryId) {
-        // Update space order
-        setSpaceOrder(prev => {
-          const newOrder = { ...prev };
-          
-          // Remove from source category
-          const sourceArray = prev[sourceCategoryId] || getSpacesForCategory(sourceCategoryId).map(item => item.id);
-          newOrder[sourceCategoryId] = sourceArray.filter(id => id !== draggedItem.id);
-          
-          // Add to target category
-          const targetArray = prev[targetCategoryId] || getSpacesForCategory(targetCategoryId).map(item => item.id);
-          newOrder[targetCategoryId] = [...targetArray.filter(id => id !== draggedItem.id), draggedItem.id];
-          
-          localStorage.setItem('space-order', JSON.stringify(newOrder));
-          return newOrder;
-        });
-        
-        // Update the space's visibility
-        setCustomSpaces(prevSpaces => 
-          prevSpaces.map(space => 
-            space.id === draggedItem.id 
-              ? { ...space, visibility: targetCategoryId }
-              : space
-          )
-        );
-        
-        toast.success(`Space moved to ${targetCategoryId}`);
-      }
     }
     
     setDraggedItem(null);
@@ -559,237 +531,244 @@ const CortexSidebar = ({
 
   return (
     <>
-      <div className="w-60 border-r border-border/50 overflow-y-auto shrink-0">
-        {/* Add Category Button and Bulk Actions */}
-        <div className="p-4 border-b border-border/50">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1 justify-start"
-              onClick={handleNewCategory}
-            >
-              <Plus size={14} className="mr-2" />
-              Add Category
-            </Button>
-            
-            {/* Bulk Actions Menu */}
-            {(customSpaces.length > 0 || categories.some(cat => cat.items.some(item => item.isDeletable !== false))) && (
+      <div className="h-full flex flex-col">
+        {/* Header */}
+        <div className="px-4 py-3 border-b border-border">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Cortex</h2>
+            <div className="flex gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="px-2">
-                    <MoreHorizontal size={14} />
-                  </Button>
+                  <button className="p-1.5 rounded-lg hover:bg-muted">
+                    <Plus size={16} />
+                  </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    onClick={handleBulkDeleteSpaces}
-                    className="text-destructive focus:text-destructive"
-                  >
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => setNewSpaceModalOpen(true)}>
+                    <Plus size={14} className="mr-2" />
+                    New Space
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setNewItemModalOpen(true)}>
+                    <Plus size={14} className="mr-2" />
+                    New Item
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setNewCategoryModalOpen(true)}>
+                    <Plus size={14} className="mr-2" />
+                    New Category
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleBulkDeleteSpaces} className="text-destructive">
                     <Trash2 size={14} className="mr-2" />
                     Delete All Spaces
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            )}
+            </div>
           </div>
         </div>
 
-        {categories.map((category) => (
-          <div key={category.id} className="mb-6">
-            <div 
-              className={cn(
-                "flex items-center justify-between px-4 py-2 text-sm font-medium cursor-pointer relative",
-                selectedCategoryId === category.id && !selectedItemId ? "text-primary" : "text-foreground/80",
-                draggedItem?.id === category.id ? "opacity-50" : "",
-                dragOverTarget?.type === 'category' && dragOverTarget.id === category.id ? "bg-primary/10" : ""
-              )}
-              draggable
-              onDragStart={(e) => handleDragStart(e, 'category', category.id)}
-              onDragOver={(e) => handleDragOver(e, 'category', category.id)}
-              onDragLeave={handleDragLeave}
-              onDrop={(e) => handleDrop(e, 'category', category.id)}
-              onDragEnd={handleDragEnd}
+        {/* Categories */}
+        <div className="flex-1 overflow-y-auto p-4">
+          {categories.map((category) => (
+            <Collapsible 
+              key={category.id} 
+              open={!collapsedCategories.has(category.id)}
+              onOpenChange={() => handleCategoryClick(category.id)}
+              className="mb-6"
             >
-              {/* Drop indicator lines */}
-              {dragOverTarget?.type === 'category' && dragOverTarget.id === category.id && dragOverTarget.position === 'above' && (
-                <div className="absolute -top-px left-4 right-4 h-0.5 bg-primary rounded-full" />
-              )}
-              {dragOverTarget?.type === 'category' && dragOverTarget.id === category.id && dragOverTarget.position === 'below' && (
-                <div className="absolute -bottom-px left-4 right-4 h-0.5 bg-primary rounded-full" />
-              )}
-              <div className="flex items-center gap-2" onClick={() => handleCategoryClick(category.id)}>
-                <GripVertical size={14} className="text-muted-foreground" />
-                {/* Collapse/Expand Icon */}
-                {collapsedCategories.has(category.id) ? (
-                  <ChevronRight size={14} className="text-muted-foreground transition-transform" />
-                ) : (
-                  <ChevronDown size={14} className="text-muted-foreground transition-transform" />
+              <div 
+                className={cn(
+                  "flex items-center justify-between px-4 py-2 text-sm font-medium cursor-pointer relative",
+                  selectedCategoryId === category.id && !selectedItemId ? "text-primary" : "text-foreground/80",
+                  draggedItem?.id === category.id ? "opacity-50" : "",
+                  dragOverTarget?.type === 'category' && dragOverTarget.id === category.id ? "bg-primary/10" : ""
                 )}
-                {category.icon}
-                <span>{category.name}</span>
-                {/* Private lock/unlock indicator */}
-                {category.id === 'private' && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (isPrivateUnlocked()) {
-                        lockPrivate();
-                        toast.success('Private items locked');
-                      } else {
-                        setPrivateLockDialogOpen(true);
-                      }
-                    }}
-                    className="p-1 rounded hover:bg-muted"
-                    title={isPrivateUnlocked() ? 'Lock private items' : 'Unlock private items'}
-                  >
-                    {isPrivateUnlocked() ? (
-                      <Unlock size={12} className="text-green-500" />
-                    ) : (
-                      <Lock size={12} className="text-amber-500" />
-                    )}
-                  </button>
-                )}
-              </div>
-              
-              {/* Category Plus Button with Popover */}
-              <Popover 
-                open={activePopover === category.id} 
-                onOpenChange={(open) => setActivePopover(open ? category.id : null)}
+                draggable
+                onDragStart={(e) => handleDragStart(e, 'category', category.id)}
+                onDragOver={(e) => handleDragOver(e, 'category', category.id)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, 'category', category.id)}
+                onDragEnd={handleDragEnd}
               >
-                <PopoverTrigger asChild>
-                  <button 
-                    className="p-1 rounded-full hover:bg-muted"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setActivePopover(activePopover === category.id ? null : category.id);
-                    }}
-                  >
-                    <Plus size={14} />
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent 
-                  className="w-48 p-2 bg-popover border border-border shadow-lg z-50" 
-                  align="start" 
-                  side="right"
-                >
-                  <div className="space-y-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full justify-start"
-                      onClick={() => handleAddSpaceToCategory(category.id)}
-                    >
-                      <Plus size={14} className="mr-2" />
-                      New Space
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full justify-start"
-                      onClick={handleNewItem}
-                    >
-                      <Plus size={14} className="mr-2" />
-                      New Item
-                    </Button>
-                  </div>
-                </PopoverContent>
-              </Popover>
-            </div>
-            
-            {/* Collapsible Items Section */}
-            <div 
-              className={cn(
-                "mt-1 overflow-hidden transition-all duration-300 ease-out",
-                collapsedCategories.has(category.id) ? "max-h-0 opacity-0" : "max-h-[1000px] opacity-100"
-              )}
-            >
-              {category.items.map((item, index) => {
-                return (
-                  <div 
-                    key={`${category.id}-${item.id}-${index}`}
-                    className={cn(
-                      "flex items-center justify-between px-6 py-2 text-sm cursor-pointer group relative",
-                      selectedCategoryId === category.id && selectedItemId === item.id
-                        ? "bg-primary/10 text-primary" 
-                        : "hover:bg-muted/50 text-foreground/80",
-                      draggedItem?.id === item.id ? "opacity-50" : "",
-                      dragOverTarget?.type === 'space' && dragOverTarget.id === item.id ? "bg-primary/10" : ""
+                {/* Drop indicator lines */}
+                {dragOverTarget?.type === 'category' && dragOverTarget.id === category.id && dragOverTarget.position === 'above' && (
+                  <div className="absolute -top-px left-4 right-4 h-0.5 bg-primary rounded-full" />
+                )}
+                {dragOverTarget?.type === 'category' && dragOverTarget.id === category.id && dragOverTarget.position === 'below' && (
+                  <div className="absolute -bottom-px left-4 right-4 h-0.5 bg-primary rounded-full" />
+                )}
+                <CollapsibleTrigger asChild>
+                  <div className="flex items-center gap-2 flex-1">
+                    <GripVertical size={14} className="text-muted-foreground" />
+                    {/* Collapse/Expand Icon */}
+                    {collapsedCategories.has(category.id) ? (
+                      <ChevronRight size={14} className="text-muted-foreground transition-transform duration-200" />
+                    ) : (
+                      <ChevronDown size={14} className="text-muted-foreground transition-transform duration-200" />
                     )}
-                    draggable={item.isDeletable !== false}
-                    onDragStart={(e) => item.isDeletable !== false && handleDragStart(e, 'space', item.id, category.id)}
-                    onDragOver={(e) => handleDragOver(e, 'space', item.id)}
-                    onDragLeave={handleDragLeave}
-                    onDrop={(e) => handleDrop(e, 'space', item.id, category.id)}
-                    onDragEnd={handleDragEnd}
-                    onClick={() => handleItemClick(category.id, item.id)}
-                  >
-                    {/* Drop indicator lines */}
-                    {dragOverTarget?.type === 'space' && dragOverTarget.id === item.id && dragOverTarget.position === 'above' && (
-                      <div className="absolute -top-px left-6 right-6 h-0.5 bg-primary rounded-full" />
-                    )}
-                    {dragOverTarget?.type === 'space' && dragOverTarget.id === item.id && dragOverTarget.position === 'below' && (
-                      <div className="absolute -bottom-px left-6 right-6 h-0.5 bg-primary rounded-full" />
-                    )}
-                    <div className="flex items-center gap-2 flex-1">
-                      {item.isDeletable !== false && (
-                        <GripVertical size={12} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                      )}
-                      {item.emoji && <span className="text-sm">{item.emoji}</span>}
-                      <span className={cn(
-                        "flex-1",
-                        category.id === 'private' && item.id !== 'overview' && !isPrivateUnlocked() 
-                          ? "text-muted-foreground" 
-                          : ""
-                      )}>
-                        {item.name}
-                      </span>
-                      {/* Lock indicator for private items */}
-                      {category.id === 'private' && item.id !== 'overview' && !isPrivateUnlocked() && (
-                        <Lock size={12} className="text-amber-500" />
-                      )}
-                      {/* Space count badge */}
-                      {spaceCounts[item.id] !== undefined && spaceCounts[item.id] > 0 && (
-                        <Badge variant="secondary" className="text-xs px-1.5 py-0.5 h-auto">
-                          {spaceCounts[item.id]}
-                        </Badge>
-                      )}
-                    </div>
-                    
-                    {/* Action Buttons */}
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {/* Add Item Button */}
+                    {category.icon}
+                    <span>{category.name}</span>
+                    {/* Private lock/unlock indicator */}
+                    {category.id === 'private' && (
                       <button
-                        className="p-1 rounded-full hover:bg-muted"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handlePlusClick(category.id, item.id, true);
+                          if (isPrivateUnlocked()) {
+                            lockPrivate();
+                            toast.success('Private items locked');
+                          } else {
+                            setPrivateLockDialogOpen(true);
+                          }
                         }}
-                        title="Add item to space"
+                        className="p-1 rounded hover:bg-muted"
+                        title={isPrivateUnlocked() ? 'Lock private items' : 'Unlock private items'}
                       >
-                        <Plus size={12} />
+                        {isPrivateUnlocked() ? (
+                          <Unlock size={12} className="text-green-500" />
+                        ) : (
+                          <Lock size={12} className="text-amber-500" />
+                        )}
                       </button>
-                      
-                      {/* Delete Space Button - For all deletable spaces */}
-                      {item.isDeletable !== false && (
-                        <button
-                          className="p-1 rounded-full hover:bg-destructive/20 text-destructive"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteSpace(item);
-                          }}
-                          title="Delete space"
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      )}
-                    </div>
+                    )}
                   </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+                </CollapsibleTrigger>
+                
+                {/* Category Plus Button with Popover */}
+                <Popover 
+                  open={activePopover === category.id} 
+                  onOpenChange={(open) => setActivePopover(open ? category.id : null)}
+                >
+                  <PopoverTrigger asChild>
+                    <button 
+                      className="p-1 rounded-full hover:bg-muted"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActivePopover(activePopover === category.id ? null : category.id);
+                      }}
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent 
+                    className="w-48 p-2 bg-popover border border-border shadow-lg z-50" 
+                    align="start" 
+                    side="right"
+                  >
+                    <div className="space-y-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start"
+                        onClick={() => handleAddSpaceToCategory(category.id)}
+                      >
+                        <Plus size={14} className="mr-2" />
+                        New Space
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start"
+                        onClick={handleNewItem}
+                      >
+                        <Plus size={14} className="mr-2" />
+                        New Item
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              
+              {/* Collapsible Items Section */}
+              <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+                <div className="mt-1">
+                  {category.items.map((item, index) => {
+                    return (
+                      <div 
+                        key={`${category.id}-${item.id}-${index}`}
+                        className={cn(
+                          "flex items-center justify-between px-6 py-2 text-sm cursor-pointer group relative",
+                          selectedCategoryId === category.id && selectedItemId === item.id
+                            ? "bg-primary/10 text-primary" 
+                            : "hover:bg-muted/50 text-foreground/80",
+                          draggedItem?.id === item.id ? "opacity-50" : "",
+                          dragOverTarget?.type === 'space' && dragOverTarget.id === item.id ? "bg-primary/10" : ""
+                        )}
+                        draggable={item.isDeletable !== false}
+                        onDragStart={(e) => item.isDeletable !== false && handleDragStart(e, 'space', item.id, category.id)}
+                        onDragOver={(e) => handleDragOver(e, 'space', item.id)}
+                        onDragLeave={handleDragLeave}
+                        onDrop={(e) => handleDrop(e, 'space', item.id, category.id)}
+                        onDragEnd={handleDragEnd}
+                        onClick={() => handleItemClick(category.id, item.id)}
+                      >
+                        {/* Drop indicator lines */}
+                        {dragOverTarget?.type === 'space' && dragOverTarget.id === item.id && dragOverTarget.position === 'above' && (
+                          <div className="absolute -top-px left-6 right-6 h-0.5 bg-primary rounded-full" />
+                        )}
+                        {dragOverTarget?.type === 'space' && dragOverTarget.id === item.id && dragOverTarget.position === 'below' && (
+                          <div className="absolute -bottom-px left-6 right-6 h-0.5 bg-primary rounded-full" />
+                        )}
+                        <div className="flex items-center gap-2 flex-1">
+                          {item.isDeletable !== false && (
+                            <GripVertical size={12} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                          )}
+                          {item.emoji && <span className="text-sm">{item.emoji}</span>}
+                          <span className={cn(
+                            "flex-1",
+                            category.id === 'private' && item.id !== 'overview' && !isPrivateUnlocked() 
+                              ? "text-muted-foreground" 
+                              : ""
+                          )}>
+                            {item.name}
+                          </span>
+                          {/* Lock indicator for private items */}
+                          {category.id === 'private' && item.id !== 'overview' && !isPrivateUnlocked() && (
+                            <Lock size={12} className="text-amber-500" />
+                          )}
+                          {/* Space count badge */}
+                          {spaceCounts[item.id] !== undefined && spaceCounts[item.id] > 0 && (
+                            <Badge variant="secondary" className="text-xs px-1.5 py-0.5 h-auto">
+                              {spaceCounts[item.id]}
+                            </Badge>
+                          )}
+                        </div>
+                        
+                        {/* Action Buttons */}
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {/* Add Item Button */}
+                          <button
+                            className="p-1 rounded-full hover:bg-muted"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePlusClick(category.id, item.id, true);
+                            }}
+                            title="Add item to space"
+                          >
+                            <Plus size={12} />
+                          </button>
+                          
+                          {/* Delete Space Button - For all deletable spaces */}
+                          {item.isDeletable !== false && (
+                            <button
+                              className="p-1 rounded-full hover:bg-destructive/20 text-destructive"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteSpace(item);
+                              }}
+                              title="Delete space"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          ))}
+        </div>
       </div>
 
       {/* New Space Modal */}
@@ -875,18 +854,6 @@ const CortexSidebar = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Private Lock Dialog */}
-      <PrivateLockDialog
-        open={privateLockDialogOpen}
-        onOpenChange={setPrivateLockDialogOpen}
-        onUnlocked={() => {
-          // Re-trigger the item click after unlocking
-          if (selectedCategoryId === 'private' && selectedItemId) {
-            onCortexSelect(selectedCategoryId, selectedItemId);
-          }
-        }}
-      />
     </>
   );
 };
