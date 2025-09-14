@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Chat, ChatMessage } from '@/types/chat';
 import { generateId, createNewChat as createNewChatUtil } from '@/utils/chatUtils';
 import { CortexItem } from '@/components/manage/cortex-data';
-import ChatSidebar from './ChatSidebar';
+import ChatGPTSidebar from './ChatGPTSidebar';
 import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
 import { cn } from '@/lib/utils';
@@ -345,7 +345,7 @@ export const Search: React.FC<SearchProps> = ({ itemId }) => {
       )}
       
       {/* Sidebar with chat history */}
-      <ChatSidebar 
+      <ChatGPTSidebar 
         chats={chats}
         activeChat={activeChat}
         setActiveChat={setActiveChat}
