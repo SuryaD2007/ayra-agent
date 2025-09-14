@@ -16,6 +16,7 @@ import { toast } from '@/hooks/use-toast';
 import { EnhancedPdfViewer } from '@/components/manage/EnhancedPdfViewer';
 import { restoreItem } from '@/lib/data';
 import { useSignedUrl } from '@/hooks/useSignedUrl';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SearchProps {
   itemId?: string | null;
@@ -148,7 +149,7 @@ export const Search: React.FC<SearchProps> = ({ itemId }) => {
   };
 
   // Handle message submission
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim() && activeChat) {
       // Create user message
@@ -181,6 +182,7 @@ export const Search: React.FC<SearchProps> = ({ itemId }) => {
       });
       
       setChats(updatedChats);
+      const currentQuery = searchQuery;
       setSearchQuery('');
       
       // Find the updated active chat
@@ -188,12 +190,41 @@ export const Search: React.FC<SearchProps> = ({ itemId }) => {
       if (updatedActiveChat) {
         setActiveChat(updatedActiveChat);
         
-        // Add AI response after a short delay
-        setTimeout(() => {
+        try {
+          // Prepare context from preloaded item if available
+          let context = '';
+          if (preloadedItem) {
+            context = `Item: "${preloadedItem.title}" (${preloadedItem.type})\n`;
+            const itemContent = getItemContent(preloadedItem);
+            if (itemContent) {
+              context += `Content: ${itemContent}\n`;
+            }
+            if (isPdfWithoutContent && pdfSignedUrl) {
+              context += `PDF URL: ${pdfSignedUrl}\n`;
+            }
+          }
+
+          // Call ChatGPT API
+          const { data, error } = await supabase.functions.invoke('chat-gpt', {
+            body: {
+              messages: updatedActiveChat.messages,
+              context: context || null
+            }
+          });
+
+          if (error) {
+            throw error;
+          }
+
+          if (!data.success) {
+            throw new Error(data.error || 'Failed to get AI response');
+          }
+
+          // Add AI response
           const aiMessage: ChatMessage = {
             id: generateId(),
             type: 'assistant',
-            content: `Based on your search for "${userMessage.content}", I found several relevant notes in your second brain. Would you like me to summarize the key insights?`,
+            content: data.response,
             timestamp: new Date()
           };
           
@@ -213,7 +244,34 @@ export const Search: React.FC<SearchProps> = ({ itemId }) => {
           if (updatedActiveChatWithAi) {
             setActiveChat(updatedActiveChatWithAi);
           }
-        }, 800);
+        } catch (error) {
+          console.error('Error calling ChatGPT:', error);
+          
+          // Add error message
+          const errorMessage: ChatMessage = {
+            id: generateId(),
+            type: 'assistant',
+            content: 'Sorry, I encountered an error while processing your request. Please try again.',
+            timestamp: new Date()
+          };
+          
+          const updatedChatsWithError = updatedChats.map(chat => {
+            if (chat.id === activeChat.id) {
+              return {
+                ...chat,
+                messages: [...chat.messages, errorMessage],
+                updatedAt: new Date()
+              };
+            }
+            return chat;
+          });
+          
+          setChats(updatedChatsWithError);
+          const updatedActiveChatWithError = updatedChatsWithError.find(chat => chat.id === activeChat.id);
+          if (updatedActiveChatWithError) {
+            setActiveChat(updatedActiveChatWithError);
+          }
+        }
       }
     }
   };

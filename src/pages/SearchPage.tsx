@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import AuthGuard from '@/components/auth/AuthGuard';
 import InlineError from '@/components/auth/InlineError';
 import AuthModal from '@/components/AuthModal';
+import { supabase } from '@/integrations/supabase/client';
 interface Message {
   id: string;
   content: string;
@@ -101,25 +102,59 @@ const SearchPage = () => {
       ));
     }
     
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        content: `I can help you search through your knowledge base. What would you like to find?`,
-        sender: 'ai',
-        timestamp: new Date(),
-      };
-      const finalMessages = [...updatedMessages, aiResponse];
-      setMessages(finalMessages);
-      
-      if (activeChat) {
-        const finalChat = { ...activeChat, messages: finalMessages };
-        setActiveChat(finalChat);
-        setChats(prev => prev.map(chat => 
-          chat.id === activeChat.id ? finalChat : chat
-        ));
+    // Call ChatGPT API
+    setTimeout(async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('chat-gpt', {
+          body: {
+            messages: updatedMessages.map(msg => ({
+              type: msg.sender === 'user' ? 'user' : 'assistant',
+              content: msg.content
+            })),
+            context: null
+          }
+        });
+
+        if (error) throw error;
+
+        const aiResponse: Message = {
+          id: (Date.now() + 1).toString(),
+          content: data.success ? data.response : 'Sorry, I encountered an error. Please try again.',
+          sender: 'ai',
+          timestamp: new Date(),
+        };
+        
+        const finalMessages = [...updatedMessages, aiResponse];
+        setMessages(finalMessages);
+        
+        if (activeChat) {
+          const finalChat = { ...activeChat, messages: finalMessages };
+          setActiveChat(finalChat);
+          setChats(prev => prev.map(chat => 
+            chat.id === activeChat.id ? finalChat : chat
+          ));
+        }
+      } catch (error) {
+        console.error('Error calling ChatGPT:', error);
+        const aiResponse: Message = {
+          id: (Date.now() + 1).toString(),
+          content: 'Sorry, I encountered an error while processing your request. Please try again.',
+          sender: 'ai',
+          timestamp: new Date(),
+        };
+        
+        const finalMessages = [...updatedMessages, aiResponse];
+        setMessages(finalMessages);
+        
+        if (activeChat) {
+          const finalChat = { ...activeChat, messages: finalMessages };
+          setActiveChat(finalChat);
+          setChats(prev => prev.map(chat => 
+            chat.id === activeChat.id ? finalChat : chat
+          ));
+        }
       }
-    }, 1000);
+    }, 800);
   };
 
   const handleChatSelect = (chat: Chat) => {
