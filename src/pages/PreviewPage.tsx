@@ -19,7 +19,7 @@ const PreviewPage = () => {
   const [pdfError, setPdfError] = useState(false);
   const [isDeleted, setIsDeleted] = useState(false);
 
-  // Signed URL for PDF preview
+  // Always call useSignedUrl hook (fixes hook ordering issue)
   const { url: pdfUrl, loading: isPdfLoading, error: pdfUrlError, refresh: refreshPdfUrl } = useSignedUrl(
     item?.type === 'PDF' && item?.file_path ? item.file_path : null,
     3600
