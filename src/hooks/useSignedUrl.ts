@@ -37,7 +37,7 @@ export function useSignedUrl(path: string | null, ttlSec = 3600): UseSignedUrlRe
     }
   };
 
-  const refresh = useCallback(async () => {
+  const refreshUrl = useCallback(async () => {
     if (!path) return;
     
     setLoading(true);
@@ -67,7 +67,7 @@ export function useSignedUrl(path: string | null, ttlSec = 3600): UseSignedUrlRe
       // Set new timeout for refresh at 80% of TTL
       const refreshTime = ttlSec * 1000 * 0.8;
       timeoutRef.current = setTimeout(() => {
-        refresh();
+        refreshUrl();
       }, refreshTime);
       
     } catch (err) {
@@ -78,10 +78,13 @@ export function useSignedUrl(path: string | null, ttlSec = 3600): UseSignedUrlRe
     }
   }, [path, ttlSec]);
 
+  // Stable refresh function for external use
+  const refresh = useCallback(() => refreshUrl(), [refreshUrl]);
+
   // Initial load and path changes
   useEffect(() => {
     if (path) {
-      refresh();
+      refreshUrl();
     } else {
       setUrl(null);
       setError(null);
@@ -97,7 +100,7 @@ export function useSignedUrl(path: string | null, ttlSec = 3600): UseSignedUrlRe
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [path, refresh]);
+  }, [path, ttlSec]);
 
   // Cleanup on unmount
   useEffect(() => {
