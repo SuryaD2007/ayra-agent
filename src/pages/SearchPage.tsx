@@ -180,18 +180,6 @@ const SearchPage = () => {
         <AnimatedTransition show={showContent} animation="slide-up" className="flex w-full">
           {/* Left Sidebar */}
           <div className="w-64 h-full bg-muted/30 border-r border-border/50 flex flex-col transition-all duration-300">
-            {/* New Chat Button */}
-            <div className="p-3">
-              <Button 
-                onClick={createNewChat}
-                className="w-full justify-start gap-2"
-                variant="outline"
-              >
-                <PlusCircle size={16} />
-                New Chat
-              </Button>
-            </div>
-            
             {/* Chat List */}
             <div className="flex-1 overflow-y-auto p-2 space-y-4">
               {chats.length > 0 && (
@@ -256,6 +244,18 @@ const SearchPage = () => {
                   ))}
                 </div>
               )}
+            </div>
+            
+            {/* New Chat Button */}
+            <div className="p-3 border-t border-border/50">
+              <Button 
+                onClick={createNewChat}
+                className="w-full justify-start gap-2"
+                variant="outline"
+              >
+                <PlusCircle size={16} />
+                New Chat
+              </Button>
             </div>
           </div>
           
