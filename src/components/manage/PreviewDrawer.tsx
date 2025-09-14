@@ -142,18 +142,16 @@ const PreviewDrawer = ({ open, onOpenChange, item, onDelete }: PreviewDrawerProp
   };
 
   // Signed URL for PDF preview
-  const { url: pdfUrl, isLoading: isPdfLoading, error: pdfUrlError, refresh: refreshPdfUrl } = useSignedUrl({
-    bucket: 'ayra-files',
-    path: item?.type === 'PDF' && item?.file_path ? item.file_path : null,
-    expiresIn: 3600,
-    refreshThreshold: 0.8
-  });
+  const { url: pdfUrl, loading: isPdfLoading, error: pdfUrlError, refresh: refreshPdfUrl } = useSignedUrl(
+    item?.type === 'PDF' && item?.file_path ? item.file_path : null,
+    3600
+  );
 
   const handleDownloadCurrent = () => {
     if (pdfUrl && item) {
       const link = document.createElement('a');
       link.href = pdfUrl;
-      link.download = `${item.title}.pdf`;
+      link.download = `${item.title || 'document'}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -161,20 +159,25 @@ const PreviewDrawer = ({ open, onOpenChange, item, onDelete }: PreviewDrawerProp
       // Fallback for legacy items
       const link = document.createElement('a');
       link.href = item.dataUrl;
-      link.download = `${item.title}.pdf`;
+      link.download = `${item.title || 'document'}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
     }
   };
 
-  const handleIframeError = () => {
+  const handleFrameError = async () => {
     console.error('PDF iframe failed to load, attempting refresh...');
-    refreshPdfUrl();
-    toast({
-      title: "Refreshing PDF preview",
-      description: "Trying to reload the PDF viewer...",
-    });
+    try {
+      await refreshPdfUrl();
+    } catch (error) {
+      console.error('Failed to refresh PDF URL:', error);
+      toast({
+        title: "Couldn't load PDF preview",
+        description: "Try again or download the file.",
+        variant: "destructive",
+      });
+    }
   };
 
 
@@ -439,7 +442,7 @@ const PreviewDrawer = ({ open, onOpenChange, item, onDelete }: PreviewDrawerProp
                     <iframe 
                       src={pdfUrl} 
                       className="w-full h-[70vh] rounded-b-md border-0" 
-                      onError={handleIframeError}
+                      onError={handleFrameError}
                       title={`PDF Preview: ${item.title}`}
                     />
                   ) : (

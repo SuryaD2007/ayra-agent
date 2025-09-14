@@ -20,12 +20,10 @@ const PreviewPage = () => {
   const [isDeleted, setIsDeleted] = useState(false);
 
   // Signed URL for PDF preview
-  const { url: pdfUrl, isLoading: isPdfLoading, error: pdfUrlError, refresh: refreshPdfUrl } = useSignedUrl({
-    bucket: 'ayra-files',
-    path: item?.type === 'PDF' && item?.file_path ? item.file_path : null,
-    expiresIn: 3600,
-    refreshThreshold: 0.8
-  });
+  const { url: pdfUrl, loading: isPdfLoading, error: pdfUrlError, refresh: refreshPdfUrl } = useSignedUrl(
+    item?.type === 'PDF' && item?.file_path ? item.file_path : null,
+    3600
+  );
 
   useEffect(() => {
     const fetchItem = async () => {
@@ -43,18 +41,23 @@ const PreviewPage = () => {
           return;
         }
 
+        // Try to fetch both active and deleted items
         const { data: dbItem, error } = await supabase
           .from('items')
           .select('*')
           .eq('id', id)
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
-        if (!error && dbItem) {
+        if (dbItem) {
           const cortexItem = itemToCortexItem(dbItem as any);
           setItem(cortexItem);
           setIsDeleted(!!dbItem.deleted_at);
           return;
+        }
+
+        if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+          console.error('Error loading item:', error);
         }
 
         // Fallback to localStorage for legacy items
@@ -106,7 +109,7 @@ const PreviewPage = () => {
     if (pdfUrl && item) {
       const link = document.createElement('a');
       link.href = pdfUrl;
-      link.download = `${item.title}.pdf`;
+      link.download = `${item.title || 'document'}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -114,20 +117,25 @@ const PreviewPage = () => {
       // Fallback for legacy items
       const link = document.createElement('a');
       link.href = item.dataUrl;
-      link.download = `${item.title}.pdf`;
+      link.download = `${item.title || 'document'}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
     }
   };
 
-  const handleIframeError = () => {
+  const handleFrameError = async () => {
     console.error('PDF iframe failed to load, attempting refresh...');
-    refreshPdfUrl();
-    toast({
-      title: "Refreshing PDF preview",
-      description: "Trying to reload the PDF viewer...",
-    });
+    try {
+      await refreshPdfUrl();
+    } catch (error) {
+      console.error('Failed to refresh PDF URL:', error);
+      toast({
+        title: "Couldn't load PDF preview",
+        description: "Try again or download the file.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleRestoreItem = async () => {
@@ -263,9 +271,9 @@ const PreviewPage = () => {
         {/* PDF Viewer */}
         {item.type === 'PDF' && (
           <div className="rounded-md border bg-card">
-            <div className="flex items-center justify-between p-3 border-b bg-muted/30">
+            <div className="flex items-center justify-between p-2 gap-2">
               <div className="text-sm text-muted-foreground">
-                PDF Document - {item.title}
+                  'PDF Document'
               </div>
               <div className="flex items-center gap-2">
                 <Button 
@@ -291,33 +299,17 @@ const PreviewPage = () => {
             
             {item.file_path ? (
               <>
-                {isPdfLoading ? (
-                  <div className="p-8 text-center text-sm text-muted-foreground">
-                    Generating secure preview…
-                  </div>
-                ) : pdfUrl ? (
+                {pdfUrl ? (
                   <iframe 
+                    key={pdfUrl}
                     src={pdfUrl} 
-                    className="w-full h-[80vh] rounded-b-md border-0" 
-                    onError={handleIframeError}
+                    className="w-full h-[70vh] rounded-b-md border-0" 
+                    onError={handleFrameError}
                     title={`PDF Preview: ${item.title}`}
                   />
                 ) : (
-                  <div className="p-8 text-center">
-                    <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-                    <h3 className="text-lg font-semibold mb-2">Preview unavailable</h3>
-                    <p className="text-muted-foreground mb-4">
-                      Could not load PDF preview. Try refreshing or download the file.
-                    </p>
-                    <div className="flex items-center justify-center gap-2">
-                      <Button onClick={refreshPdfUrl} variant="outline" size="sm">
-                        Try Again
-                      </Button>
-                      <Button onClick={handleDownloadCurrent} variant="outline" size="sm">
-                        <Download className="w-4 h-4 mr-1" />
-                        Download
-                      </Button>
-                    </div>
+                  <div className="p-8 text-center text-sm text-muted-foreground">
+                    Generating secure preview…
                   </div>
                 )}
               </>

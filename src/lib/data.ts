@@ -1,24 +1,15 @@
 import { supabase } from '@/integrations/supabase/client';
 
-// Signed URL helper for file storage
-export const getSignedUrl = async (path: string, ttlSec: number = 3600): Promise<string | null> => {
-  if (!path) return null;
-  
-  try {
-    const { data, error } = await supabase.storage
-      .from('ayra-files')
-      .createSignedUrl(path, ttlSec);
+export const getSignedUrl = async (path: string, ttlSec = 3600) => {
+  const { data, error } = await supabase.storage
+    .from('ayra-files')
+    .createSignedUrl(path, ttlSec);
     
-    if (error) {
-      console.error('Error generating signed URL:', error);
-      throw error;
-    }
-    
-    return data.signedUrl;
-  } catch (err) {
-    console.error('Failed to generate signed URL:', err);
-    return null;
+  if (error) {
+    throw error;
   }
+  
+  return data.signedUrl;
 };
 
 export interface Space {
@@ -280,7 +271,6 @@ export async function getItems(params: GetItemsParams = {}): Promise<GetItemsRes
         query = query.eq('space_id', params.spaceId);
       } else {
         // For default spaces, don't filter by space_id as they don't exist in DB
-        // Instead, show all items or implement specific logic for default spaces
         console.log('Default space selected, showing all items:', params.spaceId);
       }
     }
@@ -499,101 +489,7 @@ export async function bulkMoveItems(itemIds: string[], targetSpaceId: string | n
   });
 }
 
-export async function getSpaceCounts(): Promise<{ [spaceId: string]: number }> {
-  return withAuthErrorHandling(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new AuthError('User not authenticated');
-
-    const { data, error } = await supabase
-      .from('items')
-      .select('space_id')
-      .eq('user_id', user.id)
-      .is('deleted_at', null);
-
-    if (error) throw error;
-
-    // Count items by space_id
-    const counts: { [spaceId: string]: number } = {};
-    data.forEach(item => {
-      const spaceId = item.space_id || 'overview'; // Default to overview for items without space
-      counts[spaceId] = (counts[spaceId] || 0) + 1;
-    });
-
-    return counts;
-  });
-}
-
 // Tags API
-export async function upsertTag(name: string): Promise<Tag> {
-  return withAuthErrorHandling(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new AuthError('User not authenticated');
-
-    // Try to find existing tag first
-    const { data: existingTag } = await supabase
-      .from('tags')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('name', name.trim())
-      .single();
-
-    if (existingTag) {
-      return existingTag as Tag;
-    }
-
-    // Create new tag if it doesn't exist
-    const { data, error } = await supabase
-      .from('tags')
-      .insert({
-        name: name.trim(),
-        user_id: user.id
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    // Clear cache
-    DataCache.clear('tags');
-
-    return data as Tag;
-  });
-}
-
-export async function setItemTags(itemId: string, tagNames: string[]): Promise<void> {
-  return withAuthErrorHandling(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new AuthError('User not authenticated');
-
-    // Remove existing tag associations for this item
-    await supabase
-      .from('item_tags')
-      .delete()
-      .in('item_id', [itemId]);
-
-    if (tagNames.length === 0) return;
-
-    // Create or get tags
-    const tagPromises = tagNames.map(name => upsertTag(name));
-    const tags = await Promise.all(tagPromises);
-
-    // Create new tag associations
-    const associations = tags.map(tag => ({
-      item_id: itemId,
-      tag_id: tag.id
-    }));
-
-    const { error } = await supabase
-      .from('item_tags')
-      .insert(associations);
-
-    if (error) throw error;
-
-    // Clear cache
-    DataCache.clear();
-  });
-}
-
 export async function getTags(): Promise<Tag[]> {
   return withAuthErrorHandling(async () => {
     // Try cache first
@@ -616,5 +512,105 @@ export async function getTags(): Promise<Tag[]> {
     const tags = data as Tag[];
     DataCache.setTags(tags);
     return tags;
+  });
+}
+
+export async function createNewItem(itemData: {
+  title: string;
+  type: 'note' | 'pdf' | 'link' | 'image';
+  content?: string;
+  source?: string;
+  space?: string;
+}): Promise<Item> {
+  return createItem({
+    title: itemData.title,
+    type: itemData.type,
+    content: itemData.content,
+    source: itemData.source,
+    // Map space name to space_id if needed
+    space_id: undefined
+  });
+}
+
+export async function getSpaceCounts(): Promise<{ [spaceId: string]: number }> {
+  return withAuthErrorHandling(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new AuthError('User not authenticated');
+
+    const { data, error } = await supabase
+      .from('items')
+      .select('space_id')
+      .eq('user_id', user.id)
+      .is('deleted_at', null);
+
+    if (error) throw error;
+
+    const counts: { [spaceId: string]: number } = {};
+    data.forEach(item => {
+      const spaceId = item.space_id || 'overview';
+      counts[spaceId] = (counts[spaceId] || 0) + 1;
+    });
+
+    return counts;
+  });
+}
+
+export async function upsertTag(name: string): Promise<Tag> {
+  return withAuthErrorHandling(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new AuthError('User not authenticated');
+
+    const { data: existingTag } = await supabase
+      .from('tags')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('name', name.trim())
+      .single();
+
+    if (existingTag) {
+      return existingTag as Tag;
+    }
+
+    const { data, error } = await supabase
+      .from('tags')
+      .insert({
+        name: name.trim(),
+        user_id: user.id
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    DataCache.clear('tags');
+    return data as Tag;
+  });
+}
+
+export async function setItemTags(itemId: string, tagNames: string[]): Promise<void> {
+  return withAuthErrorHandling(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new AuthError('User not authenticated');
+
+    await supabase
+      .from('item_tags')
+      .delete()
+      .in('item_id', [itemId]);
+
+    if (tagNames.length === 0) return;
+
+    const tagPromises = tagNames.map(name => upsertTag(name));
+    const tags = await Promise.all(tagPromises);
+
+    const associations = tags.map(tag => ({
+      item_id: itemId,
+      tag_id: tag.id
+    }));
+
+    const { error } = await supabase
+      .from('item_tags')
+      .insert(associations);
+
+    if (error) throw error;
+    DataCache.clear();
   });
 }

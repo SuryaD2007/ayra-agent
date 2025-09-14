@@ -35,12 +35,10 @@ export const Search: React.FC<SearchProps> = ({ itemId }) => {
   
   // Check if PDF needs signed URL
   const isPdfWithoutContent = preloadedItem?.type === 'PDF' && !preloadedItem.content && !preloadedItem.description;
-  const { url: pdfSignedUrl } = useSignedUrl({
-    bucket: 'ayra-files',
-    path: isPdfWithoutContent ? preloadedItem?.file_path || null : null,
-    expiresIn: 3600,
-    refreshThreshold: 0.8
-  });
+  const { url: pdfSignedUrl } = useSignedUrl(
+    isPdfWithoutContent ? preloadedItem?.file_path || null : null,
+    3600
+  );
   
   // Load preloaded item if itemId is provided
   useEffect(() => {

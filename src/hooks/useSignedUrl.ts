@@ -1,40 +1,29 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-export interface UseSignedUrlOptions {
-  bucket: string;
-  path: string | null;
-  expiresIn?: number; // seconds
-  refreshThreshold?: number; // percentage (0-1)
-}
-
 export interface UseSignedUrlResult {
   url: string | null;
-  isLoading: boolean;
+  loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
+  expiresAt: Date | null;
 }
 
-export function useSignedUrl({
-  bucket,
-  path,
-  expiresIn = 3600, // 1 hour
-  refreshThreshold = 0.8 // refresh at 80%
-}: UseSignedUrlOptions): UseSignedUrlResult {
+export function useSignedUrl(path: string | null, ttlSec = 3600): UseSignedUrlResult {
   const [url, setUrl] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [expiresAt, setExpiresAt] = useState<Date | null>(null);
   
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const createdAtRef = useRef<number | null>(null);
 
   const generateSignedUrl = async (): Promise<string | null> => {
     if (!path) return null;
     
     try {
       const { data, error } = await supabase.storage
-        .from(bucket)
-        .createSignedUrl(path, expiresIn);
+        .from('ayra-files')
+        .createSignedUrl(path, ttlSec);
       
       if (error) {
         console.error('Error generating signed URL:', error);
@@ -51,13 +40,13 @@ export function useSignedUrl({
   const refresh = useCallback(async () => {
     if (!path) return;
     
-    setIsLoading(true);
+    setLoading(true);
     setError(null);
     
     try {
       const { data, error } = await supabase.storage
-        .from(bucket)
-        .createSignedUrl(path, expiresIn);
+        .from('ayra-files')
+        .createSignedUrl(path, ttlSec);
       
       if (error) {
         console.error('Error generating signed URL:', error);
@@ -65,16 +54,18 @@ export function useSignedUrl({
       }
       
       const newUrl = data.signedUrl;
+      const newExpiresAt = new Date(Date.now() + ttlSec * 1000);
+      
       setUrl(newUrl);
-      createdAtRef.current = Date.now();
+      setExpiresAt(newExpiresAt);
       
       // Clear existing timeout
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
       
-      // Set new timeout for refresh
-      const refreshTime = (expiresIn * 1000) * refreshThreshold;
+      // Set new timeout for refresh at 80% of TTL
+      const refreshTime = ttlSec * 1000 * 0.8;
       timeoutRef.current = setTimeout(() => {
         refresh();
       }, refreshTime);
@@ -83,9 +74,9 @@ export function useSignedUrl({
       const errorMessage = err instanceof Error ? err.message : 'Failed to refresh signed URL';
       setError(errorMessage);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  }, [path, bucket, expiresIn, refreshThreshold]);
+  }, [path, ttlSec]);
 
   // Initial load and path changes
   useEffect(() => {
@@ -94,6 +85,7 @@ export function useSignedUrl({
     } else {
       setUrl(null);
       setError(null);
+      setExpiresAt(null);
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
@@ -118,8 +110,9 @@ export function useSignedUrl({
 
   return {
     url,
-    isLoading,
+    loading,
     error,
-    refresh
+    refresh,
+    expiresAt
   };
 }

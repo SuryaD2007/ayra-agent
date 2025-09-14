@@ -15,12 +15,7 @@ export function EnhancedPdfViewer({ filePath, title, className = "h-[70vh] w-ful
   const [retryCount, setRetryCount] = useState(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  const { url, isLoading, error, refresh } = useSignedUrl({
-    bucket: 'ayra-files',
-    path: filePath,
-    expiresIn: 3600, // 1 hour
-    refreshThreshold: 0.8 // refresh at 80%
-  });
+  const { url, loading, error, refresh } = useSignedUrl(filePath, 3600);
 
   const handleIframeError = useCallback(async () => {
     console.log('PDF iframe error detected, attempting to refresh URL');
@@ -53,7 +48,7 @@ export function EnhancedPdfViewer({ filePath, title, className = "h-[70vh] w-ful
     );
   }
 
-  if (isLoading && !url) {
+  if (loading && !url) {
     return (
       <div className="space-y-3">
         <Skeleton className="h-8 w-full" />
@@ -62,7 +57,7 @@ export function EnhancedPdfViewer({ filePath, title, className = "h-[70vh] w-ful
     );
   }
 
-  if (error || (!url && !isLoading)) {
+  if (error || (!url && !loading)) {
     return (
       <div className="flex flex-col items-center justify-center h-32 bg-muted/30 rounded-md space-y-3">
         <AlertTriangle className="h-8 w-8 text-destructive" />
