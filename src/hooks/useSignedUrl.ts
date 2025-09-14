@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface UseSignedUrlOptions {
@@ -48,14 +48,23 @@ export function useSignedUrl({
     }
   };
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     if (!path) return;
     
     setIsLoading(true);
     setError(null);
     
     try {
-      const newUrl = await generateSignedUrl();
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .createSignedUrl(path, expiresIn);
+      
+      if (error) {
+        console.error('Error generating signed URL:', error);
+        throw error;
+      }
+      
+      const newUrl = data.signedUrl;
       setUrl(newUrl);
       createdAtRef.current = Date.now();
       
@@ -76,7 +85,7 @@ export function useSignedUrl({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [path, bucket, expiresIn, refreshThreshold]);
 
   // Initial load and path changes
   useEffect(() => {
@@ -96,7 +105,7 @@ export function useSignedUrl({
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [path, bucket, expiresIn]);
+  }, [path, refresh]);
 
   // Cleanup on unmount
   useEffect(() => {
