@@ -118,6 +118,11 @@ const PreviewPage = () => {
   };
 
   const canShowPdfPreview = (item: CortexItem) => {
+    // For database items, check if file_path exists
+    if (item.file_path) {
+      return true;
+    }
+    // For legacy localStorage items, check dataUrl
     return item.dataUrl && !isPdfTooLarge(item.dataUrl);
   };
 
@@ -311,12 +316,12 @@ const PreviewPage = () => {
                 <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
                 <h3 className="text-lg font-semibold mb-2">Preview unavailable</h3>
                 <p className="text-muted-foreground mb-6">
-                  {!item.dataUrl 
+                  {!item.dataUrl && !item.file_path
                     ? "No PDF data available for preview."
                     : "PDF is too large to preview (>25MB)."}
                 </p>
                 <div className="flex items-center justify-center gap-2">
-                  {item.dataUrl && (
+                  {(item.dataUrl || item.file_path) && (
                     <Button onClick={handleDownload} variant="outline">
                       <Download size={16} className="mr-2" />
                       Download
