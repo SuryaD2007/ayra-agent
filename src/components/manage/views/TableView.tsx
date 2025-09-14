@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { ArrowUpDown, Check, Square, Edit2, FileText, File, Link, Image as ImageIcon, Plus, X, Loader2 } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import { Link as RouterLink } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -236,15 +237,15 @@ const TableView = ({
             </div>
           ) : (
             <div className="flex items-center gap-2 group">
-              <button
+              <RouterLink
+                to={`/preview/${item.id}`}
                 className="text-left hover:text-primary cursor-pointer"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setPreviewItem(item);
                 }}
               >
                 {item.title}
-              </button>
+              </RouterLink>
               {syncingItems.has(item.id) && (
                 <div className="flex items-center gap-1 text-muted-foreground">
                   <Loader2 size={12} className="animate-spin" />

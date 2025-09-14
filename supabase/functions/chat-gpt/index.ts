@@ -46,7 +46,25 @@ serve(async (req) => {
             .single();
 
           if (item) {
-            const content = item.parsed_content || item.content || '';
+            let content = item.parsed_content || item.content || '';
+            
+            // If it's a PDF without parsed content, try to parse it
+            if (item.type === 'pdf' && !content && item.file_path) {
+              try {
+                const { data: parseData } = await supabase.functions.invoke('parse-pdf-content', {
+                  body: { itemId: item.id },
+                  headers: { Authorization: authHeader }
+                });
+                
+                if (parseData?.success && parseData?.content) {
+                  content = parseData.content;
+                }
+              } catch (parseError) {
+                console.error('Error parsing PDF:', parseError);
+                content = `PDF Document: "${item.title}"\n\nThis PDF is available for analysis. You can ask me questions about its content, and I'll do my best to help based on the document structure and metadata.`;
+              }
+            }
+            
             documentContext = `Document: "${item.title}" (${item.type})\n${content}`;
           }
         }

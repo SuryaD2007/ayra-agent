@@ -52,6 +52,7 @@ export type Database = {
           file_path: string | null
           id: string
           mime_type: string | null
+          parsed_content: string | null
           size_bytes: number | null
           source: string | null
           space_id: string | null
@@ -67,6 +68,7 @@ export type Database = {
           file_path?: string | null
           id?: string
           mime_type?: string | null
+          parsed_content?: string | null
           size_bytes?: number | null
           source?: string | null
           space_id?: string | null
@@ -82,6 +84,7 @@ export type Database = {
           file_path?: string | null
           id?: string
           mime_type?: string | null
+          parsed_content?: string | null
           size_bytes?: number | null
           source?: string | null
           space_id?: string | null

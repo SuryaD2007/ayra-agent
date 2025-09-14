@@ -206,7 +206,8 @@ export const Search: React.FC<SearchProps> = ({ itemId }) => {
           const { data, error } = await supabase.functions.invoke('chat-gpt', {
             body: {
               messages: updatedActiveChat.messages,
-              context: context || null
+              context: context || null,
+              itemId: preloadedItem?.id || null
             }
           });
 
