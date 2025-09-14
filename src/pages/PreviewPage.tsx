@@ -8,6 +8,8 @@ import { CortexItem } from '@/components/manage/cortex-data';
 import { toast } from '@/hooks/use-toast';
 import { EnhancedPdfViewer } from '@/components/manage/EnhancedPdfViewer';
 import { restoreItem } from '@/lib/data';
+import { itemToCortexItem } from '@/lib/itemUtils';
+import { supabase } from '@/integrations/supabase/client';
 
 const PreviewPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -18,42 +20,77 @@ const PreviewPage = () => {
   const [isDeleted, setIsDeleted] = useState(false);
 
   useEffect(() => {
-    if (!id) {
-      setNotFound(true);
-      return;
-    }
+    const fetchItem = async () => {
+      if (!id) {
+        setNotFound(true);
+        return;
+      }
 
-    try {
-      const saved = localStorage.getItem('cortex-items');
-      if (saved) {
-        const items: CortexItem[] = JSON.parse(saved);
-        const foundItem = items.find(item => item.id === id);
-        if (foundItem) {
-          setItem(foundItem);
-          setIsDeleted(false);
-        } else {
-          // Check if item was recently deleted
-          const deletedItems = localStorage.getItem('recently-deleted-items');
-          if (deletedItems) {
-            const deleted: CortexItem[] = JSON.parse(deletedItems);
-            const deletedItem = deleted.find(item => item.id === id);
-            if (deletedItem) {
-              setItem(deletedItem);
-              setIsDeleted(true);
-            } else {
-              setNotFound(true);
-            }
-          } else {
-            setNotFound(true);
+      try {
+        // Fetch item from database by ID (including deleted items)
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          // If not authenticated, fall back to localStorage
+          checkLocalStorage();
+          return;
+        }
+
+        const { data: dbItem, error } = await supabase
+          .from('items')
+          .select('*')
+          .eq('id', id)
+          .eq('user_id', user.id)
+          .single();
+
+        if (!error && dbItem) {
+          const cortexItem = itemToCortexItem(dbItem as any);
+          setItem(cortexItem);
+          setIsDeleted(!!dbItem.deleted_at);
+          return;
+        }
+
+        // Fallback to localStorage for legacy items
+        checkLocalStorage();
+      } catch (error) {
+        console.error('Error loading item:', error);
+        checkLocalStorage();
+      }
+    };
+
+    const checkLocalStorage = () => {
+      try {
+        // Check active items in localStorage
+        const saved = localStorage.getItem('cortex-items');
+        if (saved) {
+          const items: CortexItem[] = JSON.parse(saved);
+          const foundItem = items.find(item => item.id === id);
+          if (foundItem) {
+            setItem(foundItem);
+            setIsDeleted(false);
+            return;
           }
         }
-      } else {
+
+        // Check recently deleted in localStorage
+        const deletedItems = localStorage.getItem('recently-deleted-items');
+        if (deletedItems) {
+          const deleted: CortexItem[] = JSON.parse(deletedItems);
+          const deletedItem = deleted.find(item => item.id === id);
+          if (deletedItem) {
+            setItem(deletedItem);
+            setIsDeleted(true);
+            return;
+          }
+        }
+
+        setNotFound(true);
+      } catch (error) {
+        console.error('Error checking localStorage:', error);
         setNotFound(true);
       }
-    } catch (error) {
-      console.error('Error loading item:', error);
-      setNotFound(true);
-    }
+    };
+
+    fetchItem();
   }, [id]);
 
   const handleOpenInNewTab = () => {
