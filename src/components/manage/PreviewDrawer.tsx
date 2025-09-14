@@ -19,7 +19,7 @@ import {
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
-import { EnhancedPdfViewer } from './EnhancedPdfViewer';
+import { useSignedUrl } from '@/hooks/useSignedUrl';
 
 interface PreviewItem {
   id: string;
@@ -141,23 +141,24 @@ const PreviewDrawer = ({ open, onOpenChange, item, onDelete }: PreviewDrawerProp
     }
   };
 
-  const isPdfTooLarge = (dataUrl: string) => {
-    try {
-      // Rough estimation: base64 is ~33% larger than binary data
-      const sizeInBytes = (dataUrl.length * 3) / 4;
-      const sizeInMB = sizeInBytes / (1024 * 1024);
-      return sizeInMB > 25;
-    } catch {
-      return false;
-    }
-  };
+  // Signed URL for PDF preview
+  const { url: pdfUrl, isLoading: isPdfLoading, error: pdfUrlError, refresh: refreshPdfUrl } = useSignedUrl({
+    bucket: 'ayra-files',
+    path: item?.type === 'PDF' && item?.file_path ? item.file_path : null,
+    expiresIn: 3600,
+    refreshThreshold: 0.8
+  });
 
-  const canShowPdfPreview = (item: PreviewItem) => {
-    return item.dataUrl && !isPdfTooLarge(item.dataUrl);
-  };
-
-  const handleDownload = () => {
-    if (item.dataUrl) {
+  const handleDownloadCurrent = () => {
+    if (pdfUrl && item) {
+      const link = document.createElement('a');
+      link.href = pdfUrl;
+      link.download = `${item.title}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else if (item?.dataUrl) {
+      // Fallback for legacy items
       const link = document.createElement('a');
       link.href = item.dataUrl;
       link.download = `${item.title}.pdf`;
@@ -166,6 +167,16 @@ const PreviewDrawer = ({ open, onOpenChange, item, onDelete }: PreviewDrawerProp
       document.body.removeChild(link);
     }
   };
+
+  const handleIframeError = () => {
+    console.error('PDF iframe failed to load, attempting refresh...');
+    refreshPdfUrl();
+    toast({
+      title: "Refreshing PDF preview",
+      description: "Trying to reload the PDF viewer...",
+    });
+  };
+
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -377,10 +388,10 @@ const PreviewDrawer = ({ open, onOpenChange, item, onDelete }: PreviewDrawerProp
               <ExternalLink className="w-4 h-4 text-muted-foreground" />
               {item.source}
             </div>
-            {item.type === 'PDF' && (
+            {item.type === 'PDF' && item.file_path && (
               <div className="flex items-center gap-2 bg-background/60 rounded-full px-3 py-1 text-sm">
                 <HardDrive className="w-4 h-4 text-muted-foreground" />
-                Size info
+                PDF File
               </div>
             )}
           </div>
@@ -391,74 +402,85 @@ const PreviewDrawer = ({ open, onOpenChange, item, onDelete }: PreviewDrawerProp
 
           {/* Content based on type */}
           {item.type === 'PDF' && (
-            <Card>
-              <CardContent className="p-4">
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-4">
-                  PDF Preview
-                </h3>
-                
-                {canShowPdfPreview(item) ? (
-                  <div className="space-y-4">
-                    {/* PDF Toolbar */}
-                    <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-xl">
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={handleOpenInNewTab}
-                        className="flex items-center gap-2"
-                      >
-                        <ExternalLinkIcon className="w-4 h-4" />
-                        Open in New Tab
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={handleDownload}
-                        className="flex items-center gap-2"
-                      >
-                        <Download className="w-4 h-4" />
-                        Download
-                      </Button>
-                      <div className="flex-1" />
-                      <div className="text-sm text-muted-foreground">Page 1</div>
+            <div className="rounded-md border bg-card">
+              <div className="flex items-center justify-between p-3 border-b bg-muted/30">
+                <div className="text-sm text-muted-foreground">
+                  PDF Document
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => pdfUrl && window.open(pdfUrl, '_blank')}
+                    disabled={!pdfUrl || isPdfLoading}
+                  >
+                    <ExternalLinkIcon className="w-4 h-4 mr-1" />
+                    Open in New Tab
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleDownloadCurrent}
+                    disabled={!pdfUrl && !item.dataUrl}
+                  >
+                    <Download className="w-4 h-4 mr-1" />
+                    Download
+                  </Button>
+                </div>
+              </div>
+              
+              {item.file_path ? (
+                <>
+                  {isPdfLoading ? (
+                    <div className="p-8 text-center text-sm text-muted-foreground">
+                      Generating secure preview…
                     </div>
-
-                    {/* PDF Viewer */}
-                    <div className="rounded-xl overflow-hidden border">
-                      <EnhancedPdfViewer 
-                        filePath={item.file_path || null}
-                        title={item.title}
-                        className="h-[60vh] w-full"
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="border-2 border-dashed border-muted rounded-xl p-8 text-center">
-                    <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-                    <h4 className="text-lg font-semibold mb-2">Preview unavailable</h4>
-                    <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                      {!item.dataUrl 
-                        ? "No PDF data available for preview."
-                        : "This PDF is too large to preview (over 25MB)."}
-                    </p>
-                    <div className="flex items-center justify-center gap-3">
-                      {item.dataUrl && (
-                        <Button onClick={handleDownload} variant="outline">
-                          <Download className="w-4 h-4 mr-2" />
-                          Download PDF
+                  ) : pdfUrl ? (
+                    <iframe 
+                      src={pdfUrl} 
+                      className="w-full h-[70vh] rounded-b-md border-0" 
+                      onError={handleIframeError}
+                      title={`PDF Preview: ${item.title}`}
+                    />
+                  ) : (
+                    <div className="p-8 text-center">
+                      <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                      <h4 className="text-lg font-semibold mb-2">Preview unavailable</h4>
+                      <p className="text-muted-foreground mb-4">
+                        Could not load PDF preview. Try refreshing or download the file.
+                      </p>
+                      <div className="flex items-center justify-center gap-2">
+                        <Button onClick={refreshPdfUrl} variant="outline" size="sm">
+                          Try Again
                         </Button>
-                      )}
-                      <Button variant="outline" asChild>
-                        <Link to={`/preview/${item.id}`}>
-                          <ExternalLink className="w-4 h-4 mr-2" />
-                          Open Full Viewer
-                        </Link>
-                      </Button>
+                        <Button onClick={handleDownloadCurrent} variant="outline" size="sm">
+                          <Download className="w-4 h-4 mr-1" />
+                          Download
+                        </Button>
+                      </div>
                     </div>
+                  )}
+                </>
+              ) : (
+                <div className="p-8 text-center">
+                  <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                  <h4 className="text-lg font-semibold mb-2">Preview unavailable</h4>
+                  <p className="text-muted-foreground mb-4">
+                    No PDF file available for preview.
+                  </p>
+                  <div className="flex items-center justify-center gap-2">
+                    <Button variant="outline" size="sm">
+                      Re-upload
+                    </Button>
+                    <Button asChild variant="outline" size="sm">
+                      <Link to="/manage">
+                        Back to Library
+                      </Link>
+                    </Button>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                </div>
+              )}
+            </div>
           )}
 
           {/* Note Content */}

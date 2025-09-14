@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CortexItem } from '@/components/manage/cortex-data';
 import { toast } from '@/hooks/use-toast';
-import { EnhancedPdfViewer } from '@/components/manage/EnhancedPdfViewer';
+import { useSignedUrl } from '@/hooks/useSignedUrl';
 import { restoreItem } from '@/lib/data';
 import { itemToCortexItem } from '@/lib/itemUtils';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,6 +18,14 @@ const PreviewPage = () => {
   const [notFound, setNotFound] = useState(false);
   const [pdfError, setPdfError] = useState(false);
   const [isDeleted, setIsDeleted] = useState(false);
+
+  // Signed URL for PDF preview
+  const { url: pdfUrl, isLoading: isPdfLoading, error: pdfUrlError, refresh: refreshPdfUrl } = useSignedUrl({
+    bucket: 'ayra-files',
+    path: item?.type === 'PDF' && item?.file_path ? item.file_path : null,
+    expiresIn: 3600,
+    refreshThreshold: 0.8
+  });
 
   useEffect(() => {
     const fetchItem = async () => {
@@ -93,41 +101,17 @@ const PreviewPage = () => {
     fetchItem();
   }, [id]);
 
-  const handleOpenInNewTab = () => {
-    if (item?.dataUrl) {
-      const newWindow = window.open(item.dataUrl, '_blank');
-      if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
-        toast({
-          title: "Popup blocked",
-          description: "Please allow popups for this site to open PDFs in a new tab.",
-          variant: "destructive",
-        });
-      }
-    }
-  };
 
-  const isPdfTooLarge = (dataUrl: string) => {
-    try {
-      // Rough estimation: base64 is ~33% larger than binary data
-      const sizeInBytes = (dataUrl.length * 3) / 4;
-      const sizeInMB = sizeInBytes / (1024 * 1024);
-      return sizeInMB > 25;
-    } catch {
-      return false;
-    }
-  };
-
-  const canShowPdfPreview = (item: CortexItem) => {
-    // For database items, check if file_path exists
-    if (item.file_path) {
-      return true;
-    }
-    // For legacy localStorage items, check dataUrl
-    return item.dataUrl && !isPdfTooLarge(item.dataUrl);
-  };
-
-  const handleDownload = () => {
-    if (item?.dataUrl) {
+  const handleDownloadCurrent = () => {
+    if (pdfUrl && item) {
+      const link = document.createElement('a');
+      link.href = pdfUrl;
+      link.download = `${item.title}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else if (item?.dataUrl) {
+      // Fallback for legacy items
       const link = document.createElement('a');
       link.href = item.dataUrl;
       link.download = `${item.title}.pdf`;
@@ -135,6 +119,15 @@ const PreviewPage = () => {
       link.click();
       document.body.removeChild(link);
     }
+  };
+
+  const handleIframeError = () => {
+    console.error('PDF iframe failed to load, attempting refresh...');
+    refreshPdfUrl();
+    toast({
+      title: "Refreshing PDF preview",
+      description: "Trying to reload the PDF viewer...",
+    });
   };
 
   const handleRestoreItem = async () => {
@@ -269,67 +262,81 @@ const PreviewPage = () => {
 
         {/* PDF Viewer */}
         {item.type === 'PDF' && (
-          <div className="space-y-4">
-            {canShowPdfPreview(item) ? (
+          <div className="rounded-md border bg-card">
+            <div className="flex items-center justify-between p-3 border-b bg-muted/30">
+              <div className="text-sm text-muted-foreground">
+                PDF Document - {item.title}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => pdfUrl && window.open(pdfUrl, '_blank')}
+                  disabled={!pdfUrl || isPdfLoading}
+                >
+                  <ExternalLinkIcon className="w-4 h-4 mr-1" />
+                  Open in New Tab
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleDownloadCurrent}
+                  disabled={!pdfUrl && !item.dataUrl}
+                >
+                  <Download className="w-4 h-4 mr-1" />
+                  Download
+                </Button>
+              </div>
+            </div>
+            
+            {item.file_path ? (
               <>
-                {/* PDF Toolbar */}
-                <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-md">
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={handleOpenInNewTab}
-                    className="flex items-center gap-1"
-                  >
-                    <ExternalLinkIcon size={14} />
-                    Open in New Tab
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={handleDownload}
-                    className="flex items-center gap-1"
-                  >
-                    <Download size={14} />
-                    Download
-                  </Button>
-                  <div className="flex-1" />
-                  <Button size="sm" variant="ghost" className="flex items-center gap-1">
-                    <ChevronLeft size={14} />
-                    Prev
-                  </Button>
-                  <Button size="sm" variant="ghost" className="flex items-center gap-1">
-                    Next
-                    <ChevronRight size={14} />
-                  </Button>
-                </div>
-
-                {/* PDF Viewer */}
-                <EnhancedPdfViewer 
-                  filePath={item.file_path || null}
-                  title={item.title}
-                  className="h-[80vh] w-full"
-                />
+                {isPdfLoading ? (
+                  <div className="p-8 text-center text-sm text-muted-foreground">
+                    Generating secure preview…
+                  </div>
+                ) : pdfUrl ? (
+                  <iframe 
+                    src={pdfUrl} 
+                    className="w-full h-[80vh] rounded-b-md border-0" 
+                    onError={handleIframeError}
+                    title={`PDF Preview: ${item.title}`}
+                  />
+                ) : (
+                  <div className="p-8 text-center">
+                    <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                    <h3 className="text-lg font-semibold mb-2">Preview unavailable</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Could not load PDF preview. Try refreshing or download the file.
+                    </p>
+                    <div className="flex items-center justify-center gap-2">
+                      <Button onClick={refreshPdfUrl} variant="outline" size="sm">
+                        Try Again
+                      </Button>
+                      <Button onClick={handleDownloadCurrent} variant="outline" size="sm">
+                        <Download className="w-4 h-4 mr-1" />
+                        Download
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </>
             ) : (
-              /* Preview Unavailable */
-              <div className="border rounded-md p-8 text-center">
+              <div className="p-8 text-center">
                 <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
                 <h3 className="text-lg font-semibold mb-2">Preview unavailable</h3>
-                <p className="text-muted-foreground mb-6">
-                  {!item.dataUrl && !item.file_path
-                    ? "No PDF data available for preview."
-                    : "PDF is too large to preview (>25MB)."}
+                <p className="text-muted-foreground mb-4">
+                  No PDF file available for preview.
                 </p>
                 <div className="flex items-center justify-center gap-2">
-                  {(item.dataUrl || item.file_path) && (
-                    <Button onClick={handleDownload} variant="outline">
-                      <Download size={16} className="mr-2" />
-                      Download
-                    </Button>
-                  )}
-                  <Button variant="outline">
-                    <Upload size={16} className="mr-2" />
+                  <Button variant="outline" size="sm">
+                    <Upload className="w-4 h-4 mr-1" />
                     Re-upload
+                  </Button>
+                  <Button asChild variant="outline" size="sm">
+                    <Link to="/manage">
+                      Back to Library
+                    </Link>
                   </Button>
                 </div>
               </div>

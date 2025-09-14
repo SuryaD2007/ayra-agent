@@ -1,5 +1,26 @@
 import { supabase } from '@/integrations/supabase/client';
 
+// Signed URL helper for file storage
+export const getSignedUrl = async (path: string, ttlSec: number = 3600): Promise<string | null> => {
+  if (!path) return null;
+  
+  try {
+    const { data, error } = await supabase.storage
+      .from('ayra-files')
+      .createSignedUrl(path, ttlSec);
+    
+    if (error) {
+      console.error('Error generating signed URL:', error);
+      throw error;
+    }
+    
+    return data.signedUrl;
+  } catch (err) {
+    console.error('Failed to generate signed URL:', err);
+    return null;
+  }
+};
+
 export interface Space {
   id: string;
   name: string;
