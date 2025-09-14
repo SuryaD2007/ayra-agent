@@ -53,6 +53,12 @@ const PreviewDrawer = ({ open, onOpenChange, item, onDelete }: PreviewDrawerProp
   const [newTagInput, setNewTagInput] = useState('');
   const [isAddingTag, setIsAddingTag] = useState(false);
 
+  // MUST call all hooks before any early returns or conditional logic
+  const { url: pdfUrl, loading: isPdfLoading, error: pdfUrlError, refresh: refreshPdfUrl } = useSignedUrl(
+    item?.type === 'PDF' && item?.file_path ? item.file_path : null,
+    3600
+  );
+
   // Listen for library title changes
   useEffect(() => {
     const handleTitleChange = (event: CustomEvent) => {
@@ -82,6 +88,7 @@ const PreviewDrawer = ({ open, onOpenChange, item, onDelete }: PreviewDrawerProp
     }
   }, [item]);
 
+  // NOW it's safe to have conditional logic and early returns
   if (!item) return null;
 
   const handleStartEditTitle = () => {
@@ -140,12 +147,6 @@ const PreviewDrawer = ({ open, onOpenChange, item, onDelete }: PreviewDrawerProp
       window.open(item.dataUrl, '_blank');
     }
   };
-
-  // Always call useSignedUrl hook (fixes hook ordering issue)  
-  const { url: pdfUrl, loading: isPdfLoading, error: pdfUrlError, refresh: refreshPdfUrl } = useSignedUrl(
-    item?.type === 'PDF' && item?.file_path ? item.file_path : null,
-    3600
-  );
 
   const handleDownloadCurrent = () => {
     if (pdfUrl && item) {
