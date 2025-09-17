@@ -1,164 +1,121 @@
 import React from 'react';
+import { Search, MoreHorizontal, Download, RotateCcw, Square, Share, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  MoreHorizontal, 
-  Download, 
-  RefreshCw, 
-  Square, 
-  Share2,
-  X,
-  FileText,
-  Link,
-  Tag,
-  FolderOpen
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { ContextChip, StreamingState } from '@/types/chat';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { ContextChip } from '@/types/chat';
 
 interface ChatHeaderProps {
-  activeTitle?: string;
   contextChips: ContextChip[];
-  streamingState: StreamingState;
   onRemoveChip: (chipId: string) => void;
-  onRegenerateResponse: () => void;
-  onStopGeneration: () => void;
-  onExport: () => void;
-  onShare: () => void;
-  className?: string;
+  onRegenerate?: () => void;
+  onStop?: () => void;
+  onShare?: () => void;
+  onExport?: () => void;
+  isStreaming?: boolean;
 }
 
 export function ChatHeader({
-  activeTitle,
   contextChips,
-  streamingState,
   onRemoveChip,
-  onRegenerateResponse,
-  onStopGeneration,
-  onExport,
+  onRegenerate,
+  onStop,
   onShare,
-  className
+  onExport,
+  isStreaming = false
 }: ChatHeaderProps) {
-  const getChipIcon = (type: ContextChip['type']) => {
-    switch (type) {
-      case 'item':
-        return <FileText size={12} />;
-      case 'url':
-        return <Link size={12} />;
-      case 'pdf':
-        return <FileText size={12} />;
-      case 'space':
-        return <FolderOpen size={12} />;
-      case 'tag':
-        return <Tag size={12} />;
-      default:
-        return <FileText size={12} />;
-    }
-  };
-
-  const getChipColor = (type: ContextChip['type']) => {
-    switch (type) {
-      case 'item':
-        return 'bg-blue-50 text-blue-700 border-blue-200';
-      case 'url':
-        return 'bg-green-50 text-green-700 border-green-200';
-      case 'pdf':
-        return 'bg-red-50 text-red-700 border-red-200';
-      case 'space':
-        return 'bg-purple-50 text-purple-700 border-purple-200';
-      case 'tag':
-        return 'bg-orange-50 text-orange-700 border-orange-200';
-      default:
-        return 'bg-gray-50 text-gray-700 border-gray-200';
-    }
-  };
-
   return (
-    <div className={cn("sticky top-0 z-10 bg-background border-b", className)}>
-      <div className="flex items-center justify-between p-4">
-        {/* Left side - Title and switcher */}
-        <div className="flex items-center gap-4">
+    <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border/50 p-4">
+      <div className="flex items-center justify-between">
+        {/* Left side - Ayra branding */}
+        <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <h1 className="text-lg font-semibold">Search</h1>
-            {activeTitle && (
-              <>
-                <span className="text-muted-foreground">•</span>
-                <span className="text-sm text-muted-foreground truncate max-w-[200px]">
-                  {activeTitle}
-                </span>
-              </>
-            )}
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
+              <Search size={16} className="text-primary-foreground" />
+            </div>
+            <span className="font-semibold text-lg">Ayra</span>
           </div>
+          <div className="text-muted-foreground">•</div>
+          <span className="text-muted-foreground">Search</span>
         </div>
 
         {/* Right side - Actions */}
         <div className="flex items-center gap-2">
-          {streamingState.isStreaming ? (
+          {isStreaming && onStop && (
             <Button
-              variant="outline"
               size="sm"
-              onClick={onStopGeneration}
+              variant="outline"
+              onClick={onStop}
               className="gap-2"
             >
               <Square size={14} />
               Stop
             </Button>
-          ) : (
+          )}
+          
+          {!isStreaming && onRegenerate && (
             <Button
-              variant="outline"
               size="sm"
-              onClick={onRegenerateResponse}
+              variant="ghost"
+              onClick={onRegenerate}
               className="gap-2"
             >
-              <RefreshCw size={14} />
+              <RotateCcw size={14} />
               Regenerate
             </Button>
           )}
-          
-          <Button variant="outline" size="sm" onClick={onExport} className="gap-2">
-            <Download size={14} />
-            Export
-          </Button>
-          
-          <Button variant="outline" size="sm" onClick={onShare} className="gap-2">
-            <Share2 size={14} />
-            Share
-          </Button>
 
-          <Button variant="ghost" size="sm">
-            <MoreHorizontal size={16} />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" variant="ghost">
+                <MoreHorizontal size={16} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {onExport && (
+                <DropdownMenuItem onClick={onExport}>
+                  <Download size={14} className="mr-2" />
+                  Export as Markdown
+                </DropdownMenuItem>
+              )}
+              {onShare && (
+                <DropdownMenuItem onClick={onShare}>
+                  <Share size={14} className="mr-2" />
+                  Share Chat
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
       {/* Context Chips */}
       {contextChips.length > 0 && (
-        <div className="px-4 pb-3">
-          <div className="flex flex-wrap gap-2">
-            {contextChips.map(chip => (
-              <Badge
-                key={chip.id}
-                variant="secondary"
-                className={cn(
-                  "flex items-center gap-2 py-1 px-2 text-xs border",
-                  getChipColor(chip.type)
-                )}
+        <div className="flex flex-wrap gap-2 mt-3">
+          {contextChips.map((chip) => (
+            <Badge
+              key={chip.id}
+              variant="secondary"
+              className="gap-2 pr-1"
+            >
+              <span className="text-xs">
+                {chip.type === 'item' && '📄'}
+                {chip.type === 'space' && '📁'}
+                {chip.type === 'tag' && '🏷️'}
+                {chip.type === 'url' && '🔗'}
+                {chip.type === 'pdf' && '📋'}
+              </span>
+              <span className="truncate max-w-32">{chip.label}</span>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-4 w-4 rounded-full hover:bg-background/50"
+                onClick={() => onRemoveChip(chip.id)}
               >
-                {getChipIcon(chip.type)}
-                <span>{chip.label}</span>
-                {chip.removable && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-4 w-4 p-0 hover:bg-transparent"
-                    onClick={() => onRemoveChip(chip.id)}
-                  >
-                    <X size={10} />
-                  </Button>
-                )}
-              </Badge>
-            ))}
-          </div>
+                <X size={10} />
+              </Button>
+            </Badge>
+          ))}
         </div>
       )}
     </div>

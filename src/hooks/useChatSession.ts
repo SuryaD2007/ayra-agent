@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Chat, ChatMessage, Folder, StreamingState } from '@/types/chat';
+import { Chat, Message, Folder } from '@/types/chat';
 import { useAuth } from '@/contexts/AuthContext';
 
 export function useChatSession() {
@@ -8,42 +8,30 @@ export function useChatSession() {
   const [chats, setChats] = useState<Chat[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [activeChat, setActiveChat] = useState<Chat | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [streamingState, setStreamingState] = useState<StreamingState>({
-    isStreaming: false,
-    messageId: null
-  });
-  const [loading, setLoading] = useState(true);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
 
   // Load chats and folders
-  const loadChatsAndFolders = useCallback(async () => {
+  const loadChats = useCallback(async () => {
     if (!user) return;
-    
+
     try {
-      setLoading(true);
-      
-      // Load folders
-      const { data: foldersData, error: foldersError } = await supabase
-        .from('folders')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (foldersError) throw foldersError;
-      
-      // Load chats
-      const { data: chatsData, error: chatsError } = await supabase
-        .from('chats')
-        .select('*')
-        .order('updated_at', { ascending: false });
-      
-      if (chatsError) throw chatsError;
-      
-      setFolders(foldersData || []);
-      setChats(chatsData || []);
+      const [chatsResponse, foldersResponse] = await Promise.all([
+        supabase
+          .from('chats')
+          .select('*')
+          .order('updated_at', { ascending: false }),
+        supabase
+          .from('folders')
+          .select('*')
+          .order('name', { ascending: true })
+      ]);
+
+      if (chatsResponse.data) setChats(chatsResponse.data);
+      if (foldersResponse.data) setFolders(foldersResponse.data);
     } catch (error) {
-      console.error('Error loading chats and folders:', error);
-    } finally {
-      setLoading(false);
+      console.error('Error loading chats:', error);
     }
   }, [user]);
 
@@ -55,39 +43,36 @@ export function useChatSession() {
         .select('*')
         .eq('chat_id', chatId)
         .order('created_at', { ascending: true });
-      
+
       if (error) throw error;
-      
-      setMessages((data || []) as ChatMessage[]);
+      setMessages(data as Message[] || []);
     } catch (error) {
       console.error('Error loading messages:', error);
-      setMessages([]);
     }
   }, []);
 
   // Create new chat
-  const createChat = useCallback(async (title = 'New Chat', folderId?: string) => {
+  const createNewChat = useCallback(async (title = 'New Chat', folderId?: string) => {
     if (!user) return null;
-    
+
     try {
       const { data, error } = await supabase
         .from('chats')
         .insert({
+          user_id: user.id,
           title,
-          folder_id: folderId,
-          user_id: user.id
+          folder_id: folderId
         })
         .select()
         .single();
-      
+
       if (error) throw error;
       
-      const newChat = data as Chat;
-      setChats(prev => [newChat, ...prev]);
-      setActiveChat(newChat);
+      setChats(prev => [data, ...prev]);
+      setActiveChat(data);
       setMessages([]);
       
-      return newChat;
+      return data;
     } catch (error) {
       console.error('Error creating chat:', error);
       return null;
@@ -101,20 +86,20 @@ export function useChatSession() {
         .from('chats')
         .update({ title })
         .eq('id', chatId);
-      
+
       if (error) throw error;
-      
+
       setChats(prev => prev.map(chat => 
         chat.id === chatId ? { ...chat, title } : chat
       ));
-      
+
       if (activeChat?.id === chatId) {
         setActiveChat(prev => prev ? { ...prev, title } : null);
       }
     } catch (error) {
       console.error('Error updating chat title:', error);
     }
-  }, [activeChat?.id]);
+  }, [activeChat]);
 
   // Delete chat
   const deleteChat = useCallback(async (chatId: string) => {
@@ -123,9 +108,9 @@ export function useChatSession() {
         .from('chats')
         .delete()
         .eq('id', chatId);
-      
+
       if (error) throw error;
-      
+
       setChats(prev => prev.filter(chat => chat.id !== chatId));
       
       if (activeChat?.id === chatId) {
@@ -135,86 +120,118 @@ export function useChatSession() {
     } catch (error) {
       console.error('Error deleting chat:', error);
     }
-  }, [activeChat?.id]);
+  }, [activeChat]);
 
   // Send message
   const sendMessage = useCallback(async (content: string, context?: any) => {
     if (!activeChat || !user) return;
-    
+
+    setIsLoading(true);
+    setIsStreaming(true);
+
     try {
       // Add user message
-      const { data: userMessage, error: userError } = await supabase
+      const userMessage = {
+        chat_id: activeChat.id,
+        role: 'user' as const,
+        content
+      };
+
+      const { data: userMessageData, error: userError } = await supabase
         .from('messages')
-        .insert({
-          chat_id: activeChat.id,
-          role: 'user',
-          content
-        })
+        .insert(userMessage)
         .select()
         .single();
-      
+
       if (userError) throw userError;
-      
-      const newUserMessage = userMessage as ChatMessage;
-      setMessages(prev => [...prev, newUserMessage]);
-      
-      // Start streaming
-      setStreamingState({ isStreaming: true, messageId: 'streaming' });
-      
-      // Call ChatGPT function
+
+      setMessages(prev => [...prev, userMessageData as Message]);
+
+      // Call ChatGPT API
       const { data, error } = await supabase.functions.invoke('chat-gpt', {
         body: {
-          messages: [...messages, newUserMessage].map(msg => ({
+          messages: [...messages, userMessageData].map(msg => ({
             type: msg.role === 'user' ? 'user' : 'assistant',
             content: msg.content
           })),
-          context
+          context,
+          itemId: context?.itemId
         }
       });
-      
+
       if (error) throw error;
-      
+
       // Add assistant response
-      const { data: assistantMessage, error: assistantError } = await supabase
+      const assistantMessage = {
+        chat_id: activeChat.id,
+        role: 'assistant' as const,
+        content: data.success ? data.response : 'Sorry, I encountered an error. Please try again.'
+      };
+
+      const { data: assistantMessageData, error: assistantError } = await supabase
         .from('messages')
-        .insert({
-          chat_id: activeChat.id,
-          role: 'assistant',
-          content: data.success ? data.response : 'Sorry, I encountered an error. Please try again.',
-          tokens_in: data.tokens_used?.input || null,
-          tokens_out: data.tokens_used?.output || null
-        })
+        .insert(assistantMessage)
         .select()
         .single();
-      
+
       if (assistantError) throw assistantError;
-      
-      const newAssistantMessage = assistantMessage as ChatMessage;
-      setMessages(prev => [...prev, newAssistantMessage]);
-      
-      // Auto-title chat if it's the first message
-      if (messages.length === 0 && activeChat.title === 'New Chat') {
-        const autoTitle = content.slice(0, 60).replace(/\s+/g, ' ').trim();
+
+      setMessages(prev => [...prev, assistantMessageData as Message]);
+
+      // Auto-generate title for first message
+      if (messages.length === 0 && data.success) {
+        const autoTitle = content.length > 60 ? content.substring(0, 57) + '...' : content;
         await updateChatTitle(activeChat.id, autoTitle);
       }
-      
+
     } catch (error) {
       console.error('Error sending message:', error);
       
       // Add error message
-      const errorMessage: ChatMessage = {
-        id: Date.now().toString(),
+      const errorMessage = {
         chat_id: activeChat.id,
-        role: 'assistant',
-        content: 'Sorry, I encountered an error while processing your request. Please try again.',
-        created_at: new Date().toISOString()
+        role: 'assistant' as const,
+        content: 'Sorry, I encountered an error while processing your request. Please try again.'
       };
-      
-      setMessages(prev => [...prev, errorMessage]);
+
+      const { data: errorMessageData } = await supabase
+        .from('messages')
+        .insert(errorMessage)
+        .select()
+        .single();
+
+      if (errorMessageData) {
+        setMessages(prev => [...prev, errorMessageData as Message]);
+      }
     } finally {
-      setStreamingState({ isStreaming: false, messageId: null });
+      setIsLoading(false);
+      setIsStreaming(false);
     }
   }, [activeChat, user, messages, updateChatTitle]);
+
+  // Create folder
+  const createFolder = useCallback(async (name: string) => {
+    if (!user) return null;
+
+    try {
+      const { data, error } = await supabase
+        .from('folders')
+        .insert({
+          user_id: user.id,
+          name
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      setFolders(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
+      return data;
+    } catch (error) {
+      console.error('Error creating folder:', error);
+      return null;
+    }
+  }, [user]);
 
   // Select chat
   const selectChat = useCallback((chat: Chat) => {
@@ -222,69 +239,25 @@ export function useChatSession() {
     loadMessages(chat.id);
   }, [loadMessages]);
 
-  // Create folder
-  const createFolder = useCallback(async (name: string) => {
-    if (!user) return null;
-    
-    try {
-      const { data, error } = await supabase
-        .from('folders')
-        .insert({
-          name,
-          user_id: user.id
-        })
-        .select()
-        .single();
-      
-      if (error) throw error;
-      
-      const newFolder = data as Folder;
-      setFolders(prev => [newFolder, ...prev]);
-      
-      return newFolder;
-    } catch (error) {
-      console.error('Error creating folder:', error);
-      return null;
-    }
-  }, [user]);
-
-  // Move chat to folder
-  const moveChatToFolder = useCallback(async (chatId: string, folderId: string | null) => {
-    try {
-      const { error } = await supabase
-        .from('chats')
-        .update({ folder_id: folderId })
-        .eq('id', chatId);
-      
-      if (error) throw error;
-      
-      setChats(prev => prev.map(chat => 
-        chat.id === chatId ? { ...chat, folder_id: folderId } : chat
-      ));
-      
-    } catch (error) {
-      console.error('Error moving chat to folder:', error);
-    }
-  }, []);
-
   useEffect(() => {
-    loadChatsAndFolders();
-  }, [loadChatsAndFolders]);
+    if (user) {
+      loadChats();
+    }
+  }, [user, loadChats]);
 
   return {
     chats,
     folders,
     activeChat,
     messages,
-    streamingState,
-    loading,
-    createChat,
+    isLoading,
+    isStreaming,
+    createNewChat,
     updateChatTitle,
     deleteChat,
     sendMessage,
-    selectChat,
     createFolder,
-    moveChatToFolder,
-    loadChatsAndFolders
+    selectChat,
+    setIsStreaming
   };
 }

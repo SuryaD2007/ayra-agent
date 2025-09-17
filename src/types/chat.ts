@@ -1,4 +1,13 @@
-export interface ChatMessage {
+export interface Chat {
+  id: string;
+  user_id: string;
+  title: string;
+  folder_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Message {
   id: string;
   chat_id: string;
   role: 'user' | 'assistant' | 'system';
@@ -8,22 +17,11 @@ export interface ChatMessage {
   created_at: string;
 }
 
-export interface Chat {
-  id: string;
-  user_id: string;
-  title: string;
-  folder_id?: string;
-  created_at: string;
-  updated_at: string;
-  messages?: ChatMessage[];
-}
-
 export interface Folder {
   id: string;
   user_id: string;
   name: string;
   created_at: string;
-  chats?: Chat[];
 }
 
 export interface ContextChip {
@@ -31,10 +29,12 @@ export interface ContextChip {
   type: 'item' | 'space' | 'tag' | 'url' | 'pdf';
   label: string;
   value: string;
-  removable: boolean;
 }
 
-export interface StreamingState {
-  isStreaming: boolean;
-  messageId: string | null;
+export interface SourceCard {
+  id: string;
+  title: string;
+  domain: string;
+  favicon?: string;
+  url: string;
 }
