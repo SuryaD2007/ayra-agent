@@ -124,7 +124,15 @@ export function useChatSession() {
 
   // Send message
   const sendMessage = useCallback(async (content: string, context?: any) => {
-    if (!activeChat || !user) return;
+    if (!user) return;
+
+    let chatToUse = activeChat;
+    
+    // If no active chat, create a new one
+    if (!chatToUse) {
+      chatToUse = await createNewChat();
+      if (!chatToUse) return;
+    }
 
     setIsLoading(true);
     setIsStreaming(true);
@@ -132,7 +140,7 @@ export function useChatSession() {
     try {
       // Add user message
       const userMessage = {
-        chat_id: activeChat.id,
+        chat_id: chatToUse.id,
         role: 'user' as const,
         content
       };
@@ -163,7 +171,7 @@ export function useChatSession() {
 
       // Add assistant response
       const assistantMessage = {
-        chat_id: activeChat.id,
+        chat_id: chatToUse.id,
         role: 'assistant' as const,
         content: data.success ? data.response : 'Sorry, I encountered an error. Please try again.'
       };
@@ -181,7 +189,7 @@ export function useChatSession() {
       // Auto-generate title for first message
       if (messages.length === 0 && data.success) {
         const autoTitle = content.length > 60 ? content.substring(0, 57) + '...' : content;
-        await updateChatTitle(activeChat.id, autoTitle);
+        await updateChatTitle(chatToUse.id, autoTitle);
       }
 
     } catch (error) {
@@ -189,7 +197,7 @@ export function useChatSession() {
       
       // Add error message
       const errorMessage = {
-        chat_id: activeChat.id,
+        chat_id: chatToUse.id,
         role: 'assistant' as const,
         content: 'Sorry, I encountered an error while processing your request. Please try again.'
       };
@@ -207,7 +215,7 @@ export function useChatSession() {
       setIsLoading(false);
       setIsStreaming(false);
     }
-  }, [activeChat, user, messages, updateChatTitle]);
+  }, [activeChat, user, messages, updateChatTitle, createNewChat]);
 
   // Create folder
   const createFolder = useCallback(async (name: string) => {
