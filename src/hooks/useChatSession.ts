@@ -124,15 +124,7 @@ export function useChatSession() {
 
   // Send message
   const sendMessage = useCallback(async (content: string, context?: any) => {
-    if (!user) return;
-
-    let chatToUse = activeChat;
-    
-    // If no active chat, create a new one
-    if (!chatToUse) {
-      chatToUse = await createNewChat();
-      if (!chatToUse) return;
-    }
+    if (!activeChat || !user) return;
 
     setIsLoading(true);
     setIsStreaming(true);
@@ -140,7 +132,7 @@ export function useChatSession() {
     try {
       // Add user message
       const userMessage = {
-        chat_id: chatToUse.id,
+        chat_id: activeChat.id,
         role: 'user' as const,
         content
       };
@@ -171,7 +163,7 @@ export function useChatSession() {
 
       // Add assistant response
       const assistantMessage = {
-        chat_id: chatToUse.id,
+        chat_id: activeChat.id,
         role: 'assistant' as const,
         content: data.success ? data.response : 'I apologize, but I encountered an issue with the AI service. This is likely due to API quota limits. Please check your OpenAI account billing and try again.'
       };
@@ -189,7 +181,7 @@ export function useChatSession() {
       // Auto-generate title for first message
       if (messages.length === 0 && data.success) {
         const autoTitle = content.length > 60 ? content.substring(0, 57) + '...' : content;
-        await updateChatTitle(chatToUse.id, autoTitle);
+        await updateChatTitle(activeChat.id, autoTitle);
       }
 
     } catch (error) {
@@ -197,7 +189,7 @@ export function useChatSession() {
       
       // Add error message
       const errorMessage = {
-        chat_id: chatToUse.id,
+        chat_id: activeChat.id,
         role: 'assistant' as const,
         content: 'I apologize, but I encountered a technical issue. This is likely due to AI service quota limits. Please check your OpenAI account credits and try again.'
       };
@@ -215,7 +207,7 @@ export function useChatSession() {
       setIsLoading(false);
       setIsStreaming(false);
     }
-  }, [activeChat, user, messages, updateChatTitle, createNewChat]);
+  }, [activeChat, user, messages, updateChatTitle]);
 
   // Create folder
   const createFolder = useCallback(async (name: string) => {

@@ -92,8 +92,19 @@ const SearchPage = () => {
 
   const handleSendMessage = async (content: string) => {
     if (!content.trim()) return;
+    
     setChatInput('');
-    await sendMessage(content);
+    
+    // If no active chat, create one first then send message
+    if (!activeChat) {
+      const newChat = await createNewChat();
+      if (newChat) {
+        // Brief delay to ensure state updates
+        setTimeout(() => sendMessage(content), 50);
+      }
+    } else {
+      await sendMessage(content);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
