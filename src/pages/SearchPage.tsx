@@ -197,15 +197,15 @@ const SearchPage = () => {
                       key={chat.id}
                       onClick={() => handleChatSelect(chat)}
                       className={cn(
-                        "p-2 rounded-lg flex items-center gap-2 cursor-pointer group transition-all duration-300 hover:scale-[1.02]",
+                        "p-3 rounded-lg flex items-center gap-3 cursor-pointer group transition-all duration-200",
                         activeChat?.id === chat.id 
-                          ? "bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 shadow-sm" 
-                          : "hover:bg-muted/40 hover:shadow-sm"
+                          ? "bg-primary/10 text-primary border border-primary/20" 
+                          : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
                       )}
                     >
-                      <Search size={14} className={cn(
-                        "transition-colors duration-200",
-                        activeChat?.id === chat.id ? "text-primary" : "text-muted-foreground"
+                      <Search size={16} className={cn(
+                        "transition-colors duration-200 flex-shrink-0",
+                        activeChat?.id === chat.id ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
                       )} />
                       <div className="flex-1 min-w-0">
                         {isEditingTitle === chat.id ? (
@@ -225,10 +225,10 @@ const SearchPage = () => {
                             />
                           </form>
                           ) : (
-                            <p className="text-xs font-medium truncate">{chat.title}</p>
+                            <p className="text-sm font-medium truncate leading-5">{chat.title}</p>
                           )}
                       </div>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0">
                         <Button 
                           size="icon" 
                           variant="ghost" 
