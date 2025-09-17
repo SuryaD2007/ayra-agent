@@ -36,14 +36,21 @@ const ChatInput: React.FC<ChatInputProps> = ({
               isFocused ? "text-primary" : ""
             )} 
           />
-          <input
-            type="text"
+          <textarea
             placeholder="Ask your second brain anything..."
-            className="w-full bg-transparent border-none outline-none focus:outline-none text-foreground"
+            className="w-full bg-transparent border-none outline-none focus:outline-none text-foreground resize-none"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSubmit(e);
+              }
+            }}
+            rows={1}
+            style={{ minHeight: '24px' }}
           />
           <Button 
             type="submit"
