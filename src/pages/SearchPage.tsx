@@ -181,14 +181,14 @@ const SearchPage = () => {
       <div className="h-screen flex flex-col bg-gradient-to-br from-background via-background to-background/95">
         {/* Top Navigation */}
         <div className="border-b border-border/30 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
-          <div className="flex items-center justify-between px-8 py-4">
+          <div className="flex items-center justify-between px-4 py-3">
             {/* Left side - Cortex dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="gap-3 text-lg font-semibold hover:bg-muted/50 transition-all duration-200 hover:scale-105">
-                  <Brain size={22} className="text-primary" />
+                <Button variant="ghost" className="gap-2 text-base font-semibold hover:bg-muted/50 transition-all duration-200 hover:scale-105">
+                  <Brain size={18} className="text-primary" />
                   Cortex
-                  <ChevronDown size={16} className="text-muted-foreground" />
+                  <ChevronDown size={14} className="text-muted-foreground" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="glass-panel">
@@ -200,22 +200,22 @@ const SearchPage = () => {
 
             {/* Right side - Actions */}
             <div className="flex items-center gap-1">
-              <Button size="icon" variant="ghost" className="hover:bg-muted/50 transition-all duration-200 hover:scale-110">
-                <Grid3X3 size={20} />
+              <Button size="sm" variant="ghost" className="hover:bg-muted/50 transition-all duration-200 hover:scale-110 h-8 w-8">
+                <Grid3X3 size={16} />
               </Button>
-              <Button size="icon" variant="ghost" className="hover:bg-muted/50 transition-all duration-200 hover:scale-110">
-                <Search size={20} />
+              <Button size="sm" variant="ghost" className="hover:bg-muted/50 transition-all duration-200 hover:scale-110 h-8 w-8">
+                <Search size={16} />
               </Button>
-              <Button size="icon" variant="ghost" className="hover:bg-muted/50 transition-all duration-200 hover:scale-110">
-                <Upload size={20} />
+              <Button size="sm" variant="ghost" className="hover:bg-muted/50 transition-all duration-200 hover:scale-110 h-8 w-8">
+                <Upload size={16} />
               </Button>
               
               {/* User Profile */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="icon" variant="ghost" className="hover:bg-muted/50 transition-all duration-200 hover:scale-110">
-                    <Avatar className="h-9 w-9 ring-2 ring-primary/20">
-                      <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold">
+                  <Button size="sm" variant="ghost" className="hover:bg-muted/50 transition-all duration-200 hover:scale-110 h-8 w-8">
+                    <Avatar className="h-7 w-7 ring-2 ring-primary/20">
+                      <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold text-xs">
                         {user?.email?.charAt(0).toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
@@ -227,14 +227,14 @@ const SearchPage = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              <Button size="icon" variant="ghost" className="hover:bg-muted/50 transition-all duration-200 hover:scale-110">
-                <Settings size={20} />
+              <Button size="sm" variant="ghost" className="hover:bg-muted/50 transition-all duration-200 hover:scale-110 h-8 w-8">
+                <Settings size={16} />
               </Button>
-              <Button size="icon" variant="ghost" onClick={toggleTheme} className="hover:bg-muted/50 transition-all duration-200 hover:scale-110">
-                {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+              <Button size="sm" variant="ghost" onClick={toggleTheme} className="hover:bg-muted/50 transition-all duration-200 hover:scale-110 h-8 w-8">
+                {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
               </Button>
-              <Button size="icon" variant="ghost" className="hover:bg-muted/50 transition-all duration-200 hover:scale-110">
-                <Share size={20} />
+              <Button size="sm" variant="ghost" className="hover:bg-muted/50 transition-all duration-200 hover:scale-110 h-8 w-8">
+                <Share size={16} />
               </Button>
             </div>
           </div>
@@ -242,36 +242,36 @@ const SearchPage = () => {
 
         <div className="flex flex-1 overflow-hidden">
           {/* Left Sidebar */}
-          <div className="w-72 border-r border-border/30 bg-gradient-to-b from-muted/10 to-muted/30 backdrop-blur-sm flex flex-col">
+          <div className="w-64 border-r border-border/30 bg-gradient-to-b from-muted/10 to-muted/30 backdrop-blur-sm flex flex-col">
             {/* New Chat Button */}
-            <div className="p-6">
+            <div className="p-4">
               <Button 
                 onClick={createNewChat}
                 variant="outline"
-                className="w-full justify-start gap-3 h-12 text-base font-medium border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300 hover:scale-[1.02] shadow-sm hover:shadow-md"
+                className="w-full justify-start gap-2 h-9 text-sm font-medium border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300 hover:scale-[1.02] shadow-sm hover:shadow-md"
               >
-                <PlusCircle size={18} className="text-primary" />
+                <PlusCircle size={16} className="text-primary" />
                 New Chat
               </Button>
             </div>
 
             {/* Chat List */}
-            <div className="flex-1 overflow-y-auto px-4 pb-4">
+            <div className="flex-1 overflow-y-auto px-3 pb-3">
               {chats.length > 0 && (
-                <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-muted-foreground mb-4 px-3">Today</h3>
+                <div className="space-y-1">
+                  <h3 className="text-xs font-semibold text-muted-foreground mb-3 px-2">Today</h3>
                   {chats.map(chat => (
                     <div 
                       key={chat.id}
                       onClick={() => handleChatSelect(chat)}
                       className={cn(
-                        "p-3 rounded-xl flex items-center gap-3 cursor-pointer group transition-all duration-300 hover:scale-[1.02]",
+                        "p-2 rounded-lg flex items-center gap-2 cursor-pointer group transition-all duration-300 hover:scale-[1.02]",
                         activeChat?.id === chat.id 
                           ? "bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 shadow-sm" 
                           : "hover:bg-muted/40 hover:shadow-sm"
                       )}
                     >
-                      <Search size={16} className={cn(
+                      <Search size={14} className={cn(
                         "transition-colors duration-200",
                         activeChat?.id === chat.id ? "text-primary" : "text-muted-foreground"
                       )} />
@@ -292,9 +292,9 @@ const SearchPage = () => {
                               className="h-7 text-sm border-primary/30 focus:border-primary/50"
                             />
                           </form>
-                        ) : (
-                          <p className="text-sm font-medium truncate">{chat.title}</p>
-                        )}
+                          ) : (
+                            <p className="text-xs font-medium truncate">{chat.title}</p>
+                          )}
                       </div>
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
                         <Button 
@@ -324,36 +324,36 @@ const SearchPage = () => {
           {/* Main Content Area */}
           <div className="flex-1 flex flex-col bg-gradient-to-br from-background/95 to-background/98">
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-8">
+            <div className="flex-1 overflow-y-auto p-4">
               {messages.length === 0 ? (
                 <div className="h-full flex items-center justify-center">
-                  <div className="text-center space-y-6 animate-fade-in">
+                  <div className="text-center space-y-4 animate-fade-in">
                     <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-primary/10 to-primary/20 blur-3xl rounded-full"></div>
-                      <h2 className="relative text-4xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                      <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-primary/10 to-primary/20 blur-2xl rounded-full"></div>
+                      <h2 className="relative text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
                         Search Your Second Brain
                       </h2>
                     </div>
-                    <p className="text-muted-foreground text-lg max-w-md mx-auto leading-relaxed">
+                    <p className="text-muted-foreground text-base max-w-md mx-auto leading-relaxed">
                       Ask questions to search across your notes, documents, and knowledge base.
                     </p>
                   </div>
                 </div>
               ) : (
-                <div className="space-y-8 max-w-5xl animate-fade-in">
+                <div className="space-y-4 max-w-4xl animate-fade-in">
                   {messages.map((message, index) => (
-                    <div key={message.id} className="space-y-6">
+                    <div key={message.id} className="space-y-3">
                       {/* User message */}
                       {message.sender === 'user' && (
                         <div className="flex justify-end animate-slide-in-right">
-                          <div className="glass-panel bg-gradient-to-r from-primary/10 to-primary/5 rounded-2xl px-6 py-4 max-w-lg shadow-lg hover:shadow-xl transition-all duration-300">
-                            <div className="flex items-center gap-4 mb-2">
-                              <Avatar className="h-8 w-8 ring-2 ring-primary/30">
-                                <AvatarFallback className="bg-gradient-to-br from-primary/30 to-primary/20 text-primary font-semibold text-sm">
+                          <div className="glass-panel bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl px-4 py-3 max-w-lg shadow-lg hover:shadow-xl transition-all duration-300">
+                            <div className="flex items-center gap-3 mb-1">
+                              <Avatar className="h-6 w-6 ring-2 ring-primary/30">
+                                <AvatarFallback className="bg-gradient-to-br from-primary/30 to-primary/20 text-primary font-semibold text-xs">
                                   {user?.email?.charAt(0).toUpperCase() || 'U'}
                                 </AvatarFallback>
                               </Avatar>
-                              <span className="text-base font-semibold">{message.content}</span>
+                              <span className="text-sm font-semibold">{message.content}</span>
                             </div>
                             <div className="text-xs text-muted-foreground text-right font-medium">
                               {message.timestamp.toLocaleTimeString('en-US', { 
@@ -367,9 +367,9 @@ const SearchPage = () => {
 
                       {/* AI response */}
                       {message.sender === 'ai' && (
-                        <div className="space-y-6 animate-fade-in">
-                          <div className="text-base leading-relaxed">
-                            <div className="text-sm text-muted-foreground mb-3 font-medium">
+                        <div className="space-y-4 animate-fade-in">
+                          <div className="text-sm leading-relaxed">
+                            <div className="text-xs text-muted-foreground mb-2 font-medium">
                               {message.timestamp.toLocaleTimeString('en-US', { 
                                 hour: '2-digit', 
                                 minute: '2-digit'
@@ -382,19 +382,19 @@ const SearchPage = () => {
                           
                           {/* Suggested Results - only show for the last AI message */}
                           {index === messages.length - 1 && (
-                            <div className="space-y-5">
-                              <h3 className="text-base font-semibold text-muted-foreground">Suggested Results</h3>
-                              <div className="grid gap-4">
+                            <div className="space-y-3">
+                              <h3 className="text-sm font-semibold text-muted-foreground">Suggested Results</h3>
+                              <div className="grid gap-3">
                                 {suggestedResults.map((result, idx) => (
                                   <div
                                     key={result.id}
-                                    className="glass-panel p-6 rounded-xl border border-border/50 hover:border-primary/30 cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-lg group"
+                                    className="glass-panel p-4 rounded-lg border border-border/50 hover:border-primary/30 cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-lg group"
                                     style={{ animationDelay: `${idx * 100}ms` }}
                                   >
                                     <div className="flex items-start justify-between">
-                                      <div className="space-y-2">
-                                        <h4 className="text-lg font-semibold group-hover:text-primary transition-colors duration-200">{result.title}</h4>
-                                        <p className="text-muted-foreground leading-relaxed">{result.description}</p>
+                                      <div className="space-y-1">
+                                        <h4 className="text-sm font-semibold group-hover:text-primary transition-colors duration-200">{result.title}</h4>
+                                        <p className="text-xs text-muted-foreground leading-relaxed">{result.description}</p>
                                       </div>
                                       <div className="w-2 h-2 rounded-full bg-primary/40 group-hover:bg-primary transition-colors duration-200"></div>
                                     </div>
@@ -412,30 +412,30 @@ const SearchPage = () => {
             </div>
             
             {/* Input */}
-            <div className="p-8 border-t border-border/30 bg-gradient-to-r from-background/80 to-background/90 backdrop-blur-sm">
+            <div className="p-4 border-t border-border/30 bg-gradient-to-r from-background/80 to-background/90 backdrop-blur-sm">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
                   handleSendMessage(chatInput);
                 }}
-                className="relative max-w-4xl mx-auto"
+                className="relative max-w-3xl mx-auto"
               >
                 <div className="relative group">
-                  <Search className="absolute left-6 top-1/2 transform -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors duration-200" size={22} />
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors duration-200" size={16} />
                   <Input
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
                     placeholder="Ask your second brain anything..."
-                    className="pl-16 pr-16 py-8 text-lg rounded-2xl border-2 border-border/50 hover:border-border focus:border-primary/50 bg-background/60 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 focus:scale-[1.02]"
+                    className="pl-12 pr-12 py-3 text-sm rounded-lg border-2 border-border/50 hover:border-border focus:border-primary/50 bg-background/60 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 focus:scale-[1.02]"
                   />
                   <Button 
                     type="submit" 
-                    size="icon"
+                    size="sm"
                     variant="ghost"
                     disabled={!chatInput.trim()}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 h-10 w-10 rounded-xl hover:bg-primary/20 hover:scale-110 disabled:opacity-30 transition-all duration-200"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 h-7 w-7 rounded-md hover:bg-primary/20 hover:scale-110 disabled:opacity-30 transition-all duration-200"
                   >
-                    <Send size={18} className={cn(
+                    <Send size={14} className={cn(
                       "transition-colors duration-200",
                       chatInput.trim() ? "text-primary" : "text-muted-foreground"
                     )} />
