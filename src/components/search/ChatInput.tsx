@@ -21,7 +21,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   setIsFocused
 }) => {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && (e.shiftKey || e.ctrlKey || e.metaKey)) {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e as any);
     }
@@ -45,7 +45,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
             )} 
           />
           <Textarea
-            placeholder="Ask your second brain anything... (Shift+Enter to send)"
+            placeholder="Ask your second brain anything... (Shift+Enter for new line)"
             className="w-full bg-transparent border-none outline-none focus:outline-none text-foreground resize-none min-h-[20px] max-h-32 px-0 py-0"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -78,7 +78,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
           </Button>
         </div>
         <div className="text-xs text-muted-foreground mt-2 text-center">
-          Press <kbd className="px-1 py-0.5 bg-muted rounded text-xs">Shift + Enter</kbd> to send
+          Press <kbd className="px-1 py-0.5 bg-muted rounded text-xs">Enter</kbd> to send • <kbd className="px-1 py-0.5 bg-muted rounded text-xs">Shift + Enter</kbd> for new line
         </div>
       </form>
     </div>
