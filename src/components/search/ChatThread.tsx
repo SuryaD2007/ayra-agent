@@ -10,9 +10,10 @@ interface ChatThreadProps {
   messages: Message[];
   isLoading?: boolean;
   sources?: SourceCard[];
+  onSuggestionClick?: (message: string) => void;
 }
 
-export function ChatThread({ messages, isLoading = false, sources = [] }: ChatThreadProps) {
+export function ChatThread({ messages, isLoading = false, sources = [], onSuggestionClick }: ChatThreadProps) {
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Record<string, 'up' | 'down'>>({});
 
@@ -47,19 +48,31 @@ export function ChatThread({ messages, isLoading = false, sources = [] }: ChatTh
             </p>
           </div>
           <div className="grid grid-cols-1 gap-3 max-w-md mx-auto">
-            <Button variant="outline" className="justify-start text-left h-auto py-3">
+            <Button 
+              variant="outline" 
+              className="justify-start text-left h-auto py-3 hover:bg-primary/5 hover:border-primary/30 transition-all duration-200"
+              onClick={() => onSuggestionClick?.("Summarize my meeting notes")}
+            >
               <div>
                 <div className="font-medium">Summarize my meeting notes</div>
                 <div className="text-sm text-muted-foreground">Get key insights from recent documents</div>
               </div>
             </Button>
-            <Button variant="outline" className="justify-start text-left h-auto py-3">
+            <Button 
+              variant="outline" 
+              className="justify-start text-left h-auto py-3 hover:bg-primary/5 hover:border-primary/30 transition-all duration-200"
+              onClick={() => onSuggestionClick?.("Find research on AI trends")}
+            >
               <div>
                 <div className="font-medium">Find research on AI trends</div>
                 <div className="text-sm text-muted-foreground">Search through saved articles and papers</div>
               </div>
             </Button>
-            <Button variant="outline" className="justify-start text-left h-auto py-3">
+            <Button 
+              variant="outline" 
+              className="justify-start text-left h-auto py-3 hover:bg-primary/5 hover:border-primary/30 transition-all duration-200"
+              onClick={() => onSuggestionClick?.("What are my project goals?")}
+            >
               <div>
                 <div className="font-medium">What are my project goals?</div>
                 <div className="text-sm text-muted-foreground">Review objectives from project docs</div>

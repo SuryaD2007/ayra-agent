@@ -255,7 +255,11 @@ const SearchPage = () => {
           
           {/* Main Content Area */}
           <div className="flex-1 flex flex-col bg-gradient-to-br from-background/95 to-background/98">
-            <ChatThread messages={messages} isLoading={isStreaming} />
+            <ChatThread 
+              messages={messages} 
+              isLoading={isStreaming} 
+              onSuggestionClick={handleSendMessage}
+            />
             <ChatInput
               searchQuery={chatInput}
               setSearchQuery={setChatInput}
