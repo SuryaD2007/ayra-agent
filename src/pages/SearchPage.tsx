@@ -185,11 +185,11 @@ const SearchPage = () => {
             {/* Left side - Cortex dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="gap-2 text-base font-semibold hover:bg-muted/50 transition-all duration-200 hover:scale-105">
-                  <Brain size={18} className="text-primary" />
-                  Cortex
-                  <ChevronDown size={14} className="text-muted-foreground" />
-                </Button>
+                  <Button variant="ghost" className="gap-2 text-base font-semibold hover:bg-muted/50 transition-all duration-200 hover:scale-105">
+                    <Brain size={18} className="text-primary" />
+                    Ayra
+                    <ChevronDown size={14} className="text-muted-foreground" />
+                  </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="glass-panel">
                 <DropdownMenuItem className="hover:bg-primary/10">Overview</DropdownMenuItem>
