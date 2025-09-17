@@ -26,8 +26,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
         className="relative"
       >
         <div className={cn(
-          "w-full glass-panel flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300",
-          isFocused ? "ring-2 ring-primary/30" : ""
+          "w-full glass-panel flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-500 ease-out hover-glide",
+          isFocused ? "ring-2 ring-primary/30 shadow-lg shadow-primary/10" : "hover:shadow-md"
         )}>
           <SearchIcon 
             size={20} 
@@ -50,8 +50,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
             size="icon"
             variant="ghost"
             className={cn(
-              "text-muted-foreground transition-all duration-300",
-              searchQuery.trim() ? "opacity-100" : "opacity-50",
+              "text-muted-foreground transition-all duration-300 smooth-bounce hover-glow",
+              searchQuery.trim() ? "opacity-100 hover:text-primary" : "opacity-50",
               isFocused && searchQuery.trim() ? "text-primary" : ""
             )}
             disabled={!searchQuery.trim()}

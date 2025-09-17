@@ -143,21 +143,20 @@ const SearchPage = () => {
 
             {/* Right side - Actions */}
             <div className="flex items-center gap-1">
-              <Button size="sm" variant="ghost" className="hover:bg-muted/50 transition-all duration-200 hover:scale-110 h-8 w-8">
+              <Button size="sm" variant="ghost" className="hover:bg-muted/50 transition-all duration-300 smooth-bounce h-8 w-8">
                 <Grid3X3 size={16} />
               </Button>
-              <Button size="sm" variant="ghost" className="hover:bg-muted/50 transition-all duration-200 hover:scale-110 h-8 w-8">
+              <Button size="sm" variant="ghost" className="hover:bg-muted/50 transition-all duration-300 smooth-bounce h-8 w-8">
                 <Search size={16} />
               </Button>
-              <Button size="sm" variant="ghost" className="hover:bg-muted/50 transition-all duration-200 hover:scale-110 h-8 w-8">
+              <Button size="sm" variant="ghost" className="hover:bg-muted/50 transition-all duration-300 smooth-bounce h-8 w-8">
                 <Upload size={16} />
               </Button>
               
-              {/* User Profile */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="ghost" className="hover:bg-muted/50 transition-all duration-200 hover:scale-110 h-8 w-8">
-                    <Avatar className="h-7 w-7 ring-2 ring-primary/20">
+                  <Button size="sm" variant="ghost" className="hover:bg-muted/50 transition-all duration-300 smooth-bounce h-8 w-8">
+                    <Avatar className="h-7 w-7 ring-2 ring-primary/20 transition-all duration-300 hover:ring-primary/40">
                       <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold text-xs">
                         {user?.email?.charAt(0).toUpperCase() || 'U'}
                       </AvatarFallback>
@@ -165,18 +164,18 @@ const SearchPage = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="glass-panel">
-                  <DropdownMenuItem className="hover:bg-primary/10">Profile</DropdownMenuItem>
-                  <DropdownMenuItem onClick={logout} className="hover:bg-destructive/10">Sign out</DropdownMenuItem>
+                  <DropdownMenuItem className="hover:bg-primary/10 transition-all duration-200">Profile</DropdownMenuItem>
+                  <DropdownMenuItem onClick={logout} className="hover:bg-destructive/10 transition-all duration-200">Sign out</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              <Button size="sm" variant="ghost" className="hover:bg-muted/50 transition-all duration-200 hover:scale-110 h-8 w-8">
+              <Button size="sm" variant="ghost" className="hover:bg-muted/50 transition-all duration-300 smooth-bounce h-8 w-8">
                 <Settings size={16} />
               </Button>
-              <Button size="sm" variant="ghost" onClick={toggleTheme} className="hover:bg-muted/50 transition-all duration-200 hover:scale-110 h-8 w-8">
+              <Button size="sm" variant="ghost" onClick={toggleTheme} className="hover:bg-muted/50 transition-all duration-300 smooth-bounce h-8 w-8">
                 {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
               </Button>
-              <Button size="sm" variant="ghost" className="hover:bg-muted/50 transition-all duration-200 hover:scale-110 h-8 w-8">
+              <Button size="sm" variant="ghost" className="hover:bg-muted/50 transition-all duration-300 smooth-bounce h-8 w-8">
                 <Share size={16} />
               </Button>
             </div>
@@ -191,7 +190,7 @@ const SearchPage = () => {
               <Button 
                 onClick={handleCreateNewChat}
                 variant="outline"
-                className="w-full justify-start gap-2 h-9 text-sm font-medium border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300 hover:scale-[1.02] shadow-sm hover:shadow-md"
+                className="w-full justify-start gap-2 h-9 text-sm font-medium border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300 hover-glide smooth-bounce shadow-sm"
               >
                 <PlusCircle size={16} className="text-primary" />
                 New Chat
@@ -208,10 +207,10 @@ const SearchPage = () => {
                       key={chat.id}
                       onClick={() => handleChatSelect(chat)}
                       className={cn(
-                        "p-3 rounded-lg flex items-center gap-3 cursor-pointer group transition-all duration-200",
+                        "p-3 rounded-lg flex items-center gap-3 cursor-pointer group transition-all duration-300 hover-glide hover-slide",
                         activeChat?.id === chat.id 
-                          ? "bg-primary/10 text-primary border border-primary/20" 
-                          : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+                          ? "bg-primary/10 text-primary border border-primary/20 shadow-sm" 
+                          : "hover:bg-muted/50 text-muted-foreground hover:text-foreground hover:shadow-md"
                       )}
                     >
                       <Search size={16} className={cn(
@@ -243,7 +242,7 @@ const SearchPage = () => {
                         <Button 
                           size="icon" 
                           variant="ghost" 
-                          className="h-7 w-7 hover:bg-primary/20 transition-all duration-200 hover:scale-110" 
+                          className="h-7 w-7 hover:bg-primary/20 transition-all duration-300 smooth-bounce hover-glow" 
                           onClick={(e) => startEditingTitle(chat.id, e)}
                         >
                           <Edit3 size={12} />
@@ -251,7 +250,7 @@ const SearchPage = () => {
                         <Button 
                           size="icon" 
                           variant="ghost" 
-                          className="h-7 w-7 hover:bg-destructive/20 transition-all duration-200 hover:scale-110" 
+                          className="h-7 w-7 hover:bg-destructive/20 transition-all duration-300 smooth-bounce hover-glow" 
                           onClick={(e) => handleDeleteChat(chat.id, e)}
                         >
                           <Trash2 size={12} />

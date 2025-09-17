@@ -71,6 +71,42 @@
   .animate-pulse-slow {
     animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
+  
+  /* Premium hover animations */
+  .hover-glide {
+    @apply transition-all duration-300 ease-out hover:translate-y-[-2px] hover:shadow-lg;
+  }
+  
+  .hover-float {
+    @apply transition-all duration-500 ease-out hover:translate-y-[-4px] hover:shadow-2xl hover:shadow-primary/20;
+  }
+  
+  .hover-glow {
+    @apply transition-all duration-300 ease-out hover:shadow-lg hover:shadow-primary/25 hover:scale-[1.02];
+  }
+  
+  .hover-slide {
+    @apply relative overflow-hidden transition-all duration-300 ease-out before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-primary/10 before:to-transparent before:translate-x-[-100%] before:transition-transform before:duration-700 hover:before:translate-x-[100%];
+  }
+  
+  .smooth-bounce {
+    @apply transition-all duration-200 ease-out hover:scale-105 active:scale-95;
+  }
+  
+  .animate-fade-in {
+    animation: fade-in 0.4s ease-out forwards;
+  }
+}
+
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
  
 @layer base {
@@ -98,5 +134,32 @@
   50% {
     opacity: 0.7;
     transform: scale(0.95);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes gentle-bounce {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-1px) scale(1.02);
   }
 }

@@ -50,7 +50,7 @@ export function ChatThread({ messages, isLoading = false, sources = [], onSugges
           <div className="grid grid-cols-1 gap-3 max-w-md mx-auto">
             <Button 
               variant="outline" 
-              className="justify-start text-left h-auto py-3 hover:bg-primary/5 hover:border-primary/30 transition-all duration-200"
+              className="justify-start text-left h-auto py-3 hover:bg-primary/5 hover:border-primary/30 transition-all duration-300 hover-glide smooth-bounce"
               onClick={() => onSuggestionClick?.("Summarize my meeting notes")}
             >
               <div>
@@ -60,7 +60,7 @@ export function ChatThread({ messages, isLoading = false, sources = [], onSugges
             </Button>
             <Button 
               variant="outline" 
-              className="justify-start text-left h-auto py-3 hover:bg-primary/5 hover:border-primary/30 transition-all duration-200"
+              className="justify-start text-left h-auto py-3 hover:bg-primary/5 hover:border-primary/30 transition-all duration-300 hover-glide smooth-bounce"
               onClick={() => onSuggestionClick?.("Find research on AI trends")}
             >
               <div>
@@ -70,7 +70,7 @@ export function ChatThread({ messages, isLoading = false, sources = [], onSugges
             </Button>
             <Button 
               variant="outline" 
-              className="justify-start text-left h-auto py-3 hover:bg-primary/5 hover:border-primary/30 transition-all duration-200"
+              className="justify-start text-left h-auto py-3 hover:bg-primary/5 hover:border-primary/30 transition-all duration-300 hover-glide smooth-bounce"
               onClick={() => onSuggestionClick?.("What are my project goals?")}
             >
               <div>
@@ -87,8 +87,8 @@ export function ChatThread({ messages, isLoading = false, sources = [], onSugges
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="max-w-4xl mx-auto p-6 space-y-8">
-        {messages.map((message) => (
-          <div key={message.id} className="space-y-4">
+        {messages.map((message, index) => (
+          <div key={message.id} className="space-y-4 animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
             <div className={cn(
               "flex gap-4",
               message.role === 'user' ? "justify-end" : "justify-start"
@@ -100,10 +100,10 @@ export function ChatThread({ messages, isLoading = false, sources = [], onSugges
               )}
               
               <div className={cn(
-                "max-w-[740px] rounded-2xl px-6 py-4",
+                "max-w-[740px] rounded-2xl px-6 py-4 transition-all duration-300 hover-glide",
                 message.role === 'user' 
-                  ? "bg-primary text-primary-foreground" 
-                  : "bg-muted"
+                  ? "bg-primary text-primary-foreground hover:shadow-lg hover:shadow-primary/20" 
+                  : "bg-muted hover:shadow-md"
               )}>
                 <div className="prose prose-sm max-w-none dark:prose-invert">
                   {message.content.split('\n').map((line, index) => (
@@ -126,7 +126,7 @@ export function ChatThread({ messages, isLoading = false, sources = [], onSugges
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="h-7 w-7"
+                        className="h-7 w-7 transition-all duration-300 smooth-bounce hover-glow"
                         onClick={() => copyToClipboard(message.content, message.id)}
                       >
                         {copiedMessageId === message.id ? (
@@ -139,7 +139,7 @@ export function ChatThread({ messages, isLoading = false, sources = [], onSugges
                         size="icon"
                         variant="ghost"
                         className={cn(
-                          "h-7 w-7",
+                          "h-7 w-7 transition-all duration-300 smooth-bounce hover-glow",
                           feedback[message.id] === 'up' && "text-green-500 bg-green-500/10"
                         )}
                         onClick={() => handleFeedback(message.id, 'up')}
@@ -150,7 +150,7 @@ export function ChatThread({ messages, isLoading = false, sources = [], onSugges
                         size="icon"
                         variant="ghost"
                         className={cn(
-                          "h-7 w-7",
+                          "h-7 w-7 transition-all duration-300 smooth-bounce hover-glow",
                           feedback[message.id] === 'down' && "text-red-500 bg-red-500/10"
                         )}
                         onClick={() => handleFeedback(message.id, 'down')}
@@ -184,11 +184,11 @@ export function ChatThread({ messages, isLoading = false, sources = [], onSugges
         ))}
 
         {isLoading && (
-          <div className="flex gap-4">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/60 rounded-full flex items-center justify-center flex-shrink-0">
+          <div className="flex gap-4 animate-fade-in">
+            <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/60 rounded-full flex items-center justify-center flex-shrink-0 animate-pulse">
               <Bot size={16} className="text-primary-foreground" />
             </div>
-            <div className="max-w-[740px] bg-muted rounded-2xl px-6 py-4">
+            <div className="max-w-[740px] bg-muted rounded-2xl px-6 py-4 hover-float">
               <div className="space-y-2">
                 <div className="flex gap-1">
                   <div className="w-2 h-2 bg-muted-foreground/30 rounded-full animate-pulse" />
