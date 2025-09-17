@@ -33,20 +33,26 @@ const ChatInput: React.FC<ChatInputProps> = ({
         onSubmit={handleSubmit}
         className="relative"
       >
-        <div className={cn(
-          "w-full glass-panel flex items-end gap-3 px-4 py-3 rounded-2xl transition-all duration-500 ease-out hover-glide",
-          isFocused ? "ring-2 ring-primary/30 shadow-lg shadow-primary/10" : "hover:shadow-md"
-        )}>
+        <div 
+          className={cn(
+            "w-full glass-panel flex items-end gap-3 px-4 py-3 rounded-2xl transition-all duration-500 ease-out hover-glide cursor-text",
+            isFocused ? "ring-2 ring-primary/30 shadow-lg shadow-primary/10" : "hover:shadow-md"
+          )}
+          onClick={() => {
+            const textarea = document.querySelector('textarea');
+            textarea?.focus();
+          }}
+        >
           <SearchIcon 
             size={20} 
             className={cn(
-              "text-muted-foreground transition-all duration-300 flex-shrink-0 mb-2",
+              "text-muted-foreground transition-all duration-300 flex-shrink-0 mb-2 pointer-events-none",
               isFocused ? "text-primary" : ""
             )} 
           />
           <Textarea
             placeholder="Ask your second brain anything... (Shift+Enter for new line)"
-            className="w-full bg-transparent border-none outline-none focus:outline-none text-foreground resize-none min-h-[20px] max-h-32 px-0 py-0"
+            className="w-full bg-transparent border-none outline-none focus:outline-none text-foreground resize-none min-h-[20px] max-h-32 px-0 py-0 cursor-text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => setIsFocused(true)}
