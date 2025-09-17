@@ -29,7 +29,7 @@ export const groupChatsByDate = (chats: Chat[]) => {
   const grouped: Record<string, Chat[]> = {};
   
   chats.forEach(chat => {
-    const dateKey = formatDate(new Date(chat.createdAt));
+    const dateKey = formatDate(new Date(chat.created_at));
     if (!grouped[dateKey]) {
       grouped[dateKey] = [];
     }
@@ -43,9 +43,9 @@ export const groupChatsByDate = (chats: Chat[]) => {
 export const createNewChat = (): Chat => {
   return {
     id: generateId(),
+    user_id: '',
     title: 'New Chat',
-    messages: [],
-    createdAt: new Date(),
-    updatedAt: new Date()
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
   };
 };
