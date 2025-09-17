@@ -52,7 +52,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
           />
           <Textarea
             placeholder="Ask your second brain anything... (Shift+Enter for new line)"
-            className="w-full bg-transparent border-none outline-none focus:outline-none text-foreground resize-none min-h-[24px] max-h-32 px-0 py-1 cursor-text placeholder:text-center"
+            className="w-full bg-transparent border-none outline-none focus:outline-none text-foreground resize-none min-h-[20px] max-h-32 px-0 py-0 cursor-text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => setIsFocused(true)}
@@ -61,7 +61,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
             rows={1}
             style={{ 
               height: 'auto',
-              minHeight: '24px'
+              minHeight: '20px'
             }}
             onInput={(e) => {
               const target = e.target as HTMLTextAreaElement;
