@@ -100,8 +100,8 @@ export function ChatThread({ messages, isLoading = false, sources = [] }: ChatTh
                   ))}
                 </div>
                 
-                <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/20">
-                  <div className="text-xs opacity-70">
+                <div className="flex items-center justify-between mt-2 pt-2">
+                  <div className="text-xs opacity-60">
                     {new Date(message.created_at).toLocaleTimeString('en-US', { 
                       hour: '2-digit', 
                       minute: '2-digit'

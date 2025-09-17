@@ -173,7 +173,7 @@ export function useChatSession() {
       const assistantMessage = {
         chat_id: chatToUse.id,
         role: 'assistant' as const,
-        content: data.success ? data.response : 'Sorry, I encountered an error. Please try again.'
+        content: data.success ? data.response : 'I apologize, but I encountered an issue with the AI service. This is likely due to API quota limits. Please check your OpenAI account billing and try again.'
       };
 
       const { data: assistantMessageData, error: assistantError } = await supabase
@@ -199,7 +199,7 @@ export function useChatSession() {
       const errorMessage = {
         chat_id: chatToUse.id,
         role: 'assistant' as const,
-        content: 'Sorry, I encountered an error while processing your request. Please try again.'
+        content: 'I apologize, but I encountered a technical issue. This is likely due to AI service quota limits. Please check your OpenAI account credits and try again.'
       };
 
       const { data: errorMessageData } = await supabase
