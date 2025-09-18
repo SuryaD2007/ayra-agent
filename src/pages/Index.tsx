@@ -7,6 +7,7 @@ import { DesignSection } from '@/components/landing/DesignSection';
 import { DeploySection } from '@/components/landing/DeploySection';
 import { TestimonialsSection } from '@/components/landing/TestimonialsSection';
 import { CallToAction } from '@/components/landing/CallToAction';
+import { Footer } from '@/components/landing/Footer';
 import { LoadingScreen } from '@/components/landing/LoadingScreen';
 import UseCasesSection from '@/components/landing/UseCasesSection';
 
@@ -19,6 +20,7 @@ const Index = () => {
   const showUseCases = useAnimateIn(false, 1500);
   const showTestimonials = useAnimateIn(false, 1800);
   const showCallToAction = useAnimateIn(false, 2100);
+  const showFooter = useAnimateIn(false, 2400);
   
   useEffect(() => {
     // Simulate loading
@@ -62,6 +64,9 @@ const Index = () => {
           
           {/* Call to Action */}
           <CallToAction show={showCallToAction} />
+          
+          {/* Footer */}
+          <Footer show={showFooter} />
         </div>
       </div>
     </div>
