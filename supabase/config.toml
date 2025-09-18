@@ -1,7 +1,38 @@
 project_id = "plfhckjnpaehmlicazyx"
 
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[auth]
+enabled = true
+port = 54324
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://localhost:3000"]
+jwt_expiry = 3600
+enable_signup = true
+enable_anonymous_sign_ins = false
+
+[db]
+port = 54322
+
 [functions.chat-gpt]
 verify_jwt = false
 
-[functions.parse-pdf-content]
+[functions.parse-pdf]
+verify_jwt = false
+
+[functions.parse-pdf-content] 
 verify_jwt = true
+
+[functions.process-video-transcript]
+verify_jwt = false
+
+[storage]
+enabled = true
+port = 54323
+file_size_limit = "50MB"
+bucket_defaults = { allowed_mime_types = ["image/jpeg", "image/png", "image/gif", "text/plain", "application/pdf", "video/mp4"] }

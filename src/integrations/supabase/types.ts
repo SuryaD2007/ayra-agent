@@ -189,6 +189,36 @@ export type Database = {
           },
         ]
       }
+      processed_videos: {
+        Row: {
+          created_at: string
+          id: string
+          processed_at: string
+          title: string | null
+          transcript: string | null
+          url: string
+          video_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          processed_at?: string
+          title?: string | null
+          transcript?: string | null
+          url: string
+          video_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          processed_at?: string
+          title?: string | null
+          transcript?: string | null
+          url?: string
+          video_id?: string
+        }
+        Relationships: []
+      }
       spaces: {
         Row: {
           created_at: string
@@ -234,6 +264,39 @@ export type Database = {
           id?: string
           name?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      video_interactions: {
+        Row: {
+          ai_response: string | null
+          created_at: string
+          id: string
+          user_id: string
+          user_query: string | null
+          video_id: string
+          video_title: string | null
+          video_url: string
+        }
+        Insert: {
+          ai_response?: string | null
+          created_at?: string
+          id?: string
+          user_id: string
+          user_query?: string | null
+          video_id: string
+          video_title?: string | null
+          video_url: string
+        }
+        Update: {
+          ai_response?: string | null
+          created_at?: string
+          id?: string
+          user_id?: string
+          user_query?: string | null
+          video_id?: string
+          video_title?: string | null
+          video_url?: string
         }
         Relationships: []
       }

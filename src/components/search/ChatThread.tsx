@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { Message, SourceCard } from '@/types/chat';
 import { SourceCard as SourceCardComponent } from './SourceCard';
 import ReactMarkdown from 'react-markdown';
+import { LinkProcessor } from './LinkProcessor';
 
 interface ChatThreadProps {
   messages: Message[];
@@ -91,6 +92,14 @@ export function ChatThread({ messages, isLoading = false, sources = [], onSugges
                 <div className="text-sm text-muted-foreground">Review objectives from project docs</div>
               </div>
             </Button>
+          </div>
+          
+          {/* Video Link Processor */}
+          <div className="max-w-md mx-auto mt-6">
+            <LinkProcessor 
+              onContentProcessed={(content) => onSuggestionClick?.(content)}
+              className="border-t pt-6"
+            />
           </div>
         </div>
       </div>
