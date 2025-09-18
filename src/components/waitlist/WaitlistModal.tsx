@@ -103,14 +103,6 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
     reset
   } = useForm<WaitlistFormData>()
 
-  // Filter universities based on input
-  const filteredUniversities = useMemo(() => {
-    if (universityInput.length < 2) return []
-    return UNIVERSITIES.filter(uni =>
-      uni.toLowerCase().includes(universityInput.toLowerCase())
-    ).slice(0, 5)
-  }, [universityInput])
-
   const onSubmit = async (data: WaitlistFormData) => {
     console.log("Waitlist submission:", data)
     toast.success("🎉 Welcome to Ayra! We'll notify you on October 17th when we launch!", {
@@ -125,11 +117,24 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
     const value = e.target.value
     setUniversityInput(value)
     setValue("university", value)
-  }
-
-  const selectUniversity = (university: string) => {
-    setUniversityInput(university)
-    setValue("university", university)
+    
+    // Auto-fill if there's a match
+    if (value.length >= 2) {
+      const match = UNIVERSITIES.find(uni => 
+        uni.toLowerCase().startsWith(value.toLowerCase())
+      )
+      if (match && match.toLowerCase() !== value.toLowerCase()) {
+        // Set the auto-filled value but keep cursor position
+        setTimeout(() => {
+          const input = e.target
+          const cursorPos = value.length
+          input.value = match
+          input.setSelectionRange(cursorPos, match.length)
+          setUniversityInput(match)
+          setValue("university", match)
+        }, 0)
+      }
+    }
   }
 
   const handleClose = () => {
@@ -194,10 +199,10 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
             </div>
           </div>
 
-          <div className="grid gap-3 animate-fade-in relative" style={{ animationDelay: "200ms" }}>
+          <div className="grid gap-3 animate-fade-in" style={{ animationDelay: "200ms" }}>
             <Label htmlFor="university" className="text-sm font-medium">School/University</Label>
             <div className="relative group">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors z-10" />
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <Input
                 id="university"
                 className="pl-10 h-11 border-muted-foreground/20 focus:border-primary transition-all duration-200 bg-background/50"
@@ -206,22 +211,6 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
                 onChange={handleUniversityChange}
                 autoComplete="off"
               />
-              
-              {/* Dropdown for university suggestions */}
-              {filteredUniversities.length > 0 && universityInput.length >= 2 && (
-                <div className="absolute top-full left-0 right-0 z-20 bg-background border border-input rounded-md shadow-lg mt-1 max-h-48 overflow-y-auto">
-                  {filteredUniversities.map((uni, index) => (
-                    <button
-                      key={index}
-                      type="button"
-                      className="w-full text-left px-3 py-2 hover:bg-accent hover:text-accent-foreground transition-colors text-sm"
-                      onClick={() => selectUniversity(uni)}
-                    >
-                      {uni}
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
           </div>
 
