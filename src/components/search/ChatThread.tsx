@@ -50,30 +50,42 @@ export function ChatThread({ messages, isLoading = false, sources = [], onSugges
           <div className="grid grid-cols-1 gap-3 max-w-md mx-auto">
             <Button 
               variant="outline" 
-              className="justify-start text-left h-auto py-3 hover:bg-primary/5 hover:border-primary/30 transition-all duration-300 hover-glide smooth-bounce"
-              onClick={() => onSuggestionClick?.("Summarize my meeting notes")}
+              className="justify-start text-left h-auto py-3 hover:bg-primary/5 hover:border-primary/30 transition-all duration-300 hover-glide smooth-bounce cursor-pointer"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onSuggestionClick?.("Summarize my meeting notes");
+              }}
             >
-              <div>
+              <div className="pointer-events-none">
                 <div className="font-medium">Summarize my meeting notes</div>
                 <div className="text-sm text-muted-foreground">Get key insights from recent documents</div>
               </div>
             </Button>
             <Button 
               variant="outline" 
-              className="justify-start text-left h-auto py-3 hover:bg-primary/5 hover:border-primary/30 transition-all duration-300 hover-glide smooth-bounce"
-              onClick={() => onSuggestionClick?.("Find research on AI trends")}
+              className="justify-start text-left h-auto py-3 hover:bg-primary/5 hover:border-primary/30 transition-all duration-300 hover-glide smooth-bounce cursor-pointer"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onSuggestionClick?.("Find research on AI trends");
+              }}
             >
-              <div>
+              <div className="pointer-events-none">
                 <div className="font-medium">Find research on AI trends</div>
                 <div className="text-sm text-muted-foreground">Search through saved articles and papers</div>
               </div>
             </Button>
             <Button 
               variant="outline" 
-              className="justify-start text-left h-auto py-3 hover:bg-primary/5 hover:border-primary/30 transition-all duration-300 hover-glide smooth-bounce"
-              onClick={() => onSuggestionClick?.("What are my project goals?")}
+              className="justify-start text-left h-auto py-3 hover:bg-primary/5 hover:border-primary/30 transition-all duration-300 hover-glide smooth-bounce cursor-pointer"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onSuggestionClick?.("What are my project goals?");
+              }}
             >
-              <div>
+              <div className="pointer-events-none">
                 <div className="font-medium">What are my project goals?</div>
                 <div className="text-sm text-muted-foreground">Review objectives from project docs</div>
               </div>

@@ -112,9 +112,6 @@ const SearchPage = () => {
     handleSendMessage(chatInput);
   };
 
-  const handleChatSelect = (chat: any) => {
-    selectChat(chat);
-  };
 
   return (
     <AuthGuard 
@@ -205,7 +202,11 @@ const SearchPage = () => {
                   {chats.map(chat => (
                     <div 
                       key={chat.id}
-                      onClick={() => handleChatSelect(chat)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        selectChat(chat);
+                      }}
                       className={cn(
                         "p-3 rounded-lg flex items-center gap-3 cursor-pointer group transition-all duration-300 hover-glide hover-slide",
                         activeChat?.id === chat.id 
@@ -222,6 +223,7 @@ const SearchPage = () => {
                           <form 
                             onSubmit={(e) => {
                               e.preventDefault();
+                              e.stopPropagation();
                               saveTitle(chat.id);
                             }}
                           >
@@ -243,7 +245,11 @@ const SearchPage = () => {
                           size="icon" 
                           variant="ghost" 
                           className="h-7 w-7 hover:bg-primary/20 transition-all duration-300 smooth-bounce hover-glow" 
-                          onClick={(e) => startEditingTitle(chat.id, e)}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            startEditingTitle(chat.id, e);
+                          }}
                         >
                           <Edit3 size={12} />
                         </Button>
@@ -251,7 +257,11 @@ const SearchPage = () => {
                           size="icon" 
                           variant="ghost" 
                           className="h-7 w-7 hover:bg-destructive/20 transition-all duration-300 smooth-bounce hover-glow" 
-                          onClick={(e) => handleDeleteChat(chat.id, e)}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleDeleteChat(chat.id, e);
+                          }}
                         >
                           <Trash2 size={12} />
                         </Button>
