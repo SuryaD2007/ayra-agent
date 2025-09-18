@@ -49,7 +49,7 @@ export const TestimonialsSection = ({
     rating: 4
   }, {
     quote: "I've never been more organized. Everything is just a click away.",
-    name: "Nicole F.",
+    name: "David Khalid",
     role: "Executive Assistant",
     rating: 5
   }, {
