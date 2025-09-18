@@ -95,12 +95,13 @@ const SearchPage = () => {
     
     setChatInput('');
     
-    // If no active chat, create one first then send message
+    // If no active chat, create one with auto-generated title and send message
     if (!activeChat) {
-      const newChat = await createNewChat();
+      // Generate title from first 50 characters of message
+      const autoTitle = content.length > 50 ? content.substring(0, 50) + '...' : content;
+      const newChat = await createNewChat(autoTitle);
       if (newChat) {
-        // Brief delay to ensure state updates
-        setTimeout(() => sendMessage(content), 50);
+        await sendMessage(content);
       }
     } else {
       await sendMessage(content);

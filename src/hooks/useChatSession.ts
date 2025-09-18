@@ -52,15 +52,18 @@ export function useChatSession() {
   }, []);
 
   // Create new chat
-  const createNewChat = useCallback(async (title = 'New Chat', folderId?: string) => {
+  const createNewChat = useCallback(async (title?: string, folderId?: string) => {
     if (!user) return null;
+
+    // Generate a default title if none provided
+    const chatTitle = title || `Chat ${new Date().toLocaleDateString()}`;
 
     try {
       const { data, error } = await supabase
         .from('chats')
         .insert({
           user_id: user.id,
-          title,
+          title: chatTitle,
           folder_id: folderId
         })
         .select()
