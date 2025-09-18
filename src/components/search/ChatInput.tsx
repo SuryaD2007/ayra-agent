@@ -37,13 +37,21 @@ const ChatInput: React.FC<ChatInputProps> = ({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit(e, attachedFiles);
+      if (searchQuery.trim() || attachedFiles.length > 0) {
+        handleSubmit(e, attachedFiles);
+        // Clear files after sending
+        setAttachedFiles([]);
+      }
     }
   };
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    handleSubmit(e, attachedFiles);
+    if (searchQuery.trim() || attachedFiles.length > 0) {
+      handleSubmit(e, attachedFiles);
+      // Clear files after sending
+      setAttachedFiles([]);
+    }
   };
 
   const handleFilesAdded = (newFiles: AttachedFile[]) => {
@@ -53,17 +61,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
   const handleFileRemoved = (fileId: string) => {
     setAttachedFiles(prev => prev.filter(f => f.id !== fileId));
   };
-
-  // Clear attachments after successful send
-  useEffect(() => {
-    if (!searchQuery && attachedFiles.length > 0) {
-      // This will clear files when the input is cleared (after sending)
-      const timer = setTimeout(() => {
-        setAttachedFiles([]);
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [searchQuery, attachedFiles.length]);
 
   return (
     <div className="p-4 border-t border-border/20 bg-gradient-to-t from-background/95 to-background/80 backdrop-blur-xl">
