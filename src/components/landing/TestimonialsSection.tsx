@@ -9,7 +9,7 @@ export const TestimonialsSection = ({
 }: TestimonialsSectionProps) => {
   const testimonials = [{
     quote: "A game-changer in how I manage my projects!",
-    name: "Sarah P.",
+    name: "Priya Patel",
     role: "Product Manager",
     rating: 5
   }, {
