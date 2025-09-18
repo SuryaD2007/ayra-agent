@@ -2,6 +2,8 @@ import { Button } from '@/components/ui/button';
 import { AnimatedTransition } from '@/components/AnimatedTransition';
 import { useNavigate } from 'react-router-dom';
 import { FileText, Search } from 'lucide-react';
+import { useState } from 'react';
+import { WaitlistModal } from '@/components/waitlist/WaitlistModal';
 interface CallToActionProps {
   show: boolean;
 }
@@ -9,6 +11,7 @@ export const CallToAction = ({
   show
 }: CallToActionProps) => {
   const navigate = useNavigate();
+  const [showWaitlistModal, setShowWaitlistModal] = useState(false);
   
   return <AnimatedTransition show={show} animation="slide-up" duration={600}>
       <div className="py-16 md:py-24 text-primary-foreground rounded-2xl text-center bg-blue-600">
@@ -19,11 +22,11 @@ export const CallToAction = ({
           <Button 
             size="lg" 
             variant="outline" 
-            onClick={() => navigate('/manage')}
+            onClick={() => setShowWaitlistModal(true)}
             className="rounded-full px-8 py-6 text-base font-medium bg-transparent text-primary-foreground border-primary-foreground hover:bg-primary-foreground/10 transition-all duration-300"
           >
             <FileText className="mr-2 h-4 w-4" />
-            Start Managing
+            Join Waitlist
           </Button>
           
           <Button 
@@ -37,5 +40,10 @@ export const CallToAction = ({
           </Button>
         </div>
       </div>
+
+      <WaitlistModal 
+        isOpen={showWaitlistModal} 
+        onClose={() => setShowWaitlistModal(false)} 
+      />
     </AnimatedTransition>;
 };

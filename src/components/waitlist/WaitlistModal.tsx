@@ -8,13 +8,20 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { Check, Mail, User, Search, GraduationCap } from "lucide-react"
 import { toast } from "sonner"
+import { useForm } from "react-hook-form"
 
 interface WaitlistModalProps {
   isOpen: boolean
   onClose: () => void
+}
+
+interface WaitlistFormData {
+  name: string
+  email: string
+  university: string
 }
 
 const UNIVERSITIES = [
@@ -86,43 +93,53 @@ const UNIVERSITIES = [
 ].sort()
 
 export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    university: ""
-  })
+  const [universityInput, setUniversityInput] = useState("")
+  
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    setValue,
+    reset
+  } = useForm<WaitlistFormData>()
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    console.log("Submitted data:", formData)
-    toast.success("🎉 Welcome to Ayra! We'll be in touch soon with exclusive early access.", {
+  // Filter universities based on input
+  const filteredUniversities = useMemo(() => {
+    if (universityInput.length < 2) return []
+    return UNIVERSITIES.filter(uni =>
+      uni.toLowerCase().includes(universityInput.toLowerCase())
+    ).slice(0, 5)
+  }, [universityInput])
+
+  const onSubmit = async (data: WaitlistFormData) => {
+    console.log("Waitlist submission:", data)
+    toast.success("🎉 Welcome to Ayra! We'll notify you on October 17th when we launch!", {
       duration: 5000,
     })
+    reset()
+    setUniversityInput("")
     onClose()
   }
 
   const handleUniversityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
-    setFormData({ ...formData, university: value })
-    
-    // Auto-fill if there's an exact match
-    const exactMatch = UNIVERSITIES.find(uni => 
-      uni.toLowerCase().startsWith(value.toLowerCase()) && value.length > 2
-    )
-    if (exactMatch && exactMatch.toLowerCase() !== value.toLowerCase()) {
-      // Set the auto-filled value but keep cursor position
-      setTimeout(() => {
-        const input = e.target
-        const cursorPos = value.length
-        input.value = exactMatch
-        input.setSelectionRange(cursorPos, exactMatch.length)
-        setFormData({ ...formData, university: exactMatch })
-      }, 0)
-    }
+    setUniversityInput(value)
+    setValue("university", value)
+  }
+
+  const selectUniversity = (university: string) => {
+    setUniversityInput(university)
+    setValue("university", university)
+  }
+
+  const handleClose = () => {
+    reset()
+    setUniversityInput("")
+    onClose()
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[480px] border-0 shadow-2xl bg-gradient-to-br from-background via-background to-muted/20">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10 rounded-lg pointer-events-none" />
         <DialogHeader className="relative z-10 space-y-4 text-center">
@@ -130,31 +147,32 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
             <GraduationCap className="h-8 w-8 text-primary-foreground" />
           </div>
           <DialogTitle className="text-2xl font-bold bg-gradient-to-br from-foreground to-foreground/80 bg-clip-text text-transparent">
-            Join Our Exclusive Waitlist
+            Join Our Waitlist
           </DialogTitle>
           <DialogDescription className="text-muted-foreground text-base">
-            Be among the first students to experience the future of learning with Ayra.
+            Be among the first to experience Ayra when we launch on <strong>October 17th</strong>.
           </DialogDescription>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="relative z-10 grid gap-6 py-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="relative z-10 grid gap-6 py-6">
           <div className="grid gap-3 animate-fade-in">
-            <Label htmlFor="name" className="text-sm font-medium">Full Name</Label>
+            <Label htmlFor="name" className="text-sm font-medium">Full Name *</Label>
             <div className="relative group">
               <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <Input
                 id="name"
                 className="pl-10 h-11 border-muted-foreground/20 focus:border-primary transition-all duration-200 bg-background/50"
                 placeholder="Enter your full name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
+                {...register("name", { required: "Full name is required" })}
               />
+              {errors.name && (
+                <p className="text-sm text-destructive mt-1">{errors.name.message}</p>
+              )}
             </div>
           </div>
 
           <div className="grid gap-3 animate-fade-in" style={{ animationDelay: "100ms" }}>
-            <Label htmlFor="email" className="text-sm font-medium">Email Address</Label>
+            <Label htmlFor="email" className="text-sm font-medium">Email Address *</Label>
             <div className="relative group">
               <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <Input
@@ -162,34 +180,59 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
                 type="email"
                 className="pl-10 h-11 border-muted-foreground/20 focus:border-primary transition-all duration-200 bg-background/50"
                 placeholder="Enter your email address"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                required
+                {...register("email", { 
+                  required: "Email is required",
+                  pattern: {
+                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                    message: "Invalid email address"
+                  }
+                })}
               />
+              {errors.email && (
+                <p className="text-sm text-destructive mt-1">{errors.email.message}</p>
+              )}
             </div>
           </div>
 
-          <div className="grid gap-3 animate-fade-in" style={{ animationDelay: "200ms" }}>
-            <Label htmlFor="university" className="text-sm font-medium">School/University (Optional)</Label>
+          <div className="grid gap-3 animate-fade-in relative" style={{ animationDelay: "200ms" }}>
+            <Label htmlFor="university" className="text-sm font-medium">School/University</Label>
             <div className="relative group">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors z-10" />
               <Input
                 id="university"
                 className="pl-10 h-11 border-muted-foreground/20 focus:border-primary transition-all duration-200 bg-background/50"
                 placeholder="Start typing your school or university..."
-                value={formData.university}
+                value={universityInput}
                 onChange={handleUniversityChange}
+                autoComplete="off"
               />
+              
+              {/* Dropdown for university suggestions */}
+              {filteredUniversities.length > 0 && universityInput.length >= 2 && (
+                <div className="absolute top-full left-0 right-0 z-20 bg-background border border-input rounded-md shadow-lg mt-1 max-h-48 overflow-y-auto">
+                  {filteredUniversities.map((uni, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      className="w-full text-left px-3 py-2 hover:bg-accent hover:text-accent-foreground transition-colors text-sm"
+                      onClick={() => selectUniversity(uni)}
+                    >
+                      {uni}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
           <Button 
             type="submit" 
+            disabled={isSubmitting}
             className="w-full h-12 text-base font-medium bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-lg hover:shadow-xl transition-all duration-300 animate-fade-in"
             style={{ animationDelay: "300ms" }}
           >
             <Check className="mr-2 h-5 w-5" /> 
-            Secure My Spot
+            {isSubmitting ? "Joining..." : "Join Waitlist"}
           </Button>
         </form>
       </DialogContent>

@@ -4,6 +4,7 @@ import { AnimatedTransition } from '@/components/AnimatedTransition';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DiagramComponent from './DiagramComponent';
+import { WaitlistModal } from '@/components/waitlist/WaitlistModal';
 interface HeroSectionProps {
   showTitle: boolean;
 }
@@ -13,6 +14,7 @@ export const HeroSection = ({
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState<'scattered' | 'convergence' | 'organized'>('scattered');
   const [heroText, setHeroText] = useState("All your notes, bookmarks, inspirations, articles and images in one single, private second brain, accessible anywhere, anytime.");
+  const [showWaitlistModal, setShowWaitlistModal] = useState(false);
   
   const handleSectionClick = (section: 'scattered' | 'convergence' | 'organized', text: string) => {
     setActiveSection(section);
@@ -39,7 +41,7 @@ export const HeroSection = ({
         <div className="flex flex-wrap justify-center gap-4">
           <Button 
             size="lg" 
-            onClick={() => navigate('/manage')} 
+            onClick={() => setShowWaitlistModal(true)} 
             className="rounded-full px-8 py-6 text-base font-medium bg-primary hover:bg-primary/90 transition-all duration-300"
           >
             <FileText className="mr-2 h-4 w-4" />
@@ -57,5 +59,10 @@ export const HeroSection = ({
           </Button>
         </div>
       </AnimatedTransition>
+
+      <WaitlistModal 
+        isOpen={showWaitlistModal} 
+        onClose={() => setShowWaitlistModal(false)} 
+      />
     </div>;
 };
