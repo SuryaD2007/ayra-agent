@@ -64,7 +64,7 @@ export const TestimonialsSection = ({
     rating: 5
   }, {
     quote: "The integration with other tools makes my workflow seamless.",
-    name: "Alex C.",
+    name: "Pratya Varma",
     role: "Product Designer",
     rating: 5
   }];
