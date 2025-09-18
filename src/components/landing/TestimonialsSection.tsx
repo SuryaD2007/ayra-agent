@@ -34,7 +34,7 @@ export const TestimonialsSection = ({
     rating: 4
   }, {
     quote: "The search function is incredible. I can find anything in seconds.",
-    name: "Laura M.",
+    name: "Laura Smith",
     role: "Data Analyst",
     rating: 5
   }, {
