@@ -29,43 +29,64 @@ function extractVideoId(url: string): string | null {
   return null;
 }
 
-// Fetch transcript from YouTube using a third-party API or scraping approach
-async function getVideoTranscript(videoId: string): Promise<string> {
+// Get video metadata and transcript using YouTube's oembed API and other methods
+async function getVideoTranscript(videoId: string): Promise<{ title: string; content: string }> {
   try {
-    // Using youtube-transcript-api approach
-    const response = await fetch(`https://api.streamelements.com/kappa/v2/youtube/video/${videoId}`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
-    });
+    console.log('Fetching video metadata for:', videoId);
     
-    if (!response.ok) {
-      throw new Error('Failed to fetch video data');
+    // Get basic video info from YouTube oEmbed API
+    const oembedResponse = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
+    
+    if (!oembedResponse.ok) {
+      throw new Error('Failed to fetch video metadata');
     }
     
-    const videoData = await response.json();
+    const videoData = await oembedResponse.json();
+    const title = videoData.title || 'Unknown Video';
+    const author = videoData.author_name || 'Unknown Author';
     
-    // Try to get captions/transcript
-    const transcriptResponse = await fetch(`https://youtube-transcript3.p.rapidapi.com/youtube/transcript?url=https://www.youtube.com/watch?v=${videoId}`, {
-      headers: {
-        'X-RapidAPI-Key': 'demo-key', // You'll need to get a proper API key
-        'X-RapidAPI-Host': 'youtube-transcript3.p.rapidapi.com'
-      }
-    }).catch(() => null);
+    console.log('Video found:', title, 'by', author);
     
-    if (transcriptResponse && transcriptResponse.ok) {
-      const transcriptData = await transcriptResponse.json();
-      if (transcriptData.transcript) {
-        return transcriptData.transcript;
+    // Try to get transcript using a direct approach
+    try {
+      const transcriptUrl = `https://www.youtube.com/api/timedtext?lang=en&v=${videoId}`;
+      const transcriptResponse = await fetch(transcriptUrl);
+      
+      if (transcriptResponse.ok) {
+        const transcriptXML = await transcriptResponse.text();
+        
+        // Simple XML parsing to extract text content
+        const textMatches = transcriptXML.match(/<text[^>]*>([^<]*)<\/text>/g);
+        if (textMatches && textMatches.length > 0) {
+          const transcript = textMatches
+            .map(match => match.replace(/<[^>]*>/g, '').trim())
+            .filter(text => text.length > 0)
+            .join(' ');
+          
+          if (transcript.length > 100) {
+            console.log('Transcript extracted successfully');
+            return {
+              title,
+              content: `Title: ${title}\nAuthor: ${author}\n\nTranscript:\n${transcript}`
+            };
+          }
+        }
       }
+    } catch (transcriptError) {
+      console.log('Transcript extraction failed, using video metadata only');
     }
     
-    // Fallback: Use video description and title as content
-    return `Title: ${videoData.title || 'Unknown'}\nDescription: ${videoData.description || 'No description available'}`;
+    // Fallback: Use video metadata as content
+    const fallbackContent = `Title: ${title}\nAuthor: ${author}\n\nThis video appears to be "${title}" by ${author}. Unfortunately, no transcript is available for this video. This could be because:\n1. The video doesn't have captions/subtitles\n2. The captions are auto-generated and not accessible via API\n3. The video is private or restricted\n\nTo get better analysis, you could:\n- Provide a summary of the video content\n- Share key points you'd like me to focus on\n- Ask specific questions about the video topic`;
+    
+    return {
+      title,
+      content: fallbackContent
+    };
     
   } catch (error) {
-    console.error('Error fetching transcript:', error);
-    throw new Error('Unable to extract video content. The video may not have captions available.');
+    console.error('Error fetching video data:', error);
+    throw new Error('Unable to access this YouTube video. Please check if the URL is correct and the video is publicly available.');
   }
 }
 
@@ -130,22 +151,20 @@ serve(async (req) => {
       .eq('video_id', videoId)
       .single();
 
-    let transcript: string;
+    let videoData: { title: string; content: string };
     let videoTitle: string = 'Unknown Video';
 
     if (existingVideo) {
       console.log('Using cached video data');
-      transcript = existingVideo.transcript;
+      videoData = {
+        title: existingVideo.title,
+        content: existingVideo.transcript
+      };
       videoTitle = existingVideo.title;
     } else {
       console.log('Fetching new transcript');
-      transcript = await getVideoTranscript(videoId);
-      
-      // Extract title from transcript if available
-      const titleMatch = transcript.match(/Title: ([^\n]+)/);
-      if (titleMatch) {
-        videoTitle = titleMatch[1];
-      }
+      videoData = await getVideoTranscript(videoId);
+      videoTitle = videoData.title;
 
       // Cache the video data
       await supabase
@@ -154,14 +173,14 @@ serve(async (req) => {
           video_id: videoId,
           url,
           title: videoTitle,
-          transcript,
+          transcript: videoData.content,
           processed_at: new Date().toISOString()
         });
     }
 
     // Process with AI
     console.log('Processing with AI');
-    const aiResponse = await processTranscriptWithAI(transcript, query);
+    const aiResponse = await processTranscriptWithAI(videoData.content, query);
 
     // Store the interaction if userId is provided
     if (userId) {
@@ -183,7 +202,7 @@ serve(async (req) => {
       videoId,
       videoTitle,
       response: aiResponse,
-      transcript: transcript.length > 2000 ? transcript.substring(0, 2000) + '...' : transcript
+      transcript: videoData.content.length > 2000 ? videoData.content.substring(0, 2000) + '...' : videoData.content
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
