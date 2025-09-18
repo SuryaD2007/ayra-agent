@@ -19,7 +19,7 @@ export const TestimonialsSection = ({
     rating: 5
   }, {
     quote: "I finally have a way to organize my ideas and execute them seamlessly.",
-    name: "Amanda T.",
+    name: "Sophia Rodriguez",
     role: "Content Creator",
     rating: 4
   }, {
