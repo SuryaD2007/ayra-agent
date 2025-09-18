@@ -14,7 +14,7 @@ export const TestimonialsSection = ({
     rating: 5
   }, {
     quote: "The AI integrations have saved me countless hours.",
-    name: "James L.",
+    name: "Arya Anwar",
     role: "Software Developer",
     rating: 5
   }, {
