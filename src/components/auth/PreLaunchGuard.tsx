@@ -46,7 +46,7 @@ const PreLaunchGuard = ({ children }: PreLaunchGuardProps) => {
         <Lock className="h-16 w-16 text-primary mx-auto mb-6" />
         <h2 className="text-2xl font-semibold mb-4">Still building...</h2>
         <p className="text-muted-foreground mb-8">
-          Enter the pre-launch password to access Ayra's full features
+          Launching October 17, 2025. Enter password for early access.
         </p>
         
         <form onSubmit={handleSubmit} className="space-y-4">
