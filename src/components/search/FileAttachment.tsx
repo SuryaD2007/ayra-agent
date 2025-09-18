@@ -57,10 +57,10 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({
     return attachedFile;
   };
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
+  const processFiles = useCallback((files: File[]) => {
     if (disabled) return;
 
-    const totalFiles = attachedFiles.length + acceptedFiles.length;
+    const totalFiles = attachedFiles.length + files.length;
     if (totalFiles > MAX_FILES) {
       toast({
         title: "Too many files",
@@ -70,7 +70,7 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({
       return;
     }
 
-    const validFiles = acceptedFiles.filter(file => {
+    const validFiles = files.filter(file => {
       if (file.size > MAX_FILE_SIZE) {
         toast({
           title: "File too large",
@@ -87,6 +87,10 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({
       onFilesAdded(newAttachedFiles);
     }
   }, [onFilesAdded, attachedFiles.length, disabled, toast]);
+
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    processFiles(acceptedFiles);
+  }, [processFiles]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -107,7 +111,7 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length > 0) {
-      onDrop(files);
+      processFiles(files);
     }
     e.target.value = ''; // Reset input
   };
