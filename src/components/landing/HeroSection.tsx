@@ -1,8 +1,8 @@
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Search, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AnimatedTransition } from '@/components/AnimatedTransition';
 import { useState } from 'react';
-import { WaitlistModal } from '../waitlist/WaitlistModal';
+import { useNavigate } from 'react-router-dom';
 import DiagramComponent from './DiagramComponent';
 interface HeroSectionProps {
   showTitle: boolean;
@@ -10,9 +10,10 @@ interface HeroSectionProps {
 export const HeroSection = ({
   showTitle
 }: HeroSectionProps) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState<'scattered' | 'convergence' | 'organized'>('scattered');
   const [heroText, setHeroText] = useState("All your notes, bookmarks, inspirations, articles and images in one single, private second brain, accessible anywhere, anytime.");
+  
   const handleSectionClick = (section: 'scattered' | 'convergence' | 'organized', text: string) => {
     setActiveSection(section);
     setHeroText(text);
@@ -35,11 +36,26 @@ export const HeroSection = ({
         </div>
         
         {/* Call to action last */}
-        <Button size="lg" onClick={() => setIsModalOpen(true)} className="rounded-full px-8 py-6 text-base font-medium bg-primary hover:bg-primary/90 transition-all duration-300">
-          Join Waitlist
-        </Button>
-
-        <WaitlistModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+        <div className="flex flex-wrap justify-center gap-4">
+          <Button 
+            size="lg" 
+            onClick={() => navigate('/manage')} 
+            className="rounded-full px-8 py-6 text-base font-medium bg-primary hover:bg-primary/90 transition-all duration-300"
+          >
+            <FileText className="mr-2 h-4 w-4" />
+            Start Organizing
+          </Button>
+          
+          <Button 
+            size="lg" 
+            variant="outline"
+            onClick={() => navigate('/search')} 
+            className="rounded-full px-8 py-6 text-base font-medium transition-all duration-300"
+          >
+            <Search className="mr-2 h-4 w-4" />
+            AI Search
+          </Button>
+        </div>
       </AnimatedTransition>
     </div>;
 };
