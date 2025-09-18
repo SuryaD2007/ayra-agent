@@ -185,7 +185,7 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
               </div>
               
               {showUniversityDropdown && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-muted-foreground/20 rounded-md shadow-2xl max-h-48 overflow-y-auto animate-slide-up" style={{ zIndex: 999 }}>
+                <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-muted-foreground/20 rounded-md shadow-2xl max-h-48 overflow-y-auto animate-slide-up z-[9999]">
                   {filteredUniversities.length > 0 ? (
                     filteredUniversities.map((university) => (
                       <button
