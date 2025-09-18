@@ -130,56 +130,107 @@ export function useChatSession() {
     setIsStreaming(true);
 
     try {
-      // Add user message
-      const userMessage = {
-        chat_id: activeChat.id,
-        role: 'user' as const,
-        content
-      };
+      // Check if content contains a YouTube URL
+      const isVideoLink = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)/i.test(content);
+      
+      if (isVideoLink) {
+        // Add user message first
+        const userMessage = {
+          chat_id: activeChat.id,
+          role: 'user' as const,
+          content
+        };
 
-      const { data: userMessageData, error: userError } = await supabase
-        .from('messages')
-        .insert(userMessage)
-        .select()
-        .single();
+        const { data: userMessageData, error: userError } = await supabase
+          .from('messages')
+          .insert(userMessage)
+          .select()
+          .single();
 
-      if (userError) throw userError;
+        if (userError) throw userError;
+        setMessages(prev => [...prev, userMessageData as Message]);
 
-      setMessages(prev => [...prev, userMessageData as Message]);
+        // Process video transcript
+        const { data: videoData, error: videoError } = await supabase.functions.invoke('process-video-transcript', {
+          body: {
+            url: content.trim(),
+            query: 'Provide a comprehensive summary of this video',
+            userId: user.id
+          }
+        });
 
-      // Call ChatGPT API
-      const { data, error } = await supabase.functions.invoke('chat-gpt', {
-        body: {
-          messages: [...messages, userMessageData].map(msg => ({
-            type: msg.role === 'user' ? 'user' : 'assistant',
-            content: msg.content
-          })),
-          context,
-          itemId: context?.itemId
+        if (videoError) throw videoError;
+
+        if (!videoData.success) {
+          throw new Error(videoData.error || 'Failed to process video');
         }
-      });
 
-      if (error) throw error;
+        // Add assistant response with video summary
+        const assistantMessage = {
+          chat_id: activeChat.id,
+          role: 'assistant' as const,
+          content: `**${videoData.videoTitle}**\n\n${videoData.response}`
+        };
 
-      // Add assistant response
-      const assistantMessage = {
-        chat_id: activeChat.id,
-        role: 'assistant' as const,
-        content: data.success ? data.response : 'I apologize, but I encountered an issue with the AI service. This is likely due to API quota limits. Please check your OpenAI account billing and try again.'
-      };
+        const { data: assistantMessageData, error: assistantError } = await supabase
+          .from('messages')
+          .insert(assistantMessage)
+          .select()
+          .single();
 
-      const { data: assistantMessageData, error: assistantError } = await supabase
-        .from('messages')
-        .insert(assistantMessage)
-        .select()
-        .single();
+        if (assistantError) throw assistantError;
+        setMessages(prev => [...prev, assistantMessageData as Message]);
 
-      if (assistantError) throw assistantError;
+      } else {
+        // Regular text message processing
+        const userMessage = {
+          chat_id: activeChat.id,
+          role: 'user' as const,
+          content
+        };
 
-      setMessages(prev => [...prev, assistantMessageData as Message]);
+        const { data: userMessageData, error: userError } = await supabase
+          .from('messages')
+          .insert(userMessage)
+          .select()
+          .single();
 
-      // Auto-generate title for first message
-      if (messages.length === 0 && data.success) {
+        if (userError) throw userError;
+        setMessages(prev => [...prev, userMessageData as Message]);
+
+        // Call ChatGPT API
+        const { data, error } = await supabase.functions.invoke('chat-gpt', {
+          body: {
+            messages: [...messages, userMessageData].map(msg => ({
+              type: msg.role === 'user' ? 'user' : 'assistant',
+              content: msg.content
+            })),
+            context,
+            itemId: context?.itemId
+          }
+        });
+
+        if (error) throw error;
+
+        // Add assistant response
+        const assistantMessage = {
+          chat_id: activeChat.id,
+          role: 'assistant' as const,
+          content: data.success ? data.response : 'I apologize, but I encountered an issue with the AI service. This is likely due to API quota limits. Please check your OpenAI account billing and try again.'
+        };
+
+        const { data: assistantMessageData, error: assistantError } = await supabase
+          .from('messages')
+          .insert(assistantMessage)
+          .select()
+          .single();
+
+        if (assistantError) throw assistantError;
+        setMessages(prev => [...prev, assistantMessageData as Message]);
+      }
+
+      // Auto-generate title for first message if it's a regular text message
+      if (messages.length === 0 && !isVideoLink) {
         const autoTitle = content.length > 60 ? content.substring(0, 57) + '...' : content;
         await updateChatTitle(activeChat.id, autoTitle);
       }
