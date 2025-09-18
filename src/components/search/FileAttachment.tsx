@@ -143,20 +143,22 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({
           id="file-upload"
           disabled={disabled}
         />
-        <label htmlFor="file-upload">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className={cn(
-              "h-8 w-8 p-0 transition-all duration-200",
-              disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-muted/50"
-            )}
-            disabled={disabled}
-          >
-            <Paperclip size={16} />
-          </Button>
-        </label>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className={cn(
+            "h-8 w-8 p-0 transition-all duration-200",
+            disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-muted/50"
+          )}
+          disabled={disabled}
+          onClick={() => {
+            const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+            fileInput?.click();
+          }}
+        >
+          <Paperclip size={16} />
+        </Button>
         
         {attachedFiles.length > 0 && (
           <span className="text-xs text-muted-foreground">
