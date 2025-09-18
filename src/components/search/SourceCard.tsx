@@ -44,6 +44,10 @@ export function SourceCard({ source }: SourceCardProps) {
                 size="icon"
                 variant="ghost"
                 className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleOpenLink();
+                }}
               >
                 <ExternalLink size={12} />
               </Button>
