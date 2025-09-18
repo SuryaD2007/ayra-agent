@@ -12,6 +12,7 @@ import AuthModal from '@/components/AuthModal';
 import { useChatSession } from '@/hooks/useChatSession';
 import { ChatThread } from '@/components/search/ChatThread';
 import ChatInput from '@/components/search/ChatInput';
+import { AttachedFile } from '@/components/search/FileAttachment';
 
 interface SuggestedResult {
   id: string;
@@ -90,25 +91,35 @@ const SearchPage = () => {
     setEditTitle('');
   };
 
-  const handleSendMessage = async (content: string) => {
-    if (!content.trim()) return;
+  const handleSendMessage = async (content: string, attachedFiles?: AttachedFile[]) => {
+    if (!content.trim() && (!attachedFiles || attachedFiles.length === 0)) return;
     
     setChatInput('');
+    
+    // Prepare context with files if any
+    const context = attachedFiles && attachedFiles.length > 0 ? {
+      attachedFiles: attachedFiles.map(af => ({
+        name: af.file.name,
+        type: af.file.type,
+        size: af.file.size,
+        // Note: File content would need to be processed/uploaded separately
+      }))
+    } : undefined;
     
     // If no active chat, create one with default title and send message
     if (!activeChat) {
       const newChat = await createNewChat(); // Creates with default "New Chat" title
       if (newChat) {
-        await sendMessage(content, undefined, newChat);
+        await sendMessage(content || `Shared ${attachedFiles?.length || 0} file(s)`, context, newChat);
       }
     } else {
-      await sendMessage(content);
+      await sendMessage(content || `Shared ${attachedFiles?.length || 0} file(s)`, context);
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent, attachedFiles?: AttachedFile[]) => {
     e.preventDefault();
-    handleSendMessage(chatInput);
+    handleSendMessage(chatInput, attachedFiles);
   };
 
 
