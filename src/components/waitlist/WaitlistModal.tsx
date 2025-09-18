@@ -119,7 +119,7 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[480px] border-0 shadow-2xl bg-gradient-to-br from-background via-background to-muted/20">
+      <DialogContent className="sm:max-w-[480px] border-0 shadow-2xl bg-gradient-to-br from-background via-background to-muted/20 overflow-visible">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10 rounded-lg pointer-events-none" />
         <DialogHeader className="relative z-10 space-y-4 text-center">
           <div className="mx-auto w-16 h-16 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center animate-scale-in">
@@ -185,7 +185,7 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
               </div>
               
               {showUniversityDropdown && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-muted-foreground/20 rounded-md shadow-lg z-50 max-h-48 overflow-y-auto animate-slide-up">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-muted-foreground/20 rounded-md shadow-2xl max-h-48 overflow-y-auto animate-slide-up" style={{ zIndex: 999 }}>
                   {filteredUniversities.length > 0 ? (
                     filteredUniversities.map((university) => (
                       <button
