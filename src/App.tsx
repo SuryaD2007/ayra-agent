@@ -20,6 +20,7 @@ import ManagePage from "./pages/ManagePage";
 import PreviewPage from "./pages/PreviewPage";
 import Navbar from "./components/Navbar";
 import ConfigurationBanner from "./components/ConfigurationBanner";
+import PreLaunchGuard from "./components/auth/PreLaunchGuard";
 import { useConfigurationValidation } from "./hooks/useConfigurationValidation";
 import './lib/sampleData'; // Import sample data utilities
 
@@ -71,7 +72,9 @@ const AppRoutes = () => {
         path="/manage" 
         element={
           <PageTransition>
-            <ManagePage />
+            <PreLaunchGuard>
+              <ManagePage />
+            </PreLaunchGuard>
           </PageTransition>
         } 
       />
@@ -79,7 +82,9 @@ const AppRoutes = () => {
         path="/profile" 
         element={
           <PageTransition>
-            <Profile />
+            <PreLaunchGuard>
+              <Profile />
+            </PreLaunchGuard>
           </PageTransition>
         } 
       />
@@ -87,7 +92,9 @@ const AppRoutes = () => {
         path="/import" 
         element={
           <PageTransition>
-            <ImportHub />
+            <PreLaunchGuard>
+              <ImportHub />
+            </PreLaunchGuard>
           </PageTransition>
         } 
       />
@@ -95,7 +102,9 @@ const AppRoutes = () => {
         path="/search" 
         element={
           <PageTransition>
-            <SearchPage />
+            <PreLaunchGuard>
+              <SearchPage />
+            </PreLaunchGuard>
           </PageTransition>
         } 
       />
@@ -103,7 +112,9 @@ const AppRoutes = () => {
         path="/settings" 
         element={
           <PageTransition>
-            <Settings />
+            <PreLaunchGuard>
+              <Settings />
+            </PreLaunchGuard>
           </PageTransition>
         } 
       />
@@ -111,7 +122,9 @@ const AppRoutes = () => {
         path="/preview/:id" 
         element={
           <PageTransition>
-            <PreviewPage />
+            <PreLaunchGuard>
+              <PreviewPage />
+            </PreLaunchGuard>
           </PageTransition>
         } 
       />
