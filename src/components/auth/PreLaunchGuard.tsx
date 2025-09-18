@@ -44,7 +44,7 @@ const PreLaunchGuard = ({ children }: PreLaunchGuardProps) => {
     <div className="flex items-center justify-center min-h-[60vh]">
       <div className="text-center max-w-md w-full px-4">
         <Lock className="h-16 w-16 text-primary mx-auto mb-6" />
-        <h2 className="text-2xl font-semibold mb-4">Pre-Launch Access</h2>
+        <h2 className="text-2xl font-semibold mb-4">Still building...</h2>
         <p className="text-muted-foreground mb-8">
           Enter the pre-launch password to access Ayra's full features
         </p>
