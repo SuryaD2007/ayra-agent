@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Message, SourceCard } from '@/types/chat';
 import { SourceCard as SourceCardComponent } from './SourceCard';
+import ReactMarkdown from 'react-markdown';
 
 interface ChatThreadProps {
   messages: Message[];
@@ -118,11 +119,23 @@ export function ChatThread({ messages, isLoading = false, sources = [], onSugges
                   : "bg-muted hover:shadow-md"
               )}>
                 <div className="prose prose-sm max-w-none dark:prose-invert">
-                  {message.content.split('\n').map((line, index) => (
-                    <p key={index} className="mb-2 last:mb-0 leading-relaxed">
-                      {line}
-                    </p>
-                  ))}
+                  <ReactMarkdown
+                    components={{
+                      p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
+                      h1: ({ children }) => <h1 className="text-lg font-semibold mb-2 mt-4 first:mt-0">{children}</h1>,
+                      h2: ({ children }) => <h2 className="text-base font-semibold mb-2 mt-3 first:mt-0">{children}</h2>,
+                      h3: ({ children }) => <h3 className="text-sm font-semibold mb-1 mt-2 first:mt-0">{children}</h3>,
+                      strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                      em: ({ children }) => <em className="italic">{children}</em>,
+                      ul: ({ children }) => <ul className="list-disc pl-4 mb-2">{children}</ul>,
+                      ol: ({ children }) => <ol className="list-decimal pl-4 mb-2">{children}</ol>,
+                      li: ({ children }) => <li className="mb-1">{children}</li>,
+                      code: ({ children }) => <code className="bg-muted px-1 py-0.5 rounded text-sm font-mono">{children}</code>,
+                      pre: ({ children }) => <pre className="bg-muted p-3 rounded-lg text-sm font-mono overflow-x-auto mb-2">{children}</pre>
+                    }}
+                  >
+                    {message.content}
+                  </ReactMarkdown>
                 </div>
                 
                 <div className="flex items-center justify-between mt-2 pt-2">
