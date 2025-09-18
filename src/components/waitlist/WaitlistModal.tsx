@@ -92,15 +92,6 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
     email: "",
     university: ""
   })
-  const [universitySearch, setUniversitySearch] = useState("")
-  const [showUniversityDropdown, setShowUniversityDropdown] = useState(false)
-
-  const filteredUniversities = useMemo(() => {
-    if (!universitySearch) return UNIVERSITIES
-    return UNIVERSITIES.filter(uni => 
-      uni.toLowerCase().includes(universitySearch.toLowerCase())
-    )
-  }, [universitySearch])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -111,10 +102,24 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
     onClose()
   }
 
-  const handleUniversitySelect = (university: string) => {
-    setFormData({ ...formData, university })
-    setUniversitySearch(university)
-    setShowUniversityDropdown(false)
+  const handleUniversityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setFormData({ ...formData, university: value })
+    
+    // Auto-fill if there's an exact match
+    const exactMatch = UNIVERSITIES.find(uni => 
+      uni.toLowerCase().startsWith(value.toLowerCase()) && value.length > 2
+    )
+    if (exactMatch && exactMatch.toLowerCase() !== value.toLowerCase()) {
+      // Set the auto-filled value but keep cursor position
+      setTimeout(() => {
+        const input = e.target
+        const cursorPos = value.length
+        input.value = exactMatch
+        input.setSelectionRange(cursorPos, exactMatch.length)
+        setFormData({ ...formData, university: exactMatch })
+      }, 0)
+    }
   }
 
   return (
@@ -166,44 +171,16 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
           </div>
 
           <div className="grid gap-3 animate-fade-in" style={{ animationDelay: "200ms" }}>
-            <Label htmlFor="university" className="text-sm font-medium">University</Label>
-            <div className="relative">
-              <div className="relative group">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors z-10" />
-                <Input
-                  id="university"
-                  className="pl-10 h-11 border-muted-foreground/20 focus:border-primary transition-all duration-200 bg-background/50"
-                  placeholder="Search for your university..."
-                  value={universitySearch}
-                  onChange={(e) => {
-                    setUniversitySearch(e.target.value)
-                    setShowUniversityDropdown(true)
-                  }}
-                  onFocus={() => setShowUniversityDropdown(true)}
-                  required
-                />
-              </div>
-              
-              {showUniversityDropdown && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-muted-foreground/20 rounded-md shadow-2xl max-h-48 overflow-y-auto animate-slide-up z-[9999]">
-                  {filteredUniversities.length > 0 ? (
-                    filteredUniversities.map((university) => (
-                      <button
-                        key={university}
-                        type="button"
-                        className="w-full text-left px-4 py-2 hover:bg-muted/50 transition-colors text-sm border-b border-muted-foreground/10 last:border-b-0"
-                        onClick={() => handleUniversitySelect(university)}
-                      >
-                        {university}
-                      </button>
-                    ))
-                  ) : (
-                    <div className="px-4 py-2 text-muted-foreground text-sm">
-                      No universities found. Try a different search term.
-                    </div>
-                  )}
-                </div>
-              )}
+            <Label htmlFor="university" className="text-sm font-medium">School/University (Optional)</Label>
+            <div className="relative group">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Input
+                id="university"
+                className="pl-10 h-11 border-muted-foreground/20 focus:border-primary transition-all duration-200 bg-background/50"
+                placeholder="Start typing your school or university..."
+                value={formData.university}
+                onChange={handleUniversityChange}
+              />
             </div>
           </div>
 
@@ -216,14 +193,6 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
             Secure My Spot
           </Button>
         </form>
-
-        {/* Click outside to close */}
-        {showUniversityDropdown && (
-          <div 
-            className="fixed inset-0 z-40" 
-            onClick={() => setShowUniversityDropdown(false)}
-          />
-        )}
       </DialogContent>
     </Dialog>
   )
