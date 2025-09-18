@@ -44,7 +44,7 @@ export const TestimonialsSection = ({
     rating: 5
   }, {
     quote: "The visualization tools have transformed how I present complex data.",
-    name: "David K.",
+    name: "Jack Webster",
     role: "Data Scientist",
     rating: 4
   }, {
