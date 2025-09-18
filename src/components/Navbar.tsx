@@ -127,6 +127,9 @@ export const Navbar = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   
+  // Check if admin access is enabled (for owner login access)
+  const isAdminMode = searchParams.get('admin') === 'true' || isAuthenticated;
+  
   const handleOpenAuthModal = () => {
     setIsAuthModalOpen(true);
   };
@@ -260,43 +263,48 @@ export const Navbar = () => {
               </TooltipContent>
             </Tooltip>
             
-            {loading ? (
-              // Show loading state while auth is initializing
-              <div className="w-10 h-10 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-              </div>
-            ) : isAuthenticated ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="flex items-center gap-2 px-4 py-3 rounded-lg hover:bg-primary hover:text-primary-foreground"
-                    onClick={logout}
-                  >
-                    <LogOut size={20} />
-                    {active === 'logout' && <span className="font-medium">Logout</span>}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Logout</p>
-                </TooltipContent>
-              </Tooltip>
-            ) : (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="flex items-center gap-2 px-4 py-3 rounded-lg hover:bg-primary hover:text-primary-foreground"
-                    onClick={handleOpenAuthModal}
-                  >
-                    <LogIn size={20} />
-                    {active === 'login' && <span className="font-medium">Login</span>}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Login</p>
-                </TooltipContent>
-              </Tooltip>
+            {/* Only show auth controls in admin mode or when authenticated */}
+            {isAdminMode && (
+              <>
+                {loading ? (
+                  // Show loading state while auth is initializing
+                  <div className="w-10 h-10 flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                  </div>
+                ) : isAuthenticated ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className="flex items-center gap-2 px-4 py-3 rounded-lg hover:bg-primary hover:text-primary-foreground"
+                        onClick={logout}
+                      >
+                        <LogOut size={20} />
+                        {active === 'logout' && <span className="font-medium">Logout</span>}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Logout</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className="flex items-center gap-2 px-4 py-3 rounded-lg hover:bg-primary hover:text-primary-foreground"
+                        onClick={handleOpenAuthModal}
+                      >
+                        <LogIn size={20} />
+                        {active === 'login' && <span className="font-medium">Login</span>}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Login</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+              </>
             )}
           </nav>
         </header>
