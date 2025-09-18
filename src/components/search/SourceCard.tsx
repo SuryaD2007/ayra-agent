@@ -3,14 +3,22 @@ import { ExternalLink } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SourceCard as SourceCardType } from '@/types/chat';
+import { useNavigate } from 'react-router-dom';
 
 interface SourceCardProps {
   source: SourceCardType;
 }
 
 export function SourceCard({ source }: SourceCardProps) {
+  const navigate = useNavigate();
+
   const handleOpenLink = () => {
-    window.open(source.url, '_blank', 'noopener,noreferrer');
+    // Check if it's an internal preview URL
+    if (source.url.startsWith('/preview/')) {
+      navigate(source.url);
+    } else {
+      window.open(source.url, '_blank', 'noopener,noreferrer');
+    }
   };
 
   return (
