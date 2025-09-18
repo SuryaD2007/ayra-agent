@@ -39,7 +39,7 @@ export const TestimonialsSection = ({
     rating: 5
   }, {
     quote: "It's like having an AI-powered assistant that works exactly the way I want.",
-    name: "Rafael O.",
+    name: "Samira Nasser",
     role: "Startup Founder",
     rating: 5
   }, {
