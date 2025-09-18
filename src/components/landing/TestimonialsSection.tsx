@@ -24,7 +24,7 @@ export const TestimonialsSection = ({
     rating: 4
   }, {
     quote: "The template library is a lifesaver for my research and presentations.",
-    name: "Dr. Michael R.",
+    name: "Saint Lauren",
     role: "Researcher",
     rating: 5
   }, {
