@@ -126,8 +126,9 @@ export function useChatSession() {
   }, [activeChat]);
 
   // Send message
-  const sendMessage = useCallback(async (content: string, context?: any) => {
-    if (!activeChat || !user) return;
+  const sendMessage = useCallback(async (content: string, context?: any, targetChat?: Chat) => {
+    const chatToUse = targetChat || activeChat;
+    if (!chatToUse || !user) return;
 
     setIsLoading(true);
     setIsStreaming(true);
@@ -139,7 +140,7 @@ export function useChatSession() {
       if (isVideoLink) {
         // Add user message first
         const userMessage = {
-          chat_id: activeChat.id,
+          chat_id: chatToUse.id,
           role: 'user' as const,
           content
         };
@@ -170,7 +171,7 @@ export function useChatSession() {
 
         // Add assistant response with video summary
         const assistantMessage = {
-          chat_id: activeChat.id,
+          chat_id: chatToUse.id,
           role: 'assistant' as const,
           content: `**${videoData.videoTitle}**\n\n${videoData.response}`
         };
@@ -187,7 +188,7 @@ export function useChatSession() {
       } else {
         // Regular text message processing
         const userMessage = {
-          chat_id: activeChat.id,
+          chat_id: chatToUse.id,
           role: 'user' as const,
           content
         };
@@ -217,7 +218,7 @@ export function useChatSession() {
 
         // Add assistant response
         const assistantMessage = {
-          chat_id: activeChat.id,
+          chat_id: chatToUse.id,
           role: 'assistant' as const,
           content: data.success ? data.response : 'I apologize, but I encountered an issue with the AI service. This is likely due to API quota limits. Please check your OpenAI account billing and try again.'
         };
@@ -235,7 +236,7 @@ export function useChatSession() {
       // Auto-generate title for first message if it's a regular text message
       if (messages.length === 0 && !isVideoLink) {
         const autoTitle = content.length > 60 ? content.substring(0, 57) + '...' : content;
-        await updateChatTitle(activeChat.id, autoTitle);
+        await updateChatTitle(chatToUse.id, autoTitle);
       }
 
     } catch (error) {
@@ -243,7 +244,7 @@ export function useChatSession() {
       
       // Add error message
       const errorMessage = {
-        chat_id: activeChat.id,
+        chat_id: chatToUse.id,
         role: 'assistant' as const,
         content: 'I apologize, but I encountered a technical issue. This is likely due to AI service quota limits. Please check your OpenAI account credits and try again.'
       };

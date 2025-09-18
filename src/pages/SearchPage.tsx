@@ -99,7 +99,7 @@ const SearchPage = () => {
     if (!activeChat) {
       const newChat = await createNewChat(); // Creates with default "New Chat" title
       if (newChat) {
-        await sendMessage(content);
+        await sendMessage(content, undefined, newChat);
       }
     } else {
       await sendMessage(content);
