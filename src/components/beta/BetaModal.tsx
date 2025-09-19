@@ -253,6 +253,7 @@ export function BetaModal({ isOpen, onClose, os }: BetaModalProps) {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [university, setUniversity] = useState('');
+  const [suggestion, setSuggestion] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -260,8 +261,39 @@ export function BetaModal({ isOpen, onClose, os }: BetaModalProps) {
     setFullName('');
     setEmail('');
     setUniversity('');
+    setSuggestion('');
     setIsSubmitting(false);
     onClose();
+  };
+
+  const handleUniversityChange = (value: string) => {
+    setUniversity(value);
+    
+    if (value.length > 2) {
+      // Find the best matching university that starts with the typed text
+      const match = UNIVERSITIES.find(uni =>
+        uni.toLowerCase().startsWith(value.toLowerCase())
+      );
+      
+      if (match && match.toLowerCase() !== value.toLowerCase()) {
+        setSuggestion(match.substring(value.length));
+      } else {
+        setSuggestion('');
+      }
+    } else {
+      setSuggestion('');
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Tab' || e.key === 'ArrowRight') {
+      if (suggestion) {
+        e.preventDefault();
+        const fullText = university + suggestion;
+        setUniversity(fullText);
+        setSuggestion('');
+      }
+    }
   };
 
 
@@ -388,25 +420,33 @@ export function BetaModal({ isOpen, onClose, os }: BetaModalProps) {
             />
           </div>
 
-          <div>
+          <div className="relative">
             <Label htmlFor="university" className="text-sm font-medium">
               University/School
             </Label>
-            <Input
-              id="university"
-              type="text"
-              required
-              placeholder="Harvard University"
-              value={university}
-              onChange={(e) => setUniversity(e.target.value)}
-              list="universities"
-              className="mt-1 rounded-xl border-input bg-background/50 px-4 py-3 focus:ring-2 focus:ring-primary"
-            />
-            <datalist id="universities">
-              {UNIVERSITIES.map((uni, index) => (
-                <option key={index} value={uni} />
-              ))}
-            </datalist>
+            <div className="relative">
+              <Input
+                id="university"
+                type="text"
+                required
+                placeholder="University of Texas"
+                value={university}
+                onChange={(e) => handleUniversityChange(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="mt-1 rounded-xl border-input bg-background/50 px-4 py-3 focus:ring-2 focus:ring-primary relative z-10 bg-transparent"
+              />
+              {suggestion && (
+                <div className="absolute inset-0 mt-1 rounded-xl px-4 py-3 pointer-events-none flex items-center text-muted-foreground">
+                  <span className="invisible">{university}</span>
+                  <span className="text-muted-foreground/60">{suggestion}</span>
+                </div>
+              )}
+            </div>
+            {suggestion && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Press Tab or → to accept suggestion
+              </p>
+            )}
           </div>
 
           <Button
