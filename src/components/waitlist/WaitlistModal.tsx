@@ -25,9 +25,9 @@ interface WaitlistFormData {
 }
 
 const UNIVERSITIES = [
-  // Top Universities (alphabetical)
+  // Top 50 Universities
   "Harvard University",
-  "Stanford University", 
+  "Stanford University",
   "Massachusetts Institute of Technology",
   "California Institute of Technology",
   "Princeton University",
@@ -41,32 +41,8 @@ const UNIVERSITIES = [
   "Dartmouth College",
   "Brown University",
   "Cornell University",
-  
-  // Top Texas Universities
-  "Rice University",
-  "Texas A&M University",
-  "University of Texas at Austin", 
-  "University of Houston",
-  "Texas Tech University",
-  "Baylor University",
-  "Southern Methodist University",
-  "Texas Christian University",
-  "University of Texas at Dallas",
-  "Texas State University",
-  
-  // Top Florida Universities
-  "University of Florida",
-  "Florida State University",
-  "University of Miami",
-  "Florida Institute of Technology",
-  "University of Central Florida",
-  "Florida International University",
-  "Nova Southeastern University",
-  "Florida Atlantic University",
-  "University of South Florida",
-  
-  // Other Top Universities
   "Vanderbilt University",
+  "Rice University",
   "Washington University in St. Louis",
   "University of Notre Dame",
   "University of California, Los Angeles",
@@ -77,12 +53,13 @@ const UNIVERSITIES = [
   "University of Southern California",
   "University of Virginia",
   "Wake Forest University",
+  "University of Michigan",
   "New York University",
   "University of North Carolina at Chapel Hill",
   "Boston College",
-  "College of William & Mary",
   "University of Rochester",
   "Brandeis University",
+  "College of William & Mary",
   "Georgia Institute of Technology",
   "Case Western Reserve University",
   "Boston University",
@@ -90,6 +67,45 @@ const UNIVERSITIES = [
   "University of Wisconsin-Madison",
   "University of Illinois at Urbana-Champaign",
   "University of Washington",
+  "University of California, San Diego",
+  "University of Florida",
+  "University of Texas at Austin",
+  "Ohio State University",
+  "Pennsylvania State University",
+  "University of Georgia",
+  "University of California, Santa Barbara",
+  "University of California, Irvine",
+  "University of California, Davis",
+  
+  // Additional Texas Universities
+  "Texas A&M University",
+  "University of Houston",
+  "Texas Tech University",
+  "Baylor University",
+  "Southern Methodist University",
+  "Texas Christian University",
+  "University of Texas at Dallas",
+  "Texas State University",
+  
+  // Additional Top Universities
+  "Florida State University",
+  "University of Miami",
+  "University of Pittsburgh",
+  "Syracuse University",
+  "University of Connecticut",
+  "University of Delaware",
+  "University of Maryland",
+  "Virginia Tech",
+  "Clemson University",
+  "Purdue University",
+  "Indiana University",
+  "University of Iowa",
+  "University of Minnesota",
+  "University of Colorado Boulder",
+  "Arizona State University",
+  "University of Arizona",
+  "University of Oregon",
+  "University of Utah",
   "Other"
 ]
 
