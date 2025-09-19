@@ -7,8 +7,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { X } from 'lucide-react';
 
-// Common universities for autofill
-const COMMON_UNIVERSITIES = [
+// Comprehensive universities for autofill
+const UNIVERSITIES = [
   'Harvard University',
   'Stanford University',
   'Massachusetts Institute of Technology',
@@ -38,7 +38,209 @@ const COMMON_UNIVERSITIES = [
   'University of California, Davis',
   'University of North Carolina at Chapel Hill',
   'Boston University',
-  'Northeastern University'
+  'Northeastern University',
+  'University of Florida',
+  'Ohio State University',
+  'University of Minnesota',
+  'University of Maryland',
+  'Purdue University',
+  'University of Arizona',
+  'Arizona State University',
+  'University of Colorado Boulder',
+  'University of Pittsburgh',
+  'Penn State University',
+  'Michigan State University',
+  'Indiana University',
+  'University of Iowa',
+  'University of Oregon',
+  'University of Utah',
+  'Virginia Tech',
+  'North Carolina State University',
+  'Clemson University',
+  'University of Alabama',
+  'Auburn University',
+  'University of Georgia',
+  'University of Kentucky',
+  'University of Tennessee',
+  'Vanderbilt University',
+  'Rice University',
+  'Emory University',
+  'University of Miami',
+  'Florida State University',
+  'University of South Florida',
+  'University of Central Florida',
+  'Texas A&M University',
+  'University of Houston',
+  'Texas Tech University',
+  'Baylor University',
+  'Southern Methodist University',
+  'Texas Christian University',
+  'University of Oklahoma',
+  'Oklahoma State University',
+  'University of Kansas',
+  'Kansas State University',
+  'University of Missouri',
+  'Washington University in St. Louis',
+  'Saint Louis University',
+  'University of Nebraska',
+  'University of Arkansas',
+  'Louisiana State University',
+  'Tulane University',
+  'University of Mississippi',
+  'Mississippi State University',
+  'University of South Carolina',
+  'College of Charleston',
+  'Wake Forest University',
+  'Davidson College',
+  'University of Delaware',
+  'Villanova University',
+  'Drexel University',
+  'Temple University',
+  'University of Connecticut',
+  'University of Vermont',
+  'University of New Hampshire',
+  'University of Maine',
+  'University of Rhode Island',
+  'Brown University',
+  'Dartmouth College',
+  'Middlebury College',
+  'Williams College',
+  'Amherst College',
+  'Wellesley College',
+  'Smith College',
+  'Mount Holyoke College',
+  'Bowdoin College',
+  'Colby College',
+  'Bates College',
+  'Tufts University',
+  'Brandeis University',
+  'Boston College',
+  'Babson College',
+  'Bentley University',
+  'Emerson College',
+  'Suffolk University',
+  'University of Massachusetts Amherst',
+  'Worcester Polytechnic Institute',
+  'Rensselaer Polytechnic Institute',
+  'Rochester Institute of Technology',
+  'Syracuse University',
+  'University of Rochester',
+  'Colgate University',
+  'Hamilton College',
+  'Vassar College',
+  'Barnard College',
+  'Cooper Union',
+  'Fordham University',
+  'Pace University',
+  'St. Johns University',
+  'Hofstra University',
+  'Stony Brook University',
+  'University at Buffalo',
+  'Binghamton University',
+  'University at Albany',
+  'Clarkson University',
+  'Union College',
+  'Skidmore College',
+  'Siena College',
+  'Ithaca College',
+  'Marist College',
+  'Manhattan College',
+  'Stevens Institute of Technology',
+  'Rutgers University',
+  'Princeton University',
+  'The College of New Jersey',
+  'Rider University',
+  'Seton Hall University',
+  'Fairleigh Dickinson University',
+  'Montclair State University',
+  'Rowan University',
+  'Stockton University',
+  'Drew University',
+  'Lafayette College',
+  'Lehigh University',
+  'Bucknell University',
+  'Dickinson College',
+  'Franklin & Marshall College',
+  'Gettysburg College',
+  'Muhlenberg College',
+  'Susquehanna University',
+  'Elizabethtown College',
+  'Messiah University',
+  'York College of Pennsylvania',
+  'Millersville University',
+  'West Chester University',
+  'Shippensburg University',
+  'Kutztown University',
+  'East Stroudsburg University',
+  'Bloomsburg University',
+  'California University of Pennsylvania',
+  'Clarion University',
+  'Edinboro University',
+  'Indiana University of Pennsylvania',
+  'Lock Haven University',
+  'Mansfield University',
+  'Slippery Rock University',
+  'University of the Sciences',
+  'Thomas Jefferson University',
+  'University of Delaware',
+  'Delaware State University',
+  'Wesley College',
+  'Goldey-Beacom College',
+  'University of Maryland, College Park',
+  'University of Maryland, Baltimore County',
+  'Towson University',
+  'Salisbury University',
+  'Frostburg State University',
+  'Bowie State University',
+  'Coppin State University',
+  'Morgan State University',
+  'University of Baltimore',
+  'Loyola University Maryland',
+  'Goucher College',
+  'McDaniel College',
+  'Washington College',
+  'St. Marys College of Maryland',
+  'Hood College',
+  'Mount St. Marys University',
+  'Stevenson University',
+  'Notre Dame of Maryland University',
+  'Johns Hopkins University',
+  'University of Richmond',
+  'Virginia Commonwealth University',
+  'James Madison University',
+  'Old Dominion University',
+  'George Mason University',
+  'Virginia Military Institute',
+  'Virginia State University',
+  'Norfolk State University',
+  'Hampton University',
+  'Christopher Newport University',
+  'Longwood University',
+  'Radford University',
+  'The Citadel',
+  'College of William & Mary',
+  'Washington and Lee University',
+  'University of Mary Washington',
+  'Bridgewater College',
+  'Roanoke College',
+  'Hampden-Sydney College',
+  'Randolph-Macon College',
+  'Sweet Briar College',
+  'Hollins University',
+  'Lynchburg University',
+  'Liberty University',
+  'Regent University',
+  'Eastern Mennonite University',
+  'Shenandoah University',
+  'Marymount University',
+  'George Washington University',
+  'American University',
+  'Howard University',
+  'Gallaudet University',
+  'Trinity Washington University',
+  'Catholic University of America',
+  'Georgetown University',
+  'University of the District of Columbia'
 ];
 
 interface BetaModalProps {
@@ -51,8 +253,6 @@ export function BetaModal({ isOpen, onClose, os }: BetaModalProps) {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [university, setUniversity] = useState('');
-  const [universitySuggestions, setUniversitySuggestions] = useState<string[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -60,30 +260,10 @@ export function BetaModal({ isOpen, onClose, os }: BetaModalProps) {
     setFullName('');
     setEmail('');
     setUniversity('');
-    setUniversitySuggestions([]);
-    setShowSuggestions(false);
     setIsSubmitting(false);
     onClose();
   };
 
-  const handleUniversityChange = (value: string) => {
-    setUniversity(value);
-    
-    if (value.length > 1) {
-      const filtered = COMMON_UNIVERSITIES.filter(uni =>
-        uni.toLowerCase().includes(value.toLowerCase())
-      ).slice(0, 5);
-      setUniversitySuggestions(filtered);
-      setShowSuggestions(filtered.length > 0);
-    } else {
-      setShowSuggestions(false);
-    }
-  };
-
-  const selectUniversity = (selectedUni: string) => {
-    setUniversity(selectedUni);
-    setShowSuggestions(false);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -208,7 +388,7 @@ export function BetaModal({ isOpen, onClose, os }: BetaModalProps) {
             />
           </div>
 
-          <div className="relative">
+          <div>
             <Label htmlFor="university" className="text-sm font-medium">
               University/School
             </Label>
@@ -218,26 +398,15 @@ export function BetaModal({ isOpen, onClose, os }: BetaModalProps) {
               required
               placeholder="Harvard University"
               value={university}
-              onChange={(e) => handleUniversityChange(e.target.value)}
-              onFocus={() => university.length > 1 && setShowSuggestions(true)}
-              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+              onChange={(e) => setUniversity(e.target.value)}
+              list="universities"
               className="mt-1 rounded-xl border-input bg-background/50 px-4 py-3 focus:ring-2 focus:ring-primary"
             />
-            
-            {showSuggestions && universitySuggestions.length > 0 && (
-              <div className="absolute top-full left-0 right-0 z-10 mt-1 bg-background border border-input rounded-lg shadow-lg max-h-40 overflow-y-auto">
-                {universitySuggestions.map((uni, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    onClick={() => selectUniversity(uni)}
-                    className="w-full text-left px-4 py-2 hover:bg-accent hover:text-accent-foreground text-sm border-0 bg-transparent"
-                  >
-                    {uni}
-                  </button>
-                ))}
-              </div>
-            )}
+            <datalist id="universities">
+              {UNIVERSITIES.map((uni, index) => (
+                <option key={index} value={uni} />
+              ))}
+            </datalist>
           </div>
 
           <Button
