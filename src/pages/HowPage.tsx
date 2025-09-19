@@ -154,7 +154,7 @@ const HowPage = () => {
             
             <div className="space-y-16 pl-4">
               <WorkflowStep number={1} title="Collect" description="Easily save content from anywhere - web pages, images, documents, notes, and more with our browser extension or mobile app." />
-              <WorkflowStep number={2} title="Organize" description="Cortex automatically categorizes and tags your content using advanced AI, creating a beautiful, organized knowledge base without manual effort." />
+              <WorkflowStep number={2} title="Organize" description="Ayra automatically categorizes and tags your content using advanced AI, creating a beautiful, organized knowledge base without manual effort." />
               <WorkflowStep number={3} title="Connect" description="Discover surprising connections between your ideas with our neural network visualization that reveals patterns you might miss." />
               <WorkflowStep number={4} title="Create" description="Transform your collected knowledge into new ideas, projects, and content with powerful AI assistance that understands your thinking." />
             </div>
@@ -165,7 +165,7 @@ const HowPage = () => {
         <div className="mb-24">
           <h2 className="text-3xl font-bold text-center mb-12">Designed for Your Digital Brain</h2>
           
-          <FeatureShowcase title="Your knowledge base is visual" description="Cortex transforms your notes and saved content into a beautiful, visual interface that makes browsing your digital mind a pleasure." image="/placeholder.svg" features={[{
+          <FeatureShowcase title="Your knowledge base is visual" description="Ayra transforms your notes and saved content into a beautiful, visual interface that makes browsing your digital mind a pleasure." image="/placeholder.svg" features={[{
           icon: <CheckCircle size={24} />,
           text: "Visual organization of your knowledge"
         }, {
@@ -207,7 +207,7 @@ const HowPage = () => {
           text: "Continuously learns from your usage patterns"
         }]} />
           
-          <FeatureShowcase title="Your private knowledge hub" description="Unlike social bookmarking tools, Cortex is completely private. Your data remains yours alone, secured with end-to-end encryption." image="/placeholder.svg" features={[{
+          <FeatureShowcase title="Your private knowledge hub" description="Unlike social bookmarking tools, Ayra is completely private. Your data remains yours alone, secured with end-to-end encryption." image="/placeholder.svg" features={[{
           icon: <CheckCircle size={24} />,
           text: "End-to-end encryption for all your data"
         }, {
@@ -221,7 +221,7 @@ const HowPage = () => {
           text: "Export your data anytime in standard formats"
         }]} reversed={true} />
           
-          <FeatureShowcase title="An extension for your mind" description="Cortex becomes an extension of your thinking process, available across all your devices and integrated with your workflow." image="/placeholder.svg" features={[{
+          <FeatureShowcase title="An extension for your mind" description="Ayra becomes an extension of your thinking process, available across all your devices and integrated with your workflow." image="/placeholder.svg" features={[{
           icon: <CheckCircle size={24} />,
           text: "Synchronized across all your devices in real-time"
         }, {
@@ -244,7 +244,7 @@ const HowPage = () => {
           </p>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <ValueProp icon={<Brain className="w-8 h-8 text-primary" />} title="Focus is freedom" description="Cortex helps you stay focused by eliminating distractions and streamlining your thinking process." />
+            <ValueProp icon={<Brain className="w-8 h-8 text-primary" />} title="Focus is freedom" description="Ayra helps you stay focused by eliminating distractions and streamlining your thinking process." />
             <ValueProp icon={<Shield className="w-8 h-8 text-primary" />} title="Make it invisible" description="The best tools are the ones you forget you're using because they feel like natural extensions of yourself." />
             <ValueProp icon={<Lightbulb className="w-8 h-8 text-primary" />} title="Less becomes more" description="By removing unnecessary features and complexity, we create a more powerful experience." />
           </div>
