@@ -7,7 +7,7 @@ import { useLibraryTitle } from '@/hooks/useLibraryTitle';
 import { useHotkeys } from '@/hooks/useHotkeys';
 import CortexTable from '@/components/manage/CortexTable';
 import type { CortexTableRef } from '@/components/manage/CortexTable';
-import CortexSidebar from '@/components/manage/CortexSidebar';
+import AyraSidebar from '@/components/manage/AyraSidebar';
 import ViewSwitcher from '@/components/manage/ViewSwitcher';
 import HotkeysSheet from '@/components/manage/HotkeysSheet';
 import { TooltipProvider } from '@/components/ui/tooltip';

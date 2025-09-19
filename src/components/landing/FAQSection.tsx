@@ -15,8 +15,8 @@ export const FAQSection = ({
     answer: "A Digital Second Brain is an AI-powered knowledge repository that acts as an extension of your mind. It helps you organize, connect, and retrieve information efficiently, enabling better thinking and creativity."
   }, {
     id: "item-2",
-    question: "How does Cortex differ from regular note-taking apps?",
-    answer: "Unlike traditional note-taking apps, Cortex uses AI to automatically connect related concepts, visualize knowledge networks, and surface relevant information when you need it. It's designed to mimic how your brain naturally connects ideas."
+    question: "How does Ayra differ from regular note-taking apps?",
+    answer: "Unlike traditional note-taking apps, Ayra uses AI to automatically connect related concepts, visualize knowledge networks, and surface relevant information when you need it. It's designed to mimic how your brain naturally connects ideas."
   }, {
     id: "item-3",
     question: "Is my data secure and private?",
@@ -24,7 +24,7 @@ export const FAQSection = ({
   }, {
     id: "item-4",
     question: "Can I import data from other tools?",
-    answer: "Absolutely! Cortex supports importing from popular tools like Notion, Evernote, Roam Research, and more. Our import process preserves your existing structure while enhancing it with AI-powered connections."
+    answer: "Absolutely! Ayra supports importing from popular tools like Notion, Evernote, Roam Research, and more. Our import process preserves your existing structure while enhancing it with AI-powered connections."
   }, {
     id: "item-5",
     question: "Is there a mobile app available?",

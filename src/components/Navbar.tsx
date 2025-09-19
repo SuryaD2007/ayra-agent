@@ -152,7 +152,7 @@ export const Navbar = () => {
     return spaceParam || null;
   };
 
-  const cortexSubmenu = [
+  const ayraSubmenu = [
     { to: '/', icon: <Info size={18} />, label: 'What', id: 'what' },
     { to: '/why', icon: <HelpCircle size={18} />, label: 'Why', id: 'why' },
     { to: '/how', icon: <Code size={18} />, label: 'How', id: 'how' },
@@ -179,7 +179,7 @@ export const Navbar = () => {
       <TooltipProvider>
         <header className="glass-panel fixed top-6 left-1/2 transform -translate-x-1/2 z-40 rounded-lg px-1 py-1">
           <nav className="flex items-center">
-            {/* Cortex with submenu */}
+            {/* Ayra with submenu */}
             <NavItem
               to="#"
               icon={<Brain size={20} />}
@@ -188,7 +188,7 @@ export const Navbar = () => {
               onClick={() => {}}
               hasSubmenu={true}
             >
-              {cortexSubmenu.map((item) => (
+              {ayraSubmenu.map((item) => (
                 <SubMenuItem
                   key={item.id}
                   to={item.to}

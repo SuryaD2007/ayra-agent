@@ -25,7 +25,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { CortexItem, columns } from '../cortex-data';
+import { AyraItem, columns } from '../ayra-data';
 import { cn } from '@/lib/utils';
 
 interface TableViewProps {

@@ -28,11 +28,11 @@ export const SecuritySection = ({
     question: "Where is my data stored?",
     answer: "Your data is stored in secure, SOC 2 compliant data centers. We use a distributed architecture with redundancy across multiple geographic regions to ensure high availability and disaster recovery capabilities."
   }, {
-    question: "Can the Cortex team access my notes?",
-    answer: "No. We employ a zero-knowledge architecture, which means that your data is encrypted before it leaves your device. The encryption keys are derived from your password, which we never store. This means that even Cortex employees cannot access your unencrypted data."
+    question: "Can the Ayra team access my notes?",
+    answer: "No. We employ a zero-knowledge architecture, which means that your data is encrypted before it leaves your device. The encryption keys are derived from your password, which we never store. This means that even Ayra employees cannot access your unencrypted data."
   }, {
     question: "How do you handle data deletion?",
-    answer: "When you delete data in Cortex, it is immediately marked for deletion and removed from your view. The data is then permanently purged from our systems within 30 days. You can also request a complete account deletion, which will remove all your data from our systems."
+    answer: "When you delete data in Ayra, it is immediately marked for deletion and removed from your view. The data is then permanently purged from our systems within 30 days. You can also request a complete account deletion, which will remove all your data from our systems."
   }];
   return <AnimatedTransition show={show} animation="slide-up" duration={600}>
       <div className="mt-24 mb-16">
@@ -45,7 +45,7 @@ export const SecuritySection = ({
           </div>
           <h2 className="text-3xl md:text-4xl font-bold mb-4">Your second brain deserves the best protection</h2>
           <p className="text-muted-foreground mt-3 max-w-2xl mx-auto">
-            We've built Cortex with security and privacy as core principles, not afterthoughts.
+            We've built Ayra with security and privacy as core principles, not afterthoughts.
           </p>
         </div>
         
@@ -69,7 +69,7 @@ export const SecuritySection = ({
               Your data, your control
             </h3>
             <p className="text-muted-foreground mb-6">
-              We believe that your thoughts and ideas belong to you and only you. That's why we've designed Cortex with privacy as a fundamental principle.
+              We believe that your thoughts and ideas belong to you and only you. That's why we've designed Ayra with privacy as a fundamental principle.
             </p>
             
             <div className="space-y-4">

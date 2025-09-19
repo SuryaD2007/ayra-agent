@@ -36,23 +36,23 @@ import KanbanView from './views/KanbanView';
 import FilterDrawer from './FilterDrawer';
 import NewItemModal from './NewItemModal';
 import PreviewDrawer from './PreviewDrawer';
-import { cortexItems as initialCortexItems, CortexItem } from './cortex-data';
+import { ayraItems as initialAyraItems, AyraItem } from './ayra-data';
 import { useFilters } from '@/hooks/useFilters';
 import { usePagination } from '@/hooks/usePagination';
 import { toast } from '@/hooks/use-toast';
 import TablePagination from './TablePagination';
 import { getItems, deleteItems, getSpaces, updateItem, bulkMoveItems, getSpaceCounts, DataCache } from '@/lib/data';
 import { useAuth } from '@/contexts/AuthContext';
-import { itemsToCortexItems } from '@/lib/itemUtils';
+import { itemsToAyraItems } from '@/lib/itemUtils';
 
-interface CortexTableProps {
+interface AyraTableProps {
   viewType?: 'table' | 'grid' | 'list' | 'kanban';
   categoryId?: string;
-  cortexId?: string | null;
+  ayraId?: string | null;
   onFiltersChange?: (activeCount: number) => void;
 }
 
-export interface CortexTableRef {
+export interface AyraTableRef {
   focusSearch: () => void;
   openFilters: () => void;
   openNewItem: () => void;
@@ -61,10 +61,10 @@ export interface CortexTableRef {
   closePreview: () => void;
 }
 
-const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({ 
+const AyraTable = forwardRef<AyraTableRef, AyraTableProps>(({ 
   viewType = 'table', 
   categoryId = 'private',
-  cortexId = 'overview',
+  ayraId = 'overview',
   onFiltersChange
 }, ref) => {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
@@ -84,7 +84,7 @@ const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({
   
   // Auth and data state
   const { isAuthenticated } = useAuth();
-  const [cortexItems, setCortexItems] = useState<CortexItem[]>([]);
+  const [ayraItems, setAyraItems] = useState<AyraItem[]>([]);
   const [spaces, setSpaces] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalItems, setTotalItems] = useState(0);
@@ -98,7 +98,7 @@ const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({
   // Load data from Supabase with real-time updates
   useEffect(() => {
     if (!isAuthenticated) {
-      setCortexItems([]);
+      setAyraItems([]);
       setSpaces([]);
       setLoading(false);
       setError(null);
@@ -117,7 +117,7 @@ const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({
           page: 1,
           pageSize: 1000, // Load all for client-side filtering for now
           type: [],
-          spaceId: cortexId === 'overview' ? undefined : cortexId,
+          spaceId: ayraId === 'overview' ? undefined : ayraId,
           tags: [],
           dateRange: {},
           search: ''
@@ -138,7 +138,7 @@ const CortexTable = forwardRef<CortexTableRef, CortexTableProps>(({
           const space = spacesData.find(s => s.id === item.space_id);
           const spaceName = space ? space.name : 'Personal';
           
-          // Map space name to valid CortexItem space type
+          // Map space name to valid AyraItem space type
           let spaceType: 'Personal' | 'Work' | 'School' | 'Team' = 'Personal';
           if (spaceName.toLowerCase().includes('work')) spaceType = 'Work';
           else if (spaceName.toLowerCase().includes('school')) spaceType = 'School';

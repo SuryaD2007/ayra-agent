@@ -30,7 +30,7 @@ export const BlogSection = ({ show }: BlogSectionProps) => {
     },
     {
       title: "The Science of Neural Connections",
-      description: "Explore how our brain creates connections between ideas and how Cortex mirrors this natural process.",
+      description: "Explore how our brain creates connections between ideas and how Ayra mirrors this natural process.",
       author: "Dr. Michael Rhodes",
       date: "April 22, 2023",
       readTime: "10 min read",
@@ -66,7 +66,7 @@ export const BlogSection = ({ show }: BlogSectionProps) => {
     },
     {
       title: "Integration Guides",
-      description: "How to connect Cortex with your existing tools and workflows",
+      description: "How to connect Ayra with your existing tools and workflows",
       icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10"></circle>
         <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
@@ -157,7 +157,7 @@ export const BlogSection = ({ show }: BlogSectionProps) => {
         <div className="mt-12 text-center">
           <h3 className="text-xl font-bold mb-4">Stay Updated</h3>
           <p className="text-muted-foreground mb-6 max-w-lg mx-auto">
-            Subscribe to our newsletter for the latest articles, resources, and updates on Cortex.
+            Subscribe to our newsletter for the latest articles, resources, and updates on Ayra.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
             <input 

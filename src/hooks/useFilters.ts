@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { CortexItem } from '@/components/manage/cortex-data';
+import { AyraItem } from '@/components/manage/ayra-data';
 import { FilterState } from '@/components/manage/FilterDrawer';
 import { SavedFiltersService } from '@/utils/savedFilters';
 

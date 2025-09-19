@@ -9,12 +9,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CortexItem } from '../cortex-data';
+import { AyraItem } from '../ayra-data';
 import { Check, Square, Move } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface GridViewProps {
-  items: CortexItem[];
+  items: AyraItem[];
   selectedItems?: string[];
   onSelectItem?: (id: string) => void;
   spaces?: any[];

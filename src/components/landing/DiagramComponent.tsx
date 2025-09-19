@@ -12,7 +12,7 @@ interface DiagramComponentProps {
 
 const DiagramComponent = ({ onSectionClick, activeSection }: DiagramComponentProps) => {
   const scatteredText = "All your notes, bookmarks, inspirations, articles and images in one single, private second brain, accessible anywhere, anytime.";
-  const convergenceText = "Save anything with a click and stay in the flow. Cortex understands what it is and remembers the important details, so you don't have to.";
+  const convergenceText = "Save anything with a click and stay in the flow. Ayra understands what it is and remembers the important details, so you don't have to.";
   const organizedText = "Search by color, keyword, brand, date – whatever you think of first. Associative search & visual cues work with your brain to find it instantly.";
 
   return (

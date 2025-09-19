@@ -1,5 +1,5 @@
 
-export type CortexItem = {
+export type AyraItem = {
   id: string;
   title: string;
   url: string;
@@ -16,7 +16,7 @@ export type CortexItem = {
   size_bytes?: number;
 };
 
-export const cortexItems: CortexItem[] = [
+export const ayraItems: AyraItem[] = [
   {
     id: '1',
     title: 'Neural networks fundamentals',

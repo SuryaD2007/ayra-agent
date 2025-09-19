@@ -1,10 +1,10 @@
 
 import React from 'react';
 import { Card } from '@/components/ui/card';
-import { CortexItem } from '../cortex-data';
+import { AyraItem } from '../ayra-data';
 
 interface KanbanViewProps {
-  items: CortexItem[];
+  items: AyraItem[];
 }
 
 const KanbanView = ({ items }: KanbanViewProps) => {

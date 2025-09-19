@@ -1,8 +1,8 @@
 import { Item } from './data';
-import { CortexItem } from '@/components/manage/cortex-data';
+import { AyraItem } from '@/components/manage/ayra-data';
 
-// Helper function to convert database Item to UI CortexItem
-export function itemToCortexItem(item: Item): CortexItem {
+// Helper function to convert database Item to UI AyraItem
+export function itemToAyraItem(item: Item): AyraItem {
   return {
     id: item.id,
     title: item.title,
@@ -18,7 +18,7 @@ export function itemToCortexItem(item: Item): CortexItem {
   };
 }
 
-// Helper function to convert array of Items to CortexItems
-export function itemsToCortexItems(items: Item[]): CortexItem[] {
-  return items.map(itemToCortexItem);
+// Helper function to convert array of Items to AyraItems
+export function itemsToAyraItems(items: Item[]): AyraItem[] {
+  return items.map(itemToAyraItem);
 }

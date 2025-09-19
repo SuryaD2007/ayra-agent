@@ -34,7 +34,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
-import { CortexItem } from './cortex-data';
+import { AyraItem } from './ayra-data';
 import { SavedFiltersService, SavedFilter } from '@/utils/savedFilters';
 import { toast } from '@/hooks/use-toast';
 

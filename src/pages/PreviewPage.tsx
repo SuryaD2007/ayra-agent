@@ -4,11 +4,11 @@ import { Download, ChevronLeft, ChevronRight, ExternalLinkIcon, ArrowLeft, Uploa
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CortexItem } from '@/components/manage/cortex-data';
+import { AyraItem } from '@/components/manage/ayra-data';
 import { toast } from '@/hooks/use-toast';
 import { useSignedUrl } from '@/hooks/useSignedUrl';
 import { restoreItem } from '@/lib/data';
-import { itemToCortexItem } from '@/lib/itemUtils';
+import { itemToAyraItem } from '@/lib/itemUtils';
 import { supabase } from '@/integrations/supabase/client';
 
 const PreviewPage = () => {
