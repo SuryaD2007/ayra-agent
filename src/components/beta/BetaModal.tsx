@@ -97,7 +97,6 @@ export function BetaModal({ isOpen, onClose, os }: BetaModalProps) {
             onClick={handleClose}
             className="h-6 w-6 text-muted-foreground hover:text-foreground"
           >
-            <X className="h-4 w-4" />
           </Button>
         </DialogHeader>
 
