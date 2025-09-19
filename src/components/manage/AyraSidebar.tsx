@@ -63,8 +63,8 @@ type CustomCategory = {
   color: string;
 };
 
-interface CortexSidebarProps {
-  onCortexSelect: (categoryId: string, itemId: string | null, spaceSlug?: string) => void;
+interface AyraSidebarProps {
+  onAyraSelect: (categoryId: string, itemId: string | null, spaceSlug?: string) => void;
   selectedCategoryId: string;
   selectedItemId: string | null;
   selectedSpace?: string | null;
@@ -77,7 +77,7 @@ const CortexSidebar = ({
   selectedItemId = 'overview',
   selectedSpace = null,
   spaceCounts = {}
-}: CortexSidebarProps) => {
+}: AyraSidebarProps) => {
   const [customSpaces, setCustomSpaces] = useState<CustomSpace[]>([]);
   const [customCategories, setCustomCategories] = useState<CustomCategory[]>([]);
   const [newSpaceModalOpen, setNewSpaceModalOpen] = useState(false);

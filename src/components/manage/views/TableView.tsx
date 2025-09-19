@@ -1,24 +1,27 @@
-import React, { useState, useMemo, useRef } from 'react';
-import { ArrowUpDown, Check, Square, Edit2, FileText, File, Link, Image as ImageIcon, Plus, X, Loader2 } from 'lucide-react';
+import React, { useState, useRef, useMemo } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { Link as RouterLink } from 'react-router-dom';
+import { 
+  Table, 
+  TableBody, 
+  TableHead, 
+  TableHeader, 
+  TableRow, 
+  TableCell 
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { 
+  ChevronUp, 
+  ChevronDown, 
+  FileText, 
+  File, 
+  Link, 
+  Image as ImageIcon, 
+  Edit2, 
+  Eye,
+  ExternalLink 
+} from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -29,13 +32,13 @@ import { AyraItem, columns } from '../ayra-data';
 import { cn } from '@/lib/utils';
 
 interface TableViewProps {
-  items: CortexItem[];
+  items: AyraItem[];
   selectedItems?: string[];
   onSelectItem?: (id: string) => void;
-  onUpdateItem?: (id: string, updates: Partial<CortexItem>) => void;
+  onUpdateItem?: (id: string, updates: Partial<AyraItem>) => void;
   virtualized?: boolean;
   selectedRowIndex?: number;
-  onRowClick?: (item: CortexItem, index: number) => void;
+  onRowClick?: (item: AyraItem, index: number) => void;
   syncingItems?: Set<string>;
   spaces?: any[];
   onMoveItem?: (itemId: string, targetSpaceId: string | null) => void;
@@ -55,7 +58,7 @@ const TableView = ({
 }: TableViewProps) => {
   const [editingTitle, setEditingTitle] = useState<string | null>(null);
   const [tempTitle, setTempTitle] = useState('');
-  const [previewItem, setPreviewItem] = useState<CortexItem | null>(null);
+  const [previewItem, setPreviewItem] = useState<AyraItem | null>(null);
   const [newTag, setNewTag] = useState<{ [key: string]: string }>({});
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -67,18 +70,19 @@ const TableView = ({
     if (!sortColumn) return items;
     
     return [...items].sort((a, b) => {
-      let aValue: string;
-      let bValue: string;
+      let aVal = a[sortColumn as keyof AyraItem];
+      let bVal = b[sortColumn as keyof AyraItem];
       
-      if (sortColumn === 'title') {
-        aValue = a.title.toLowerCase();
-        bValue = b.title.toLowerCase();
-      } else {
-        return 0;
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        aVal = aVal.toLowerCase();
+        bVal = bVal.toLowerCase();
       }
       
-      const comparison = aValue.localeCompare(bValue);
-      return sortDirection === 'asc' ? comparison : -comparison;
+      if (sortDirection === 'asc') {
+        return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+      } else {
+        return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
+      }
     });
   }, [items, sortColumn, sortDirection]);
   
@@ -90,7 +94,7 @@ const TableView = ({
     overscan: 5,
   });
 
-  const getTypeIcon = (type: CortexItem['type']) => {
+  const getTypeIcon = (type: AyraItem['type']) => {
     switch (type) {
       case 'Note':
         return <FileText size={16} className="text-blue-500" />;
@@ -105,16 +109,17 @@ const TableView = ({
     }
   };
 
-  const handleTitleEdit = (id: string, title: string) => {
-    setEditingTitle(id);
-    setTempTitle(title);
+  const handleTitleEdit = (item: AyraItem) => {
+    setEditingTitle(item.id);
+    setTempTitle(item.title);
   };
 
-  const handleTitleSave = (id: string) => {
-    if (tempTitle.trim()) {
-      onUpdateItem(id, { title: tempTitle.trim() });
-      setEditingTitle(null);
+  const handleTitleSave = (item: AyraItem) => {
+    if (tempTitle.trim() && tempTitle !== item.title) {
+      onUpdateItem(item.id, { title: tempTitle.trim() });
     }
+    setEditingTitle(null);
+    setTempTitle('');
   };
 
   const handleTitleCancel = () => {
@@ -122,29 +127,23 @@ const TableView = ({
     setTempTitle('');
   };
 
-  const handleSpaceChange = (itemId: string, newSpaceId: string) => {
-    onMoveItem(itemId, newSpaceId === 'overview' ? null : newSpaceId);
-  };
-
   const handleAddTag = (itemId: string) => {
-    const tagValue = newTag[itemId];
-    if (tagValue?.trim()) {
+    const tagText = newTag[itemId]?.trim();
+    if (tagText) {
       const item = items.find(i => i.id === itemId);
-      if (item && !item.keywords.includes(tagValue.trim())) {
-        onUpdateItem(itemId, { 
-          keywords: [...item.keywords, tagValue.trim()] 
-        });
+      if (item) {
+        const updatedKeywords = [...item.keywords, tagText];
+        onUpdateItem(itemId, { keywords: updatedKeywords });
       }
-      setNewTag({ ...newTag, [itemId]: '' });
+      setNewTag(prev => ({ ...prev, [itemId]: '' }));
     }
   };
 
   const handleRemoveTag = (itemId: string, tagToRemove: string) => {
     const item = items.find(i => i.id === itemId);
     if (item) {
-      onUpdateItem(itemId, { 
-        keywords: item.keywords.filter(tag => tag !== tagToRemove) 
-      });
+      const updatedKeywords = item.keywords.filter(tag => tag !== tagToRemove);
+      onUpdateItem(itemId, { keywords: updatedKeywords });
     }
   };
 
@@ -157,7 +156,7 @@ const TableView = ({
     }
   };
 
-  const getSourceDisplay = (source: string, type: CortexItem['type']) => {
+  const getSourceDisplay = (source: string, type: AyraItem['type']) => {
     if (source === 'Upload') {
       return 'Upload';
     }
@@ -171,7 +170,7 @@ const TableView = ({
   };
 
   // Render table row component
-  const renderTableRow = (item: CortexItem, index: number, virtualRow?: any) => {
+  const renderTableRow = (item: AyraItem, index: number, virtualRow?: any) => {
     const isSelected = selectedItems.includes(item.id);
     const isHighlighted = selectedRowIndex === index;
     
@@ -181,283 +180,202 @@ const TableView = ({
         className={cn(
           "hover:bg-muted/30 cursor-pointer",
           isSelected && "bg-primary/5",
-          isHighlighted && "bg-accent/50 ring-2 ring-primary/20"
+          isHighlighted && "bg-muted/50"
         )}
-        onClick={() => onRowClick(item, index)}
+        onClick={() => {
+          onSelectItem(item.id);
+          onRowClick(item, index);
+        }}
         style={virtualRow ? {
           height: `${virtualRow.size}px`,
           transform: `translateY(${virtualRow.start}px)`,
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
         } : undefined}
       >
-        {/* Selection checkbox */}
-        <TableCell className="w-10">
-          <div 
-            className="cursor-pointer"
-            onClick={(e) => {
-              e.stopPropagation();
-              onSelectItem(item.id);
-            }}
-          >
-            {isSelected ? (
-              <div className="rounded-md bg-primary text-white p-0.5">
-                <Check size={16} />
+        <TableCell className="w-12">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => onSelectItem(item.id)}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </TableCell>
+        
+        <TableCell className="max-w-0 w-1/3">
+          <div className="flex items-center gap-2">
+            {getTypeIcon(item.type)}
+            {editingTitle === item.id ? (
+              <div className="flex items-center gap-2 flex-1">
+                <Input
+                  value={tempTitle}
+                  onChange={(e) => setTempTitle(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleTitleSave(item);
+                    if (e.key === 'Escape') handleTitleCancel();
+                  }}
+                  onBlur={() => handleTitleSave(item)}
+                  className="h-8 text-sm"
+                  autoFocus
+                  onClick={(e) => e.stopPropagation()}
+                />
               </div>
             ) : (
-              <div className="rounded-md border border-border p-0.5">
-                <Square size={16} />
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <span className="truncate font-medium">{item.title}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleTitleEdit(item);
+                  }}
+                  className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0"
+                >
+                  <Edit2 size={12} />
+                </Button>
               </div>
             )}
           </div>
         </TableCell>
 
-        {/* Title - Editable with Preview */}
-        <TableCell className="font-medium">
-          {editingTitle === item.id ? (
-            <div className="flex items-center gap-2">
-              <Input
-                value={tempTitle}
-                onChange={(e) => setTempTitle(e.target.value)}
-                className="h-8"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleTitleSave(item.id);
-                  if (e.key === 'Escape') handleTitleCancel();
-                }}
-                autoFocus
-              />
-              <Button size="icon" variant="ghost" onClick={() => handleTitleSave(item.id)} className="h-6 w-6">
-                <Check size={14} className="text-green-500" />
-              </Button>
-              <Button size="icon" variant="ghost" onClick={handleTitleCancel} className="h-6 w-6">
-                <X size={14} className="text-red-500" />
-              </Button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 group">
-              <RouterLink
-                to={`/preview/${item.id}`}
-                className="text-left hover:text-primary cursor-pointer"
-                onClick={(e) => {
-                  e.stopPropagation();
-                }}
-              >
-                {item.title}
-              </RouterLink>
-              {syncingItems.has(item.id) && (
-                <div className="flex items-center gap-1 text-muted-foreground">
-                  <Loader2 size={12} className="animate-spin" />
-                  <span className="text-xs">Syncing...</span>
-                </div>
-              )}
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-6 w-6 opacity-0 group-hover:opacity-100"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleTitleEdit(item.id, item.title);
-                }}
-              >
-                <Edit2 size={12} />
-              </Button>
-            </div>
-          )}
+        <TableCell>
+          <Badge variant="outline">
+            {item.type}
+          </Badge>
         </TableCell>
 
-        {/* Type with Icon */}
-        <TableCell>
-          <div className="flex items-center gap-2">
-            {getTypeIcon(item.type)}
-            <span className="text-sm">{item.type}</span>
-          </div>
-        </TableCell>
-
-        {/* Tags - Chips with Add/Remove */}
-        <TableCell>
-          <div className="flex flex-wrap gap-1 items-center">
-            {item.keywords.map((keyword, idx) => (
-              <div 
-                key={idx} 
-                className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary/20 text-xs group"
-              >
-                <span>{keyword}</span>
+        <TableCell className="max-w-xs">
+          <div className="flex flex-wrap gap-1">
+            {item.keywords.map((tag) => (
+              <Badge key={tag} variant="secondary" className="text-xs">
+                {tag}
                 <button
-                  onClick={() => handleRemoveTag(item.id, keyword)}
-                  className="opacity-0 group-hover:opacity-100 hover:text-red-500"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemoveTag(item.id, tag);
+                  }}
+                  className="ml-1 text-xs opacity-60 hover:opacity-100"
                 >
-                  <X size={12} />
+                  ×
                 </button>
-              </div>
+              </Badge>
             ))}
             <div className="flex items-center gap-1">
               <Input
-                placeholder="Add tag"
+                placeholder="Add tag..."
                 value={newTag[item.id] || ''}
-                onChange={(e) => setNewTag({ ...newTag, [item.id]: e.target.value })}
-                className="h-6 w-20 text-xs"
+                onChange={(e) => setNewTag(prev => ({ ...prev, [item.id]: e.target.value }))}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleAddTag(item.id);
+                  if (e.key === 'Enter') {
+                    e.stopPropagation();
+                    handleAddTag(item.id);
+                  }
                 }}
+                onClick={(e) => e.stopPropagation()}
+                className="h-6 text-xs w-20"
               />
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() => handleAddTag(item.id)}
-                className="h-6 w-6"
-              >
-                <Plus size={12} />
-              </Button>
-              {syncingItems.has(item.id) && (
-                <Loader2 size={12} className="animate-spin text-muted-foreground" />
-              )}
             </div>
           </div>
         </TableCell>
 
-        {/* Date Added */}
-        <TableCell>{item.createdDate}</TableCell>
+        <TableCell className="text-sm text-muted-foreground">
+          {item.createdDate}
+        </TableCell>
 
-        {/* Source */}
+        <TableCell className="text-sm">
+          {getSourceDisplay(item.source, item.type)}
+        </TableCell>
+
         <TableCell>
-          <span className="text-sm text-muted-foreground">
-            {getSourceDisplay(item.source, item.type)}
-          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                setPreviewItem(item);
+              }}
+              className="h-8 w-8 p-0"
+            >
+              <Eye size={14} />
+            </Button>
+            {item.url && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(item.url, '_blank');
+                }}
+                className="h-8 w-8 p-0"
+              >
+                <ExternalLink size={14} />
+              </Button>
+            )}
+          </div>
         </TableCell>
       </TableRow>
     );
   };
 
   return (
-    <>
-      {virtualized ? (
-        <div
-          ref={parentRef}
-          className="h-full overflow-auto"
-          style={{ contain: 'strict' }}
-        >
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-10"></TableHead>
-                {columns.map((column) => (
-                  <TableHead key={column.id} className="py-2">
-                    <div className="flex items-center">
-                      {column.name}
-                      {column.sortable && (
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="ml-1 h-6 w-6 p-0"
-                          onClick={() => handleSort(column.id)}
-                        >
-                          <ArrowUpDown size={14} />
-                        </Button>
-                      )}
-                    </div>
-                  </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <div
-                style={{
-                  height: `${rowVirtualizer.getTotalSize()}px`,
-                  width: '100%',
-                  position: 'relative',
-                }}
-              >
-                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                  const item = sortedItems[virtualRow.index];
-                  return renderTableRow(item, virtualRow.index, virtualRow);
-                })}
-              </div>
-            </TableBody>
-          </Table>
-        </div>
-      ) : (
+    <div className="w-full h-full flex flex-col">
+      <div className="flex-1 overflow-auto" ref={parentRef}>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-10"></TableHead>
+              <TableHead className="w-12"></TableHead>
               {columns.map((column) => (
-                <TableHead key={column.id} className="py-2">
-                  <div className="flex items-center">
-                    {column.name}
+                <TableHead key={column.id}>
+                  <div className="flex items-center gap-2">
+                    <span>{column.name}</span>
                     {column.sortable && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="ml-1 h-6 w-6 p-0"
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => handleSort(column.id)}
+                        className="h-6 w-6 p-0"
                       >
-                        <ArrowUpDown size={14} />
+                        {sortColumn === column.id ? (
+                          sortDirection === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
+                        ) : (
+                          <ChevronUp size={14} className="opacity-30" />
+                        )}
                       </Button>
                     )}
                   </div>
                 </TableHead>
               ))}
+              <TableHead className="w-24">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sortedItems.map((item, index) => renderTableRow(item, index))}
+            {virtualized ? (
+              <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }}>
+                {rowVirtualizer.getVirtualItems().map((virtualRow) => (
+                  renderTableRow(sortedItems[virtualRow.index], virtualRow.index, virtualRow)
+                ))}
+              </div>
+            ) : (
+              sortedItems.map((item, index) => renderTableRow(item, index))
+            )}
           </TableBody>
         </Table>
-      )}
+      </div>
 
-      {/* Preview Drawer */}
+      {/* Preview Sheet */}
       <Sheet open={!!previewItem} onOpenChange={() => setPreviewItem(null)}>
         <SheetContent className="w-[400px] sm:w-[540px]">
           <SheetHeader>
             <SheetTitle>{previewItem?.title}</SheetTitle>
           </SheetHeader>
-          <div className="mt-6 space-y-4">
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Type</label>
-              <div className="flex items-center gap-2 mt-1">
-                {previewItem && getTypeIcon(previewItem.type)}
-                <span>{previewItem?.type}</span>
-              </div>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Space</label>
-              <p className="mt-1">{previewItem?.space}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Source</label>
-              <p className="mt-1">{previewItem && getSourceDisplay(previewItem.source, previewItem.type)}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Tags</label>
-              <div className="flex flex-wrap gap-1 mt-1">
-                {previewItem?.keywords.map((keyword, idx) => (
-                  <span 
-                    key={idx} 
-                    className="px-2 py-0.5 rounded-full bg-secondary/20 text-xs"
-                  >
-                    {keyword}
-                  </span>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Date Added</label>
-              <p className="mt-1">{previewItem?.createdDate}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">URL</label>
-              <p className="mt-1 text-blue-500 hover:underline">
-                <a href={previewItem?.url} target="_blank" rel="noopener noreferrer">
-                  {previewItem?.url}
-                </a>
-              </p>
-            </div>
+          <div className="mt-6">
+            <p className="text-sm text-muted-foreground">
+              {previewItem?.description || 'No description available.'}
+            </p>
           </div>
         </SheetContent>
       </Sheet>
-    </>
+    </div>
   );
 };
 

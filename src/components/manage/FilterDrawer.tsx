@@ -39,8 +39,8 @@ import { SavedFiltersService, SavedFilter } from '@/utils/savedFilters';
 import { toast } from '@/hooks/use-toast';
 
 export interface FilterState {
-  types: CortexItem['type'][];
-  spaces: CortexItem['space'][];
+  types: AyraItem['type'][];
+  spaces: AyraItem['space'][];
   tags: string[];
   dateRange: {
     from?: Date;
@@ -97,7 +97,7 @@ const FilterDrawer = ({
     setFilteredTags(filtered);
   }, [newTag, availableTags, localFilters.tags]);
 
-  const handleTypeToggle = (type: CortexItem['type']) => {
+  const handleTypeToggle = (type: AyraItem['type']) => {
     const newTypes = localFilters.types.includes(type)
       ? localFilters.types.filter(t => t !== type)
       : [...localFilters.types, type];
@@ -105,7 +105,7 @@ const FilterDrawer = ({
     setLocalFilters(prev => ({ ...prev, types: newTypes }));
   };
 
-  const handleSpaceToggle = (space: CortexItem['space']) => {
+  const handleSpaceToggle = (space: AyraItem['space']) => {
     const newSpaces = localFilters.spaces.includes(space)
       ? localFilters.spaces.filter(s => s !== space)
       : [...localFilters.spaces, space];
@@ -217,8 +217,8 @@ const FilterDrawer = ({
     }
   };
 
-  const typeOptions: CortexItem['type'][] = ['Note', 'PDF', 'Link', 'Image'];
-  const spaceOptions: CortexItem['space'][] = ['Personal', 'Work', 'School', 'Team'];
+  const typeOptions: AyraItem['type'][] = ['Note', 'PDF', 'Link', 'Image'];
+  const spaceOptions: AyraItem['space'][] = ['Personal', 'Work', 'School', 'Team'];
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

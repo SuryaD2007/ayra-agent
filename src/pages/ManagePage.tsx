@@ -1,12 +1,10 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { AnimatedTransition } from '@/components/AnimatedTransition';
 import { useAnimateIn } from '@/lib/animations';
 import { useLibraryTitle } from '@/hooks/useLibraryTitle';
 import { useHotkeys } from '@/hooks/useHotkeys';
-import CortexTable from '@/components/manage/CortexTable';
-import type { CortexTableRef } from '@/components/manage/CortexTable';
+import AyraTable, { AyraTableRef } from '@/components/manage/AyraTable';
 import AyraSidebar from '@/components/manage/AyraSidebar';
 import ViewSwitcher from '@/components/manage/ViewSwitcher';
 import HotkeysSheet from '@/components/manage/HotkeysSheet';
@@ -18,7 +16,6 @@ import { Check, Edit2, X, Plus, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Toaster } from 'sonner';
 import NewItemModal from '@/components/manage/NewItemModal';
-import { getSpaces, getItems, DataCache, AuthError } from '@/lib/data';
 import { useAuth } from '@/contexts/AuthContext';
 import AuthGuard from '@/components/auth/AuthGuard';
 import InlineError from '@/components/auth/InlineError';
@@ -46,7 +43,7 @@ const ManagePage = () => {
   const { isAuthenticated } = useAuth();
   
   // Refs for hotkey access
-  const cortexTableRef = useRef<CortexTableRef>(null);
+  const ayraTableRef = useRef<AyraTableRef>(null);
   
   // Use the enhanced title editing hook
   const {
@@ -69,33 +66,6 @@ const ManagePage = () => {
       return;
     }
 
-    const loadSpaces = async () => {
-      try {
-        setAuthError(null);
-        
-        // Load spaces from Supabase
-        const spaces = await getSpaces();
-        setCustomSpaces(spaces);
-        
-        // Update cache
-        DataCache.setSpaces(spaces);
-        
-      } catch (error) {
-        console.error('Error loading spaces:', error);
-        
-        if (error instanceof AuthError) {
-          setAuthError(error.message);
-          return;
-        }
-        
-        // Fallback to cache
-        const cached = DataCache.getSpaces();
-        setCustomSpaces(cached);
-      }
-    };
-
-    loadSpaces();
-
     // Handle URL params
     const spaceParam = searchParams.get('space');
     const itemParam = searchParams.get('itemId');
@@ -117,7 +87,7 @@ const ManagePage = () => {
     }
   };
 
-  const handleCortexSelect = (categoryId: string, itemId: string | null, spaceSlug?: string) => {
+  const handleAyraSelect = (categoryId: string, itemId: string | null, spaceSlug?: string) => {
     setSelectedCategory(categoryId);
     setSelectedItem(itemId);
     setSelectedSpace(spaceSlug || null);
@@ -140,34 +110,34 @@ const ManagePage = () => {
   useHotkeys([
     {
       key: '/',
-      action: () => cortexTableRef.current?.focusSearch(),
+      action: () => ayraTableRef.current?.focusSearch(),
     },
     {
       key: 'f',
-      action: () => cortexTableRef.current?.openFilters(),
+      action: () => ayraTableRef.current?.openFilters(),
     },
     {
       key: 'n', 
-      action: () => cortexTableRef.current?.openNewItem(),
+      action: () => ayraTableRef.current?.openNewItem(),
     },
     {
       key: 'j',
-      action: () => cortexTableRef.current?.navigateSelection('down'),
+      action: () => ayraTableRef.current?.navigateSelection('down'),
       condition: () => viewType === 'table',
     },
     {
       key: 'k',
-      action: () => cortexTableRef.current?.navigateSelection('up'),
+      action: () => ayraTableRef.current?.navigateSelection('up'),
       condition: () => viewType === 'table',
     },
     {
       key: 'Enter',
-      action: () => cortexTableRef.current?.openPreviewForSelected(),
+      action: () => ayraTableRef.current?.openPreviewForSelected(),
       condition: () => viewType === 'table',
     },
     {
       key: 'Escape',
-      action: () => cortexTableRef.current?.closePreview(),
+      action: () => ayraTableRef.current?.closePreview(),
     },
   ]);
 
@@ -190,8 +160,8 @@ const ManagePage = () => {
         
         <AnimatedTransition show={showContent} animation="slide-up">
           <div className="flex h-[calc(100vh-130px)]">
-            <CortexSidebar 
-              onCortexSelect={handleCortexSelect}
+            <AyraSidebar 
+              onAyraSelect={handleAyraSelect}
               selectedCategoryId={selectedCategory}
               selectedItemId={selectedItem}
               selectedSpace={selectedSpace}
@@ -263,11 +233,11 @@ const ManagePage = () => {
                   </div>
                 </div>
               ) : (
-                <CortexTable 
-                  ref={cortexTableRef}
+                <AyraTable 
+                  ref={ayraTableRef}
                   viewType={viewType} 
                   categoryId={selectedCategory}
-                  cortexId={selectedItem}
+                  ayraId={selectedItem}
                   onFiltersChange={(count) => setActiveFilterCount(count)}
                 />
               )}
@@ -305,9 +275,6 @@ const ManagePage = () => {
           onOpenChange={setNewItemModalOpen}
           onItemCreated={(item) => {
             setNewItemModalOpen(false);
-            // Real-time updates will handle showing the new item automatically
-            // Clear cache to ensure fresh data on next load
-            DataCache.clear();
           }}
           preselectedSpace={selectedItem === 'overview' ? undefined : selectedItem}
         />

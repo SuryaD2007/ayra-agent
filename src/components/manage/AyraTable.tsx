@@ -1,22 +1,35 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle, useRef } from 'react';
-import { Search, Filter, Move, Plus, MoreHorizontal, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { 
+  Table, 
+  TableBody, 
+  TableHead, 
+  TableHeader, 
+  TableRow,
+  TableCell 
+} from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { 
+  Search, 
+  Filter, 
+  Grid, 
+  List, 
+  Columns, 
+  MoreHorizontal, 
+  Move, 
+  Trash2,
+  Undo2
+} from 'lucide-react';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,30 +39,22 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import EmptyItemsState from './EmptyItemsState';
-import ErrorState from './ErrorState';
+} from '@/components/ui/alert-dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ayraItems as initialAyraItems, AyraItem } from './ayra-data';
+import ViewSwitcher from './ViewSwitcher';
 import TableView from './views/TableView';
 import GridView from './views/GridView';
 import ListView from './views/ListView';
 import KanbanView from './views/KanbanView';
 import FilterDrawer from './FilterDrawer';
-import NewItemModal from './NewItemModal';
-import PreviewDrawer from './PreviewDrawer';
-import { ayraItems as initialAyraItems, AyraItem } from './ayra-data';
-import { useFilters } from '@/hooks/useFilters';
-import { usePagination } from '@/hooks/usePagination';
-import { toast } from '@/hooks/use-toast';
-import TablePagination from './TablePagination';
-import { getItems, deleteItems, getSpaces, updateItem, bulkMoveItems, getSpaceCounts, DataCache } from '@/lib/data';
-import { useAuth } from '@/contexts/AuthContext';
 import { itemsToAyraItems } from '@/lib/itemUtils';
 
 interface AyraTableProps {
   viewType?: 'table' | 'grid' | 'list' | 'kanban';
   categoryId?: string;
   ayraId?: string | null;
-  onFiltersChange?: (activeCount: number) => void;
+  onFiltersChange?: (filters: any) => void;
 }
 
 export interface AyraTableRef {
@@ -62,462 +67,576 @@ export interface AyraTableRef {
 }
 
 const AyraTable = forwardRef<AyraTableRef, AyraTableProps>(({ 
-  viewType = 'table', 
+  viewType = 'table',
   categoryId = 'private',
   ayraId = 'overview',
   onFiltersChange
-}, ref) => {
+}: AyraTableProps, ref) => {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [targetAyra, setTargetAyra] = useState('');
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [targetCortex, setTargetCortex] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [previewItem, setPreviewItem] = useState<AyraItem | null>(null);
+  const [deletedItems, setDeletedItems] = useState<AyraItem[]>([]);
   const [newItemModalOpen, setNewItemModalOpen] = useState(false);
-  const [previewDrawerOpen, setPreviewDrawerOpen] = useState(false);
-  const [previewItem, setPreviewItem] = useState<CortexItem | null>(null);
-  const [deletedItems, setDeletedItems] = useState<CortexItem[]>([]);
-  const [selectedRowIndex, setSelectedRowIndex] = useState<number>(-1);
-  
-  // Refs
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  
-  // Auth and data state
-  const { isAuthenticated } = useAuth();
-  const [ayraItems, setAyraItems] = useState<AyraItem[]>([]);
-  const [spaces, setSpaces] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [totalItems, setTotalItems] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [retrying, setRetrying] = useState(false);
-  const [lastQuery, setLastQuery] = useState<any>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [spaces, setSpaces] = useState<any[]>([]);
+  const [ayraItems, setAyraItems] = useState<AyraItem[]>([]);
   
-  // Optimistic update tracking
-  const [syncingItems, setSyncingItems] = useState<Set<string>>(new Set());
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY = 1000;
 
-  // Load data from Supabase with real-time updates
+  // Check authentication status
   useEffect(() => {
-    if (!isAuthenticated) {
-      setAyraItems([]);
-      setSpaces([]);
-      setLoading(false);
-      setError(null);
-      return;
-    }
-
-    let channel: any;
-
-    const setupRealtimeAndLoadData = async () => {
+    const checkAuth = async () => {
       try {
-        setLoading(true);
-        setError(null);
-        
-        // Build query object
-        const query = {
-          page: 1,
-          pageSize: 1000, // Load all for client-side filtering for now
-          type: [],
+        const { data: { user } } = await supabase.auth.getUser();
+        setIsAuthenticated(!!user);
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        setIsAuthenticated(false);
+        setAyraItems([]);
+      }
+    };
+
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setIsAuthenticated(!!session?.user);
+      if (!session?.user) {
+        setAyraItems([]);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Load data when component mounts or dependencies change
+  useEffect(() => {
+    const loadData = async () => {
+      if (!isAuthenticated) return;
+      
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const { data: itemsData, error: itemsError } = await getItems({
           spaceId: ayraId === 'overview' ? undefined : ayraId,
-          tags: [],
-          dateRange: {},
-          search: ''
-        };
-        
-        setLastQuery(query);
-        
-        // Load spaces for filtering
-        const spacesData = await getSpaces();
-        setSpaces(spacesData);
-        
-        // Load items with current filters
-        const result = await getItems(query);
-        
-        // Convert Supabase items to CortexItem format
-        const convertedItems = result.items.map((item: any) => {
-          // Map space_id to space name
-          const space = spacesData.find(s => s.id === item.space_id);
-          const spaceName = space ? space.name : 'Personal';
+          searchQuery,
+          ...filters,
+          page: pagination.currentPage,
+          pageSize: pagination.pageSize
+        });
+
+        if (itemsError) {
+          throw itemsError;
+        }
+
+        const { data: spacesData, error: spacesError } = await getSpaces();
+        if (spacesError) {
+          console.warn('Failed to load spaces:', spacesError);
+        } else {
+          setSpaces(spacesData || []);
+        }
+
+        // Convert Supabase items to AyraItem format
+        const convertedItems = itemsData.map((item: Item): AyraItem => {
+          const spaceData = spacesData?.find(s => s.id === item.space_id);
+          const spaceName = spaceData?.name || 'Personal';
           
           // Map space name to valid AyraItem space type
-          let spaceType: 'Personal' | 'Work' | 'School' | 'Team' = 'Personal';
+          let spaceType: AyraItem['space'] = 'Personal';
           if (spaceName.toLowerCase().includes('work')) spaceType = 'Work';
           else if (spaceName.toLowerCase().includes('school')) spaceType = 'School';
           else if (spaceName.toLowerCase().includes('team')) spaceType = 'Team';
-          
+
           return {
             id: item.id,
             title: item.title,
-            url: item.file_path || '#',
-            type: item.type.charAt(0).toUpperCase() + item.type.slice(1).toLowerCase() as 'Note' | 'PDF' | 'Link' | 'Image',
+            url: item.file_path || `/preview/${item.id}`,
+            type: item.type.charAt(0).toUpperCase() + item.type.slice(1) as AyraItem['type'],
             createdDate: new Date(item.created_at).toISOString().split('T')[0],
             source: item.source || 'Upload',
-            keywords: [], // Will be populated from tags separately
+            keywords: [], // Tags would need to be fetched separately if available
             space: spaceType,
             content: item.content,
             description: item.content?.substring(0, 150),
+            file_path: item.file_path,
+            size_bytes: item.size_bytes || undefined
           };
         });
+
+        setAyraItems(convertedItems);
+        pagination.setTotalItems(itemsData.length);
         
-        setCortexItems(convertedItems);
-        setTotalItems(result.total);
+        DataCache.setAyraItems(convertedItems);
         
-        // Update cache
-        DataCache.setCortexItems(convertedItems);
-        
-        // Set up real-time listener for new items
-        const { supabase } = await import('@/integrations/supabase/client');
-        
-        channel = supabase
-          .channel('schema-db-changes')
-          .on(
-            'postgres_changes',
-            {
-              event: 'INSERT',
-              schema: 'public',
-              table: 'items'
-            },
-            async (payload) => {
-              console.log('New item created:', payload.new);
+        // Set up real-time listeners
+        const channel = supabase.channel('items_changes')
+          .on('postgres_changes', 
+            { event: 'INSERT', schema: 'public', table: 'items' },
+            (payload) => {
+              console.log('New item inserted:', payload.new);
               
-              // Check if this item belongs to current space filter
-              const newItem = payload.new as any;
-              const currentSpaceFilter = cortexId === 'overview' ? undefined : cortexId;
+              const currentSpaceFilter = ayraId === 'overview' ? undefined : ayraId;
               
-              if (currentSpaceFilter && newItem.space_id !== currentSpaceFilter) {
-                return; // Item doesn't belong to current space, ignore
+              // Only add to UI if it matches current filter
+              if (!currentSpaceFilter || payload.new.space_id === currentSpaceFilter) {
+                // Convert the new item to AyraItem format
+                const spaceData = spaces.find(s => s.id === payload.new.space_id);
+                const spaceName = spaceData?.name || 'Personal';
+                
+                let spaceType: AyraItem['space'] = 'Personal';
+                if (spaceName.toLowerCase().includes('work')) spaceType = 'Work';
+                else if (spaceName.toLowerCase().includes('school')) spaceType = 'School';
+                else if (spaceName.toLowerCase().includes('team')) spaceType = 'Team';
+
+                const convertedItem: AyraItem = {
+                  id: payload.new.id,
+                  title: payload.new.title,
+                  url: payload.new.file_path || `/preview/${payload.new.id}`,
+                  type: payload.new.type.charAt(0).toUpperCase() + payload.new.type.slice(1) as AyraItem['type'],
+                  createdDate: new Date(payload.new.created_at).toISOString().split('T')[0],
+                  source: payload.new.source || 'Upload',
+                  keywords: [],
+                  space: spaceType,
+                  content: payload.new.content,
+                  description: payload.new.content?.substring(0, 150),
+                  file_path: payload.new.file_path,
+                  size_bytes: payload.new.size_bytes || undefined
+                };
+                
+                setAyraItems(prev => [convertedItem, ...prev]);
               }
-              
-              // Convert the new item to CortexItem format
-              const space = spacesData.find(s => s.id === newItem.space_id);
-              const spaceName = space ? space.name : 'Personal';
-              
-              let spaceType: 'Personal' | 'Work' | 'School' | 'Team' = 'Personal';
-              if (spaceName.toLowerCase().includes('work')) spaceType = 'Work';
-              else if (spaceName.toLowerCase().includes('school')) spaceType = 'School';
-              else if (spaceName.toLowerCase().includes('team')) spaceType = 'Team';
-              
-              const convertedItem = {
-                id: newItem.id,
-                title: newItem.title,
-                url: newItem.file_path || '#',
-                type: newItem.type.charAt(0).toUpperCase() + newItem.type.slice(1).toLowerCase() as 'Note' | 'PDF' | 'Link' | 'Image',
-                createdDate: new Date(newItem.created_at).toISOString().split('T')[0],
-                source: newItem.source || 'Upload',
-                keywords: [],
-                space: spaceType,
-                content: newItem.content,
-                description: newItem.content?.substring(0, 150),
-              };
-              
-              // Add the new item to the beginning of the list (most recent first)
-              setCortexItems(prev => [convertedItem, ...prev]);
-              setTotalItems(prev => prev + 1);
             }
           )
-          .on(
-            'postgres_changes',
-            {
-              event: 'UPDATE',
-              schema: 'public',
-              table: 'items'
-            },
+          .on('postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: 'items' },
             (payload) => {
               console.log('Item updated:', payload.new);
-              const updatedItem = payload.new as any;
               
-              // Update the item in the list
-              setCortexItems(prev => prev.map(item => {
-                if (item.id === updatedItem.id) {
-                  const space = spacesData.find(s => s.id === updatedItem.space_id);
-                  const spaceName = space ? space.name : 'Personal';
+              setAyraItems(prev => prev.map(item => {
+                if (item.id === payload.new.id) {
+                  const spaceData = spaces.find(s => s.id === payload.new.space_id);
+                  const spaceName = spaceData?.name || 'Personal';
                   
-                  let spaceType: 'Personal' | 'Work' | 'School' | 'Team' = 'Personal';
+                  let spaceType: AyraItem['space'] = 'Personal';
                   if (spaceName.toLowerCase().includes('work')) spaceType = 'Work';
                   else if (spaceName.toLowerCase().includes('school')) spaceType = 'School';
                   else if (spaceName.toLowerCase().includes('team')) spaceType = 'Team';
-                  
+
                   return {
                     ...item,
-                    title: updatedItem.title,
-                    content: updatedItem.content,
-                    description: updatedItem.content?.substring(0, 150),
-                    space: spaceType,
+                    title: payload.new.title,
+                    content: payload.new.content,
+                    description: payload.new.content?.substring(0, 150),
+                    space: spaceType
                   };
                 }
                 return item;
               }));
             }
           )
-          .on(
-            'postgres_changes',
-            {
-              event: 'DELETE',
-              schema: 'public',
-              table: 'items'
-            },
+          .on('postgres_changes',
+            { event: 'DELETE', schema: 'public', table: 'items' },
             (payload) => {
               console.log('Item deleted:', payload.old);
-              const deletedItem = payload.old as any;
               
-              // Remove the item from the list
-              setCortexItems(prev => prev.filter(item => item.id !== deletedItem.id));
-              setTotalItems(prev => prev - 1);
+              const deletedItem = ayraItems.find(item => item.id === payload.old.id);
+              if (deletedItem) {
+                setDeletedItems(prev => [deletedItem, ...prev]);
+              }
+              
+              setAyraItems(prev => prev.filter(item => item.id !== payload.old.id));
             }
           )
           .subscribe();
-        
-      } catch (error) {
-        console.error('Error loading data:', error);
-        const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-        setError(errorMessage);
-        
-        toast({
-          title: "Error loading data",
-          description: "Failed to load items from database.",
-          variant: "destructive"
-        });
-        
-        // Fallback to cache
-        const cached = DataCache.getCortexItems();
-        setCortexItems(cached.length > 0 ? cached : initialCortexItems);
-      } finally {
-        setLoading(false);
-        setRetrying(false);
-      }
-    };
 
-    setupRealtimeAndLoadData();
-
-    // Cleanup function
-    return () => {
-      if (channel) {
-        const cleanup = async () => {
-          const { supabase } = await import('@/integrations/supabase/client');
+        setRetryCount(0);
+        return () => {
           supabase.removeChannel(channel);
         };
-        cleanup();
-      }
-    };
-  }, [isAuthenticated, cortexId]);
-
-  // Use the filters hook - but don't apply client-side filtering since we do server-side now
-  const { 
-    filters, 
-    setFilters, 
-    activeFilterCount, 
-    availableTags 
-  } = useFilters([], cortexId || undefined); // Pass empty array since filtering is server-side
-
-  // Notify parent of filter changes
-  useEffect(() => {
-    onFiltersChange?.(activeFilterCount);
-  }, [activeFilterCount, onFiltersChange]);
-
-  const getActiveCortexName = () => {
-    if (categoryId === 'private' && cortexId === 'overview') return 'All Items';
-    if (categoryId === 'private' && cortexId === 'ai') return 'AI';
-    if (categoryId === 'private' && cortexId === 'design') return 'Design'; 
-    if (categoryId === 'private' && cortexId === 'development') return 'Development';
-    if (categoryId === 'shared' && cortexId === 'team-resources') return 'Team Resources';
-    if (categoryId === 'shared' && cortexId === 'projects') return 'Projects';
-    
-    // Check if it's a custom space
-    const space = spaces.find(s => s.id === cortexId);
-    if (space) return `${space.emoji || ''} ${space.name}`.trim();
-    
-    return 'All Items';
-  };
-
-  // Apply search query to already filtered items (now server-side, so just return current items)
-  const searchFilteredItems = () => {
-    return cortexItems; // Items are already filtered server-side
-  };
-
-  const finalItems = searchFilteredItems();
-
-  // Pagination
-  const pagination = usePagination({
-    totalItems: totalItems, // Use server-side total, not filtered total
-    defaultPageSize: 25,
-  });
-
-  // Immediately reset page when filters or search change
-  useEffect(() => {
-    pagination.resetToFirstPage();
-  }, [JSON.stringify(filters), searchQuery]);
-
-  // Server-side filtering and pagination
-  useEffect(() => {
-    if (!isAuthenticated) {
-      setCortexItems([]);
-      setSpaces([]);
-      setLoading(false);
-      setError(null);
-      return;
-    }
-
-    const loadData = async (isRetry = false) => {
-      try {
-        if (isRetry) {
-          setRetrying(true);
+        
+      } catch (error: any) {
+        console.error('Error loading ayra data:', error);
+        
+        if (retryCount < MAX_RETRIES) {
+          setRetryCount(prev => prev + 1);
+          setTimeout(() => loadData(), RETRY_DELAY * Math.pow(2, retryCount));
         } else {
-          setLoading(true);
-        }
-        setError(null);
-        
-        // Build query object with current filters and pagination
-        const query = {
-          page: pagination.currentPage,
-          pageSize: pagination.pageSize,
-          type: filters.types,
-          spaceId: cortexId === 'overview' ? undefined : cortexId,
-          tags: filters.tags,
-          dateRange: {
-            from: filters.dateRange.from ? filters.dateRange.from.toISOString().split('T')[0] : undefined,
-            to: filters.dateRange.to ? filters.dateRange.to.toISOString().split('T')[0] : undefined
-          },
-          search: searchQuery
-        };
-        
-        setLastQuery(query);
-        
-        // Load spaces for filtering (only once)
-        if (spaces.length === 0) {
-          const spacesData = await getSpaces();
-          setSpaces(spacesData);
-        }
-        
-        // Load items with current filters and pagination
-        const result = await getItems(query);
-        
-        // Convert Supabase items to CortexItem format
-        const convertedItems = result.items.map((item: any) => {
-          const space = spaces.find(s => s.id === item.space_id);
-          const spaceName = space ? space.name : 'Personal';
-          
-          let spaceType: 'Personal' | 'Work' | 'School' | 'Team' = 'Personal';
-          if (spaceName.toLowerCase().includes('work')) spaceType = 'Work';
-          else if (spaceName.toLowerCase().includes('school')) spaceType = 'School';
-          else if (spaceName.toLowerCase().includes('team')) spaceType = 'Team';
-          
-          return {
-            id: item.id,
-            title: item.title,
-            url: item.file_path || '#',
-            type: item.type.charAt(0).toUpperCase() + item.type.slice(1).toLowerCase() as 'Note' | 'PDF' | 'Link' | 'Image',
-            createdDate: new Date(item.created_at).toISOString().split('T')[0],
-            source: item.source || 'Upload',
-            keywords: [], // Will be populated from tags separately
-            space: spaceType,
-            content: item.content,
-            description: item.content?.substring(0, 150),
-          };
-        });
-        
-        setCortexItems(convertedItems);
-        setTotalItems(result.total);
-        
-        // Update cache
-        DataCache.setCortexItems(convertedItems);
-        
-      } catch (error) {
-        console.error('Error loading data:', error);
-        const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-        setError(errorMessage);
-        
-        if (!isRetry) {
-          toast({
-            title: "Error loading data",
-            description: "Failed to load items from database.",
-            variant: "destructive"
-          });
-        }
-        
-        // Fallback to cache or initial data only if not retrying
-        if (!isRetry) {
-          const cached = DataCache.getCortexItems();
-          setCortexItems(cached.length > 0 ? cached : []);
+          setError(error.message || 'Failed to load data');
+          // Fallback to cached data
+          const cached = DataCache.getAyraItems();
+          setAyraItems(cached.length > 0 ? cached : initialAyraItems);
         }
       } finally {
         setLoading(false);
-        setRetrying(false);
       }
     };
 
     loadData();
-  }, [isAuthenticated, cortexId, JSON.stringify(filters), searchQuery, pagination.currentPage, pagination.pageSize]);
+  }, [isAuthenticated, ayraId]);
 
-  // Get paginated items
-  const paginatedItems = finalItems.slice(
-    pagination.startIndex,
-    pagination.endIndex
-  );
+  const {
+    filters,
+    updateFilters,
+    clearFilters,
+    availableTags,
+    pagination
+  } = useFilters([], ayraId || undefined); // Pass empty array since filtering is server-side
 
-  // Use virtualization for large datasets (>100 items)
-  const shouldVirtualize = finalItems.length > 100;
-
-  const getCurrentSpaceName = () => {
-    if (!cortexId || cortexId === 'overview') return null;
-    const space = spaces.find(s => s.id === cortexId);
-    return space ? `${space.emoji || ''} ${space.name}`.trim() : null;
+  // Function to get the active cortex name for display
+  const getActiveAyraName = () => {
+    // Handle built-in categories
+    if (categoryId === 'private' && ayraId === 'overview') return 'All Items';
+    if (categoryId === 'private' && ayraId === 'ai') return 'AI';
+    if (categoryId === 'private' && ayraId === 'design') return 'Design'; 
+    if (categoryId === 'private' && ayraId === 'development') return 'Development';
+    if (categoryId === 'shared' && ayraId === 'team-resources') return 'Team Resources';
+    if (categoryId === 'shared' && ayraId === 'projects') return 'Projects';
+    
+    // Handle custom spaces
+    const space = spaces.find(s => s.id === ayraId);
+    return space ? space.name : 'Items';
   };
 
-  const handleRetry = () => {
-    if (lastQuery && isAuthenticated) {
-      const loadData = async () => {
-        try {
-          setRetrying(true);
-          setError(null);
-          
-          // Load spaces for filtering
-          const spacesData = await getSpaces();
-          setSpaces(spacesData);
-          
-          // Re-run the last query
-          const result = await getItems(lastQuery);
-          
-          // Convert Supabase items to CortexItem format
-          const convertedItems = result.items.map((item: any) => {
-            const space = spacesData.find(s => s.id === item.space_id);
-            const spaceName = space ? space.name : 'Personal';
-            
-            let spaceType: 'Personal' | 'Work' | 'School' | 'Team' = 'Personal';
-            if (spaceName.toLowerCase().includes('work')) spaceType = 'Work';
-            else if (spaceName.toLowerCase().includes('school')) spaceType = 'School';
-            else if (spaceName.toLowerCase().includes('team')) spaceType = 'Team';
-            
-            return {
-              id: item.id,
-              title: item.title,
-              url: item.file_path || '#',
-              type: item.type.charAt(0).toUpperCase() + item.type.slice(1).toLowerCase() as 'Note' | 'PDF' | 'Link' | 'Image',
-              createdDate: new Date(item.created_at).toISOString().split('T')[0],
-              source: item.source || 'Upload',
-              keywords: [],
-              space: spaceType,
-              content: item.content,
-              description: item.content?.substring(0, 150),
-            };
-          });
-          
-          setCortexItems(convertedItems);
-          setTotalItems(result.total);
-          DataCache.setCortexItems(convertedItems);
-          
-        } catch (error) {
-          console.error('Retry failed:', error);
-          const errorMessage = error instanceof Error ? error.message : 'Retry failed';
-          setError(errorMessage);
-        } finally {
-          setRetrying(false);
-        }
-      };
+  // Function to search and filter items
+  const searchFilteredItems = () => {
+    return ayraItems; // Items are already filtered server-side
+  };
+
+  // Load filtered data when filters change
+  useEffect(() => {
+    const loadFilteredData = async () => {
+      if (!isAuthenticated) return;
       
-      loadData();
+      setLoading(true);
+      setError(null);
+      
+      try {
+        if (!searchQuery.trim() && Object.keys(filters).length === 0) {
+          // No search or filters, show all items
+          setAyraItems([]);
+          return;
+        }
+
+        // Apply filters and search on server side
+        const { data: itemsData, error: itemsError } = await getItems({
+          spaceId: ayraId === 'overview' ? undefined : ayraId,
+          searchQuery,
+          types: filters.types?.length ? filters.types : undefined,
+          tags: filters.tags?.length ? filters.tags : undefined,
+          dateFrom: filters.dateRange?.from,
+          dateTo: filters.dateRange?.to,
+          sortBy: filters.sortBy,
+          page: pagination.currentPage,
+          pageSize: pagination.pageSize
+        });
+
+        if (itemsError) {
+          throw itemsError;
+        }
+
+        const { data: spacesData, error: spacesError } = await getSpaces();
+        if (spacesError) {
+          console.warn('Failed to load spaces:', spacesError);
+        }
+
+        // Convert Supabase items to AyraItem format
+        const convertedItems = itemsData.map((item: Item): AyraItem => {
+          const spaceData = spacesData?.find(s => s.id === item.space_id);
+          const spaceName = spaceData?.name || 'Personal';
+          
+          let spaceType: AyraItem['space'] = 'Personal';
+          if (spaceName.toLowerCase().includes('work')) spaceType = 'Work';
+          else if (spaceName.toLowerCase().includes('school')) spaceType = 'School';
+          else if (spaceName.toLowerCase().includes('team')) spaceType = 'Team';
+
+          return {
+            id: item.id,
+            title: item.title,
+            url: item.file_path || `/preview/${item.id}`,
+            type: item.type.charAt(0).toUpperCase() + item.type.slice(1) as AyraItem['type'],
+            createdDate: new Date(item.created_at).toISOString().split('T')[0],
+            source: item.source || 'Upload',
+            keywords: [],
+            space: spaceType,
+            content: item.content,
+            description: item.content?.substring(0, 150),
+            file_path: item.file_path,
+            size_bytes: item.size_bytes || undefined
+          };
+        });
+
+        setAyraItems(convertedItems);
+        pagination.setTotalItems(itemsData.length);
+        
+        DataCache.setAyraItems(convertedItems);
+        
+      } catch (error: any) {
+        console.error('Error loading filtered data:', error);
+        
+        if (retryCount < MAX_RETRIES) {
+          setTimeout(() => loadFilteredData(), RETRY_DELAY * Math.pow(2, retryCount));
+          setRetryCount(prev => prev + 1);
+        } else {
+          setError(error.message || 'Failed to load filtered data');
+          // Fallback to cached data
+          const cached = DataCache.getAyraItems();
+          setAyraItems(cached.length > 0 ? cached : []);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadFilteredData();
+  }, [isAuthenticated, ayraId, JSON.stringify(filters), searchQuery, pagination.currentPage, pagination.pageSize]);
+
+  // Load space metadata for move operations
+  const loadSpaceMetadata = async () => {
+    try {
+      if (!ayraId || ayraId === 'overview') return null;
+      const space = spaces.find(s => s.id === ayraId);
+      if (!space) return null;
+
+      const { data: itemsData } = await getItems({
+        spaceId: ayraId,
+        page: 1,
+        pageSize: 1000
+      });
+
+      if (itemsData) {
+        const totalItems = itemsData.length;
+        const totalSize = itemsData.reduce((sum, item) => sum + (item.size_bytes || 0), 0);
+        
+        return {
+          id: space.id,
+          name: space.name,
+          totalItems,
+          totalSize,
+          visibility: space.visibility
+        };
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error loading space metadata:', error);
+      return null;
     }
   };
 
-  // Expose methods via ref for hotkeys
+  // Effect to load space metadata when ayra changes
+  useEffect(() => {
+    loadSpaceMetadata().then(metadata => {
+      if (metadata) {
+        // Convert Supabase items to AyraItem format
+        const convertedItems = metadata.items?.map((item: Item): AyraItem => {
+          return {
+            id: item.id,
+            title: item.title,
+            url: item.file_path || `/preview/${item.id}`,
+            type: item.type.charAt(0).toUpperCase() + item.type.slice(1) as AyraItem['type'],
+            createdDate: new Date(item.created_at).toISOString().split('T')[0],
+            source: item.source || 'Upload',
+            keywords: [],
+            space: 'Personal' as AyraItem['space'],
+            content: item.content,
+            description: item.content?.substring(0, 150),
+            file_path: item.file_path,
+            size_bytes: item.size_bytes || undefined
+          };
+        }) || [];
+        
+        setAyraItems(convertedItems);
+        
+        DataCache.setAyraItems(convertedItems);
+      }
+    });
+  }, [ayraId]);
+
+  const handleSelectItem = (id: string) => {
+    setSelectedItems(prev => 
+      prev.includes(id) 
+        ? prev.filter(item => item !== id)
+        : [...prev, id]
+    );
+  };
+
+  const handleUpdateItem = async (id: string, updates: Partial<AyraItem>) => {
+    try {
+      const originalItem = ayraItems.find(item => item.id === id);
+      if (!originalItem) return;
+
+      // Optimistically update the UI
+      setAyraItems(prev => 
+        prev.map(item => 
+          item.id === id ? { ...item, ...updates } : item
+        )
+      );
+
+      // Convert AyraItem updates to Item format for API
+      const itemUpdates: any = {};
+      if (updates.title !== undefined) itemUpdates.title = updates.title;
+      if (updates.content !== undefined) itemUpdates.content = updates.content;
+      if (updates.keywords !== undefined) {
+        // Handle tags if your backend supports them
+        // itemUpdates.tags = updates.keywords;
+      }
+
+      const { error } = await updateItem(id, itemUpdates);
+      
+      if (error) {
+        // Revert on error
+        setAyraItems(prev => 
+          prev.map(item => 
+            item.id === id ? originalItem : item
+          )
+        );
+        
+        toast.error('Failed to update item');
+        console.error('Update item error:', error);
+      } else {
+        toast.success('Item updated successfully');
+      }
+    } catch (error: any) {
+      console.error('Error updating item:', error);
+      
+      // Revert changes on error
+      setAyraItems(prev => 
+        prev.map(item => 
+          item.id === id ? (ayraItems.find(i => i.id === id) || item) : item
+        )
+      );
+      
+      toast.error('Failed to update item');
+    }
+  };
+
+  const handleMoveItems = async () => {
+    if (selectedItems.length === 0 || !targetAyra) return;
+
+    try {
+      // Get the original items before moving
+      const originalItems = ayraItems.filter(item => selectedItems.includes(item.id));
+
+      // Optimistically update the UI
+      setAyraItems(prev => 
+        prev.map(item => 
+          selectedItems.includes(item.id) 
+            ? { ...item, space: targetAyra as AyraItem['space'] }
+            : item
+        )
+      );
+
+      // Find the target space
+      const targetSpace = spaces.find(s => s.name.toLowerCase() === targetAyra.toLowerCase()) || 
+                          spaces.find(s => s.id === targetAyra);
+
+      if (!targetSpace) {
+        throw new Error('Target space not found');
+      }
+
+      // Move each item
+      for (const itemId of selectedItems) {
+        const { error } = await moveItem(itemId, targetSpace.id);
+        if (error) {
+          throw error;
+        }
+      }
+
+      toast.success(`Moved ${selectedItems.length} item(s) to ${targetAyra}`);
+      setSelectedItems([]);
+      setMoveDialogOpen(false);
+      setTargetAyra('');
+
+    } catch (error: any) {
+      console.error('Error moving items:', error);
+      
+      // Revert changes on error
+      setAyraItems(prev => 
+        prev.map(item => {
+          const originalItem = originalItems.find(orig => orig.id === item.id);
+          return originalItem || item;
+        })
+      );
+      
+      toast.error('Failed to move items');
+    }
+  };
+
+  const handleDeleteItems = async () => {
+    if (selectedItems.length === 0) return;
+
+    try {
+      // Store items for potential undo
+      const itemsToDelete = ayraItems.filter(item => selectedItems.includes(item.id));
+      
+      // Optimistically remove from UI
+      setAyraItems(prev => prev.filter(item => !selectedItems.includes(item.id)));
+
+      // Delete each item
+      for (const itemId of selectedItems) {
+        const { error } = await deleteItem(itemId);
+        if (error) {
+          throw error;
+        }
+      }
+
+      // Store deleted items for undo
+      setDeletedItems(itemsToDelete);
+      
+      toast.success(
+        `Deleted ${selectedItems.length} item(s)`,
+        {
+          action: {
+            label: "Undo",
+            onClick: () => handleUndoDelete()
+          },
+        }
+      );
+
+      setSelectedItems([]);
+      setDeleteDialogOpen(false);
+
+    } catch (error: any) {
+      console.error('Error deleting items:', error);
+      
+      // Revert changes on error
+      setAyraItems(prev => [...itemsToDelete, ...prev]);
+      toast.error('Failed to delete items');
+    }
+  };
+
+  const handleUndoDelete = async () => {
+    if (deletedItems.length === 0) return;
+
+    try {
+      // Restore items to UI
+      setAyraItems(prev => [...deletedItems, ...prev]);
+      
+      // Clear deleted items
+      setDeletedItems([]);
+      
+      toast.success('Items restored');
+    } catch (error: any) {
+      console.error('Error restoring items:', error);
+      toast.error('Failed to restore items');
+    }
+  };
+
+  const handleItemCreated = (newItem: AyraItem) => {
+    setAyraItems(prev => [newItem, ...prev]);
+    setNewItemModalOpen(false);
+    toast.success('Item created successfully');
+  };
+
   useImperativeHandle(ref, () => ({
     focusSearch: () => {
       searchInputRef.current?.focus();
@@ -529,532 +648,211 @@ const AyraTable = forwardRef<AyraTableRef, AyraTableProps>(({
       setNewItemModalOpen(true);
     },
     navigateSelection: (direction: 'up' | 'down') => {
-      if (paginatedItems.length === 0) return;
-      
-      setSelectedRowIndex(prevIndex => {
-        let newIndex = direction === 'down' ? prevIndex + 1 : prevIndex - 1;
-        
-        // Handle wrap-around
-        if (newIndex >= paginatedItems.length) {
-          newIndex = 0;
-        } else if (newIndex < 0) {
-          newIndex = paginatedItems.length - 1;
-        }
-        
-        return newIndex;
-      });
+      // Implement keyboard navigation if needed
     },
     openPreviewForSelected: () => {
-      if (selectedRowIndex >= 0 && selectedRowIndex < paginatedItems.length) {
-        const item = paginatedItems[selectedRowIndex];
-        setPreviewItem(item);
-        setPreviewDrawerOpen(true);
+      if (selectedItems.length === 1) {
+        const item = ayraItems.find(item => item.id === selectedItems[0]);
+        if (item) {
+          setPreviewItem(item);
+        }
       }
     },
     closePreview: () => {
-      setPreviewDrawerOpen(false);
-    },
+      setPreviewItem(null);
+    }
   }));
 
-  // Reset row selection when items change
-  useEffect(() => {
-    setSelectedRowIndex(-1);
-  }, [paginatedItems]);
-
-  const handleSelectItem = (id: string) => {
-    setSelectedItems(prev => 
-      prev.includes(id) 
-        ? prev.filter(item => item !== id)
-        : [...prev, id]
-    );
-  };
-
-  const handleUpdateItem = async (id: string, updates: Partial<CortexItem>) => {
-    // Store original item for rollback
-    const originalItem = cortexItems.find(item => item.id === id);
-    if (!originalItem) return;
-
-    // Apply optimistic update immediately
-    setCortexItems(prev => 
-      prev.map(item => 
-        item.id === id ? { ...item, ...updates } : item
-      )
-    );
-
-    // Mark item as syncing
-    setSyncingItems(prev => new Set(prev).add(id));
-
-    try {
-      // Convert CortexItem updates to Item format for API
-      const apiUpdates: Partial<{ title: string; [key: string]: any }> = {};
-      
-      if (updates.title !== undefined) {
-        apiUpdates.title = updates.title;
-      }
-      
-      // For space and keywords, we'll simulate the API call for now
-      // In a real implementation, these would need proper backend support
-      if (updates.space !== undefined || updates.keywords !== undefined) {
-        console.log(`Simulating API update for item ${id}:`, updates);
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
-      
-      if (Object.keys(apiUpdates).length > 0) {
-        await updateItem(id, apiUpdates);
-      }
-
-      // Success - clear sync status
-      setSyncingItems(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(id);
-        return newSet;
-      });
-
-      // Clear cache to ensure consistency
-      DataCache.clear();
-
-      toast({
-        title: "Changes saved",
-        description: "Your changes have been synced successfully.",
-      });
-
-    } catch (error) {
-      console.error('Error updating item:', error);
-
-      // Rollback optimistic update
-      setCortexItems(prev => 
-        prev.map(item => 
-          item.id === id ? originalItem : item
-        )
-      );
-
-      // Clear sync status
-      setSyncingItems(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(id);
-        return newSet;
-      });
-
-      const errorMessage = error instanceof Error ? error.message : 'Failed to save changes';
-      
-      // Show retry toast
-      toast({
-        title: "Failed to save changes",
-        description: errorMessage,
-        variant: "destructive",
-        action: (
-          <Button 
-            size="sm" 
-            variant="outline"
-            onClick={() => handleUpdateItem(id, updates)}
-          >
-            Retry
-          </Button>
-        ),
-      });
-    }
-  };
-
-  const handleMoveItems = async () => {
-    if (selectedItems.length === 0 || !targetCortex) return;
-    
-    // Find target space ID from spaces list
-    let targetSpaceId: string | null = null;
-    if (targetCortex !== 'overview') {
-      const targetSpace = spaces.find(space => space.id === targetCortex || space.name === targetCortex);
-      targetSpaceId = targetSpace?.id || null;
-    }
-
-    // Store original items for rollback
-    const originalItems = cortexItems.filter(item => selectedItems.includes(item.id));
-
-    try {
-      // Apply optimistic update
-      setCortexItems(prev => 
-        prev.map(item => 
-          selectedItems.includes(item.id) 
-            ? { ...item, space: targetCortex as CortexItem['space'] }
-            : item
-        )
-      );
-
-      // Perform bulk move in database
-      await bulkMoveItems(selectedItems, targetSpaceId);
-
-      // Success
-      toast({
-        title: "Items moved successfully",
-        description: `${selectedItems.length} item(s) moved to ${targetCortex}`,
-      });
-
-      setSelectedItems([]);
-      setMoveDialogOpen(false);
-      setTargetCortex('');
-
-      // Refresh space counts
-      try {
-        const counts = await getSpaceCounts();
-        // Note: We'd need to pass this up to parent component
-        // For now, we'll clear cache to force refresh
-        DataCache.clear();
-      } catch (error) {
-        console.error('Error refreshing space counts:', error);
-      }
-
-    } catch (error) {
-      console.error('Error moving items:', error);
-      
-      // Rollback optimistic update
-      setCortexItems(prev => 
-        prev.map(item => {
-          const original = originalItems.find(orig => orig.id === item.id);
-          return original || item;
-        })
-      );
-
-      const errorMessage = error instanceof Error ? error.message : 'Failed to move items';
-      
-      toast({
-        title: "Failed to move items",
-        description: errorMessage,
-        variant: "destructive",
-        action: (
-          <Button 
-            size="sm" 
-            variant="outline"
-            onClick={handleMoveItems}
-          >
-            Retry
-          </Button>
-        ),
-      });
-    }
-  };
-
-  const handleMoveSingleItem = async (itemId: string, targetSpaceId: string | null) => {
-    setSyncingItems(prev => new Set([...prev, itemId]));
-    
-    try {
-      await bulkMoveItems([itemId], targetSpaceId);
-      
-      // Optimistically update the item in the UI
-      setCortexItems(prev => 
-        prev.map(item => {
-          if (item.id === itemId) {
-            // Find space info for the target
-            const targetSpace = spaces.find(s => s.id === targetSpaceId);
-            const spaceName = targetSpace ? targetSpace.name : 'Personal';
-            
-            let spaceType: 'Personal' | 'Work' | 'School' | 'Team' = 'Personal';
-            if (spaceName.toLowerCase().includes('work')) spaceType = 'Work';
-            else if (spaceName.toLowerCase().includes('school')) spaceType = 'School';
-            else if (spaceName.toLowerCase().includes('team')) spaceType = 'Team';
-            
-            return {
-              ...item,
-              space: spaceType
-            };
-          }
-          return item;
-        })
-      );
-      
-      toast({
-        title: "Item moved successfully",
-        description: "Item moved to new space.",
-      });
-    } catch (error) {
-      console.error('Error moving item:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to move item';
-      
-      toast({
-        title: "Failed to move item",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    }
-    
-    setSyncingItems(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(itemId);
-      return newSet;
-    });
-  };
-
-  const handleItemCreated = (newItem: CortexItem) => {
-    // Don't optimistically add the item - let the real-time listener handle it
-    // This prevents race conditions and duplicate items
-    
-    // Clear cache to force refresh
-    DataCache.clear();
-    
-    // Open preview drawer for the new item after a short delay
-    // to allow the real-time listener to add it first
-    setTimeout(() => {
-      setPreviewItem(newItem);
-      setPreviewDrawerOpen(true);
-    }, 100);
-  };
-
-  const handleDeleteItems = async () => {
-    if (!isAuthenticated) {
-      toast({
-        title: "Authentication required",
-        description: "Please log in to delete items.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const itemsToDelete = cortexItems.filter(item => selectedItems.includes(item.id));
-    setDeletedItems(itemsToDelete);
-    
-    try {
-      // Optimistically remove from UI
-      setCortexItems(prev => prev.filter(item => !selectedItems.includes(item.id)));
-      
-      // Delete from database
-      await deleteItems(selectedItems);
-      
-      // Clear cache
-      DataCache.clear();
-      
-      // Show undo toast (note: undo won't work with database, this is just for UI feedback)
-      const count = selectedItems.length;
-      toast({
-        title: `Deleted ${count} item(s)`,
-        description: "Items have been permanently deleted.",
-      });
-      
-    } catch (error) {
-      console.error('Error deleting items:', error);
-      // Restore items on error
-      setCortexItems(prev => [...itemsToDelete, ...prev]);
-      toast({
-        title: "Error deleting items",
-        description: "Failed to delete items. Please try again.",
-        variant: "destructive"
-      });
-    }
-    
-    setSelectedItems([]);
-    setDeleteDialogOpen(false);
-  };
-
-  const handleUndoDelete = () => {
-    if (deletedItems.length > 0) {
-      setCortexItems(prev => [...deletedItems, ...prev]);
-      setDeletedItems([]);
-      toast({
-        title: "Items restored",
-        description: `${deletedItems.length} item(s) have been restored.`,
-      });
-    }
-  };
-
-  const EmptyState = () => (
-    <EmptyItemsState
-      hasFilters={activeFilterCount > 0}
-      hasSearch={!!searchQuery}
-      onAddFirstItem={() => setNewItemModalOpen(true)}
-      onClearFilters={() => setFilters({
-        types: [],
-        spaces: [],
-        tags: [],
-        dateRange: {},
-        sortBy: 'newest'
-      })}
-      onClearSearch={() => setSearchQuery('')}
-      spaceName={getCurrentSpaceName()}
-    />
+  const filteredItems = searchFilteredItems();
+  const hasFilters = Object.values(filters).some(value => 
+    Array.isArray(value) ? value.length > 0 : value
   );
+  const hasSearch = searchQuery.trim().length > 0;
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 space-y-4">
+        <p className="text-muted-foreground">Failed to load data: {error}</p>
+        <Button onClick={() => window.location.reload()}>
+          Try Again
+        </Button>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex-1 overflow-hidden">
-      <div className="p-4 border-b border-border/50">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">{getActiveCortexName()}</h3>
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setFilterDrawerOpen(true)}
-              className="flex items-center gap-2"
-            >
-              <Filter size={16} />
-              Filters
-              {activeFilterCount > 0 && (
-                <Badge variant="secondary" className="ml-1 px-1.5 py-0.5 text-xs">
-                  {activeFilterCount}
-                </Badge>
-              )}
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setMoveDialogOpen(true)}
-              disabled={selectedItems.length === 0}
-            >
-              <Move size={16} className="mr-1" />
-              Move ({selectedItems.length})
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setDeleteDialogOpen(true)}
-              disabled={selectedItems.length === 0}
-            >
-              <Trash2 size={16} className="mr-1" />
-              Delete ({selectedItems.length})
-            </Button>
-            
-            <Button variant="outline" size="sm" onClick={() => setNewItemModalOpen(true)}>
-              <Plus size={16} className="mr-1" />
-              New Item
-            </Button>
-          </div>
+    <div className="flex-1 flex flex-col h-full">
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b border-border">
+        <div className="flex items-center gap-4 flex-1">
+          <h1 className="text-2xl font-bold">{getActiveAyraName()}</h1>
+          
+          {selectedItems.length > 0 && (
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary">
+                {selectedItems.length} selected
+              </Badge>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setMoveDialogOpen(true)}
+              >
+                <Move className="w-4 h-4 mr-2" />
+                Move
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setDeleteDialogOpen(true)}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete
+              </Button>
+            </div>
+          )}
         </div>
-        
+
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setFilterDrawerOpen(true)}
+            className={hasFilters ? 'border-primary' : ''}
+          >
+            <Filter className="w-4 h-4 mr-2" />
+            Filter
+            {hasFilters && (
+              <Badge variant="secondary" className="ml-2">
+                Active
+              </Badge>
+            )}
+          </Button>
+          
+          <ViewSwitcher />
+        </div>
+      </div>
+
+      {/* Search */}
+      <div className="p-4 border-b border-border">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={16} />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input
             ref={searchInputRef}
-            placeholder="Search items... (Press / to focus)"
-            className="pl-10"
+            placeholder="Search items..."
+            className="pl-9"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="flex-1 overflow-auto">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-                <p className="text-muted-foreground">Loading items...</p>
-              </div>
-            </div>
-          ) : error ? (
-            <ErrorState 
-              message={error}
-              onRetry={handleRetry}
-              retrying={retrying}
+      {/* Content */}
+      <div className="flex-1 overflow-hidden">
+        {loading ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : filteredItems.length === 0 ? (
+          <EmptyItemsState
+            hasFilters={hasFilters}
+            hasSearch={hasSearch}
+            onAddItem={() => setNewItemModalOpen(true)}
+            onClearFilters={clearFilters}
+            onClearSearch={() => setSearchQuery('')}
+            spaceName={getActiveAyraName()}
+          />
+        ) : (
+          <>
+            {viewType === 'table' && (
+              <TableView
+                items={filteredItems}
+                selectedItems={selectedItems}
+                onSelectItem={handleSelectItem}
+                onUpdateItem={handleUpdateItem}
+                spaces={spaces}
+                onMoveItem={async (itemId, targetSpaceId) => {
+                  // Handle individual item move
+                  setSelectedItems([itemId]);
+                  const targetSpace = spaces.find(s => s.id === targetSpaceId);
+                  if (targetSpace) {
+                    setTargetAyra(targetSpace.name);
+                    await handleMoveItems();
+                  }
+                }}
+              />
+            )}
+            {viewType === 'grid' && (
+              <GridView
+                items={filteredItems}
+                selectedItems={selectedItems}
+                onSelectItem={handleSelectItem}
+                spaces={spaces}
+                onMoveItem={async (itemId, targetSpaceId) => {
+                  setSelectedItems([itemId]);
+                  const targetSpace = spaces.find(s => s.id === targetSpaceId);
+                  if (targetSpace) {
+                    setTargetAyra(targetSpace.name);
+                    await handleMoveItems();
+                  }
+                }}
+              />
+            )}
+            {viewType === 'list' && (
+              <ListView
+                items={filteredItems}
+                selectedItems={selectedItems}
+                onSelectItem={handleSelectItem}
+                spaces={spaces}
+                onMoveItem={async (itemId, targetSpaceId) => {
+                  setSelectedItems([itemId]);
+                  const targetSpace = spaces.find(s => s.id === targetSpaceId);
+                  if (targetSpace) {
+                    setTargetAyra(targetSpace.name);
+                    await handleMoveItems();
+                  }
+                }}
+              />
+            )}
+            {viewType === 'kanban' && (
+              <KanbanView items={filteredItems} />
+            )}
+            
+            <TablePagination 
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              onPageChange={pagination.setCurrentPage}
+              totalItems={pagination.totalItems}
+              itemsPerPage={pagination.pageSize}
             />
-          ) : !isAuthenticated ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <h3 className="text-lg font-semibold mb-2">Authentication Required</h3>
-                <p className="text-muted-foreground">Please log in to view your items.</p>
-              </div>
-            </div>
-          ) : finalItems.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <>
-              {viewType === 'table' && (
-                <TableView 
-                  items={shouldVirtualize ? finalItems : paginatedItems}
-                  selectedItems={selectedItems}
-                  onSelectItem={handleSelectItem}
-                  onUpdateItem={handleUpdateItem}
-                  virtualized={shouldVirtualize}
-                  syncingItems={syncingItems}
-                  selectedRowIndex={selectedRowIndex}
-                  onRowClick={(item, index) => {
-                    setSelectedRowIndex(index);
-                    setPreviewItem(item);
-                    setPreviewDrawerOpen(true);
-                  }}
-                />
-              )}
-              {viewType === 'grid' && (
-          <GridView 
-            items={paginatedItems} 
-            selectedItems={selectedItems}
-            onSelectItem={handleSelectItem}
-            spaces={spaces}
-            onMoveItem={handleMoveSingleItem}
-          />
-              )}
-              {viewType === 'list' && (
-          <ListView 
-            items={paginatedItems} 
-            selectedItems={selectedItems}
-            onSelectItem={handleSelectItem}
-            spaces={spaces}
-            onMoveItem={handleMoveSingleItem}
-          />
-              )}
-              {viewType === 'kanban' && (
-                <KanbanView items={paginatedItems} />
-              )}
-            </>
-          )}
-        </div>
-
-        {/* Pagination - show for both virtualized and non-virtualized tables */}
-        {totalItems > 0 && (
-          <TablePagination
-            currentPage={pagination.currentPage}
-            totalPages={pagination.totalPages}
-            pageSize={pagination.pageSize}
-            totalItems={totalItems}
-            hasNextPage={pagination.hasNextPage}
-            hasPreviousPage={pagination.hasPreviousPage}
-            startIndex={pagination.startIndex}
-            endIndex={Math.min(pagination.endIndex, totalItems)}
-            onPageChange={pagination.goToPage}
-            onPageSizeChange={pagination.changePageSize}
-            onNextPage={pagination.goToNextPage}
-            onPreviousPage={pagination.goToPreviousPage}
-          />
+          </>
         )}
       </div>
 
-      <FilterDrawer
-        open={filterDrawerOpen}
-        onOpenChange={setFilterDrawerOpen}
-        filters={filters}
-        onFiltersChange={setFilters}
-        availableTags={availableTags}
-        activeFilterCount={activeFilterCount}
-        currentSpace={cortexId || undefined}
-      />
-
       {/* Move Dialog */}
       <Dialog open={moveDialogOpen} onOpenChange={setMoveDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>Move Selected Items</DialogTitle>
+            <DialogTitle>Move {selectedItems.length} item(s)</DialogTitle>
+            <DialogDescription>
+              Select the space where you want to move the selected items.
+            </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm text-muted-foreground mb-4">
-              Move {selectedItems.length} selected item(s) to:
-            </p>
-            <Select value={targetCortex} onValueChange={setTargetCortex}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select destination cortex" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="overview">Overview</SelectItem>
-                {spaces.map((space) => (
-                  <SelectItem key={space.id} value={space.id}>
-                    {space.emoji ? `${space.emoji} ${space.name}` : space.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <Select value={targetAyra} onValueChange={setTargetAyra}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select target space" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Personal">Personal</SelectItem>
+              <SelectItem value="Work">Work</SelectItem>
+              <SelectItem value="School">School</SelectItem>
+              <SelectItem value="Team">Team</SelectItem>
+            </SelectContent>
+          </Select>
           <DialogFooter>
             <Button variant="outline" onClick={() => setMoveDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleMoveItems} disabled={!targetCortex}>
+            <Button onClick={handleMoveItems} disabled={!targetAyra}>
               Move Items
             </Button>
           </DialogFooter>
@@ -1065,69 +863,71 @@ const AyraTable = forwardRef<AyraTableRef, AyraTableProps>(({
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Items</AlertDialogTitle>
+            <AlertDialogTitle>Delete {selectedItems.length} item(s)?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete {selectedItems.length === 1 ? '1 item' : `${selectedItems.length} items`}? 
-              This action can be undone within 6 seconds.
+              This action cannot be undone. The selected items will be permanently deleted.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteItems}>Delete</AlertDialogAction>
+            <AlertDialogAction onClick={handleDeleteItems}>
+              Delete
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Filter Drawer */}
+      <FilterDrawer
+        open={filterDrawerOpen}
+        onOpenChange={setFilterDrawerOpen}
+        filters={filters}
+        onFiltersChange={(newFilters) => {
+          updateFilters(newFilters);
+          onFiltersChange?.(newFilters);
+        }}
+        availableTags={availableTags}
+        currentSpace={ayraId || undefined}
+      />
+
       {/* New Item Modal */}
-        {/* New Item Modal */}
-        <NewItemModal
-          open={newItemModalOpen}
-          onOpenChange={setNewItemModalOpen}
-          onItemCreated={handleItemCreated}
-          preselectedSpace={cortexId !== 'overview' ? cortexId : undefined}
-        />
+      <NewItemModal
+        open={newItemModalOpen}
+        onOpenChange={setNewItemModalOpen}
+        onItemCreated={handleItemCreated}
+        preselectedSpace={ayraId !== 'overview' ? ayraId : undefined}
+      />
 
       {/* Preview Drawer */}
       <PreviewDrawer
-        open={previewDrawerOpen}
-        onOpenChange={setPreviewDrawerOpen}
         item={previewItem}
+        onClose={() => setPreviewItem(null)}
         onDelete={(item) => {
-          // Convert PreviewItem to CortexItem for deletion
-          const cortexItem: CortexItem = {
+          // Convert PreviewItem to AyraItem for deletion
+          const ayraItem: AyraItem = {
             ...item,
-            space: item.space as 'Personal' | 'Work' | 'School' | 'Team'
+            space: 'Personal',
+            keywords: []
           };
-          setDeletedItems([cortexItem]);
-          setCortexItems(prev => prev.filter(i => i.id !== item.id));
+          setDeletedItems([ayraItem]);
+          setAyraItems(prev => prev.filter(i => i.id !== item.id));
+          setPreviewItem(null);
           
-          // Store deleted item temporarily for undo
-          const deletedItems = localStorage.getItem('recently-deleted-items');
-          const deleted: CortexItem[] = deletedItems ? JSON.parse(deletedItems) : [];
-          localStorage.setItem('recently-deleted-items', JSON.stringify([cortexItem, ...deleted]));
+          const deleted: AyraItem[] = deletedItems ? JSON.parse(deletedItems) : [];
+          localStorage.setItem('recently-deleted-items', JSON.stringify([ayraItem, ...deleted]));
           
-          toast({
-            title: "Deleted 1 item",
-            description: "Undo",
-            action: (
-              <Button 
-                size="sm" 
-                variant="outline" 
-                onClick={handleUndoDelete}
-                className="ml-auto"
-              >
-                Undo
-              </Button>
-            ),
-            duration: 6000,
+          toast.success('Item deleted', {
+            action: {
+              label: "Undo",
+              onClick: () => handleUndoDelete()
+            },
           });
-          setPreviewDrawerOpen(false);
         }}
       />
     </div>
   );
 });
 
-CortexTable.displayName = 'CortexTable';
+AyraTable.displayName = 'AyraTable';
 
-export default CortexTable;
+export default AyraTable;
