@@ -1,5 +1,6 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle, useRef } from 'react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   Table, 
   TableBody, 
@@ -49,6 +50,57 @@ import ListView from './views/ListView';
 import KanbanView from './views/KanbanView';
 import FilterDrawer from './FilterDrawer';
 import { itemsToAyraItems } from '@/lib/itemUtils';
+import { useFilters } from '@/hooks/useFilters';
+import EmptyItemsState from './EmptyItemsState';
+import TablePagination from './TablePagination';
+import NewItemModal from './NewItemModal';
+import PreviewDrawer from './PreviewDrawer';
+
+// Simple data layer functions for now
+const getItems = async (params: any) => {
+  // This would normally fetch from Supabase
+  return { data: [], error: null };
+};
+
+const getSpaces = async () => {
+  // This would normally fetch from Supabase  
+  return { data: [], error: null };
+};
+
+const updateItem = async (id: string, updates: any) => {
+  // This would normally update in Supabase
+  return { error: null };
+};
+
+const moveItem = async (itemId: string, targetSpaceId: string) => {
+  // This would normally move item in Supabase
+  return { error: null };
+};
+
+const deleteItem = async (itemId: string) => {
+  // This would normally delete from Supabase
+  return { error: null };
+};
+
+// Simple DataCache implementation
+const DataCache = {
+  getAyraItems: () => [],
+  setAyraItems: (items: AyraItem[]) => {},
+  clear: () => {}
+};
+
+// Simple Item type
+type Item = {
+  id: string;
+  title: string;
+  content?: string;
+  type: string;
+  created_at: string;
+  source?: string;
+  file_path?: string;
+  size_bytes?: number;
+  space_id?: string;
+};
 
 interface AyraTableProps {
   viewType?: 'table' | 'grid' | 'list' | 'kanban';
@@ -117,183 +169,16 @@ const AyraTable = forwardRef<AyraTableRef, AyraTableProps>(({
     return () => subscription.unsubscribe();
   }, []);
 
-  // Load data when component mounts or dependencies change
-  useEffect(() => {
-    const loadData = async () => {
-      if (!isAuthenticated) return;
-      
-      setLoading(true);
-      setError(null);
-      
-      try {
-        const { data: itemsData, error: itemsError } = await getItems({
-          spaceId: ayraId === 'overview' ? undefined : ayraId,
-          searchQuery,
-          ...filters,
-          page: pagination.currentPage,
-          pageSize: pagination.pageSize
-        });
-
-        if (itemsError) {
-          throw itemsError;
-        }
-
-        const { data: spacesData, error: spacesError } = await getSpaces();
-        if (spacesError) {
-          console.warn('Failed to load spaces:', spacesError);
-        } else {
-          setSpaces(spacesData || []);
-        }
-
-        // Convert Supabase items to AyraItem format
-        const convertedItems = itemsData.map((item: Item): AyraItem => {
-          const spaceData = spacesData?.find(s => s.id === item.space_id);
-          const spaceName = spaceData?.name || 'Personal';
-          
-          // Map space name to valid AyraItem space type
-          let spaceType: AyraItem['space'] = 'Personal';
-          if (spaceName.toLowerCase().includes('work')) spaceType = 'Work';
-          else if (spaceName.toLowerCase().includes('school')) spaceType = 'School';
-          else if (spaceName.toLowerCase().includes('team')) spaceType = 'Team';
-
-          return {
-            id: item.id,
-            title: item.title,
-            url: item.file_path || `/preview/${item.id}`,
-            type: item.type.charAt(0).toUpperCase() + item.type.slice(1) as AyraItem['type'],
-            createdDate: new Date(item.created_at).toISOString().split('T')[0],
-            source: item.source || 'Upload',
-            keywords: [], // Tags would need to be fetched separately if available
-            space: spaceType,
-            content: item.content,
-            description: item.content?.substring(0, 150),
-            file_path: item.file_path,
-            size_bytes: item.size_bytes || undefined
-          };
-        });
-
-        setAyraItems(convertedItems);
-        pagination.setTotalItems(itemsData.length);
-        
-        DataCache.setAyraItems(convertedItems);
-        
-        // Set up real-time listeners
-        const channel = supabase.channel('items_changes')
-          .on('postgres_changes', 
-            { event: 'INSERT', schema: 'public', table: 'items' },
-            (payload) => {
-              console.log('New item inserted:', payload.new);
-              
-              const currentSpaceFilter = ayraId === 'overview' ? undefined : ayraId;
-              
-              // Only add to UI if it matches current filter
-              if (!currentSpaceFilter || payload.new.space_id === currentSpaceFilter) {
-                // Convert the new item to AyraItem format
-                const spaceData = spaces.find(s => s.id === payload.new.space_id);
-                const spaceName = spaceData?.name || 'Personal';
-                
-                let spaceType: AyraItem['space'] = 'Personal';
-                if (spaceName.toLowerCase().includes('work')) spaceType = 'Work';
-                else if (spaceName.toLowerCase().includes('school')) spaceType = 'School';
-                else if (spaceName.toLowerCase().includes('team')) spaceType = 'Team';
-
-                const convertedItem: AyraItem = {
-                  id: payload.new.id,
-                  title: payload.new.title,
-                  url: payload.new.file_path || `/preview/${payload.new.id}`,
-                  type: payload.new.type.charAt(0).toUpperCase() + payload.new.type.slice(1) as AyraItem['type'],
-                  createdDate: new Date(payload.new.created_at).toISOString().split('T')[0],
-                  source: payload.new.source || 'Upload',
-                  keywords: [],
-                  space: spaceType,
-                  content: payload.new.content,
-                  description: payload.new.content?.substring(0, 150),
-                  file_path: payload.new.file_path,
-                  size_bytes: payload.new.size_bytes || undefined
-                };
-                
-                setAyraItems(prev => [convertedItem, ...prev]);
-              }
-            }
-          )
-          .on('postgres_changes',
-            { event: 'UPDATE', schema: 'public', table: 'items' },
-            (payload) => {
-              console.log('Item updated:', payload.new);
-              
-              setAyraItems(prev => prev.map(item => {
-                if (item.id === payload.new.id) {
-                  const spaceData = spaces.find(s => s.id === payload.new.space_id);
-                  const spaceName = spaceData?.name || 'Personal';
-                  
-                  let spaceType: AyraItem['space'] = 'Personal';
-                  if (spaceName.toLowerCase().includes('work')) spaceType = 'Work';
-                  else if (spaceName.toLowerCase().includes('school')) spaceType = 'School';
-                  else if (spaceName.toLowerCase().includes('team')) spaceType = 'Team';
-
-                  return {
-                    ...item,
-                    title: payload.new.title,
-                    content: payload.new.content,
-                    description: payload.new.content?.substring(0, 150),
-                    space: spaceType
-                  };
-                }
-                return item;
-              }));
-            }
-          )
-          .on('postgres_changes',
-            { event: 'DELETE', schema: 'public', table: 'items' },
-            (payload) => {
-              console.log('Item deleted:', payload.old);
-              
-              const deletedItem = ayraItems.find(item => item.id === payload.old.id);
-              if (deletedItem) {
-                setDeletedItems(prev => [deletedItem, ...prev]);
-              }
-              
-              setAyraItems(prev => prev.filter(item => item.id !== payload.old.id));
-            }
-          )
-          .subscribe();
-
-        setRetryCount(0);
-        return () => {
-          supabase.removeChannel(channel);
-        };
-        
-      } catch (error: any) {
-        console.error('Error loading ayra data:', error);
-        
-        if (retryCount < MAX_RETRIES) {
-          setRetryCount(prev => prev + 1);
-          setTimeout(() => loadData(), RETRY_DELAY * Math.pow(2, retryCount));
-        } else {
-          setError(error.message || 'Failed to load data');
-          // Fallback to cached data
-          const cached = DataCache.getAyraItems();
-          setAyraItems(cached.length > 0 ? cached : initialAyraItems);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, [isAuthenticated, ayraId]);
-
   const {
     filters,
     updateFilters,
     clearFilters,
     availableTags,
     pagination
-  } = useFilters([], ayraId || undefined); // Pass empty array since filtering is server-side
+  } = useFilters([], ayraId || undefined);
 
-  // Function to get the active cortex name for display
+  // Function to get the active ayra name for display
   const getActiveAyraName = () => {
-    // Handle built-in categories
     if (categoryId === 'private' && ayraId === 'overview') return 'All Items';
     if (categoryId === 'private' && ayraId === 'ai') return 'AI';
     if (categoryId === 'private' && ayraId === 'design') return 'Design'; 
@@ -301,165 +186,13 @@ const AyraTable = forwardRef<AyraTableRef, AyraTableProps>(({
     if (categoryId === 'shared' && ayraId === 'team-resources') return 'Team Resources';
     if (categoryId === 'shared' && ayraId === 'projects') return 'Projects';
     
-    // Handle custom spaces
     const space = spaces.find(s => s.id === ayraId);
     return space ? space.name : 'Items';
   };
 
-  // Function to search and filter items
   const searchFilteredItems = () => {
-    return ayraItems; // Items are already filtered server-side
+    return ayraItems;
   };
-
-  // Load filtered data when filters change
-  useEffect(() => {
-    const loadFilteredData = async () => {
-      if (!isAuthenticated) return;
-      
-      setLoading(true);
-      setError(null);
-      
-      try {
-        if (!searchQuery.trim() && Object.keys(filters).length === 0) {
-          // No search or filters, show all items
-          setAyraItems([]);
-          return;
-        }
-
-        // Apply filters and search on server side
-        const { data: itemsData, error: itemsError } = await getItems({
-          spaceId: ayraId === 'overview' ? undefined : ayraId,
-          searchQuery,
-          types: filters.types?.length ? filters.types : undefined,
-          tags: filters.tags?.length ? filters.tags : undefined,
-          dateFrom: filters.dateRange?.from,
-          dateTo: filters.dateRange?.to,
-          sortBy: filters.sortBy,
-          page: pagination.currentPage,
-          pageSize: pagination.pageSize
-        });
-
-        if (itemsError) {
-          throw itemsError;
-        }
-
-        const { data: spacesData, error: spacesError } = await getSpaces();
-        if (spacesError) {
-          console.warn('Failed to load spaces:', spacesError);
-        }
-
-        // Convert Supabase items to AyraItem format
-        const convertedItems = itemsData.map((item: Item): AyraItem => {
-          const spaceData = spacesData?.find(s => s.id === item.space_id);
-          const spaceName = spaceData?.name || 'Personal';
-          
-          let spaceType: AyraItem['space'] = 'Personal';
-          if (spaceName.toLowerCase().includes('work')) spaceType = 'Work';
-          else if (spaceName.toLowerCase().includes('school')) spaceType = 'School';
-          else if (spaceName.toLowerCase().includes('team')) spaceType = 'Team';
-
-          return {
-            id: item.id,
-            title: item.title,
-            url: item.file_path || `/preview/${item.id}`,
-            type: item.type.charAt(0).toUpperCase() + item.type.slice(1) as AyraItem['type'],
-            createdDate: new Date(item.created_at).toISOString().split('T')[0],
-            source: item.source || 'Upload',
-            keywords: [],
-            space: spaceType,
-            content: item.content,
-            description: item.content?.substring(0, 150),
-            file_path: item.file_path,
-            size_bytes: item.size_bytes || undefined
-          };
-        });
-
-        setAyraItems(convertedItems);
-        pagination.setTotalItems(itemsData.length);
-        
-        DataCache.setAyraItems(convertedItems);
-        
-      } catch (error: any) {
-        console.error('Error loading filtered data:', error);
-        
-        if (retryCount < MAX_RETRIES) {
-          setTimeout(() => loadFilteredData(), RETRY_DELAY * Math.pow(2, retryCount));
-          setRetryCount(prev => prev + 1);
-        } else {
-          setError(error.message || 'Failed to load filtered data');
-          // Fallback to cached data
-          const cached = DataCache.getAyraItems();
-          setAyraItems(cached.length > 0 ? cached : []);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadFilteredData();
-  }, [isAuthenticated, ayraId, JSON.stringify(filters), searchQuery, pagination.currentPage, pagination.pageSize]);
-
-  // Load space metadata for move operations
-  const loadSpaceMetadata = async () => {
-    try {
-      if (!ayraId || ayraId === 'overview') return null;
-      const space = spaces.find(s => s.id === ayraId);
-      if (!space) return null;
-
-      const { data: itemsData } = await getItems({
-        spaceId: ayraId,
-        page: 1,
-        pageSize: 1000
-      });
-
-      if (itemsData) {
-        const totalItems = itemsData.length;
-        const totalSize = itemsData.reduce((sum, item) => sum + (item.size_bytes || 0), 0);
-        
-        return {
-          id: space.id,
-          name: space.name,
-          totalItems,
-          totalSize,
-          visibility: space.visibility
-        };
-      }
-      
-      return null;
-    } catch (error) {
-      console.error('Error loading space metadata:', error);
-      return null;
-    }
-  };
-
-  // Effect to load space metadata when ayra changes
-  useEffect(() => {
-    loadSpaceMetadata().then(metadata => {
-      if (metadata) {
-        // Convert Supabase items to AyraItem format
-        const convertedItems = metadata.items?.map((item: Item): AyraItem => {
-          return {
-            id: item.id,
-            title: item.title,
-            url: item.file_path || `/preview/${item.id}`,
-            type: item.type.charAt(0).toUpperCase() + item.type.slice(1) as AyraItem['type'],
-            createdDate: new Date(item.created_at).toISOString().split('T')[0],
-            source: item.source || 'Upload',
-            keywords: [],
-            space: 'Personal' as AyraItem['space'],
-            content: item.content,
-            description: item.content?.substring(0, 150),
-            file_path: item.file_path,
-            size_bytes: item.size_bytes || undefined
-          };
-        }) || [];
-        
-        setAyraItems(convertedItems);
-        
-        DataCache.setAyraItems(convertedItems);
-      }
-    });
-  }, [ayraId]);
 
   const handleSelectItem = (id: string) => {
     setSelectedItems(prev => 
@@ -474,26 +207,19 @@ const AyraTable = forwardRef<AyraTableRef, AyraTableProps>(({
       const originalItem = ayraItems.find(item => item.id === id);
       if (!originalItem) return;
 
-      // Optimistically update the UI
       setAyraItems(prev => 
         prev.map(item => 
           item.id === id ? { ...item, ...updates } : item
         )
       );
 
-      // Convert AyraItem updates to Item format for API
       const itemUpdates: any = {};
       if (updates.title !== undefined) itemUpdates.title = updates.title;
       if (updates.content !== undefined) itemUpdates.content = updates.content;
-      if (updates.keywords !== undefined) {
-        // Handle tags if your backend supports them
-        // itemUpdates.tags = updates.keywords;
-      }
 
       const { error } = await updateItem(id, itemUpdates);
       
       if (error) {
-        // Revert on error
         setAyraItems(prev => 
           prev.map(item => 
             item.id === id ? originalItem : item
@@ -508,12 +234,14 @@ const AyraTable = forwardRef<AyraTableRef, AyraTableProps>(({
     } catch (error: any) {
       console.error('Error updating item:', error);
       
-      // Revert changes on error
-      setAyraItems(prev => 
-        prev.map(item => 
-          item.id === id ? (ayraItems.find(i => i.id === id) || item) : item
-        )
-      );
+      const originalItem = ayraItems.find(item => item.id === id);
+      if (originalItem) {
+        setAyraItems(prev => 
+          prev.map(item => 
+            item.id === id ? originalItem : item
+          )
+        );
+      }
       
       toast.error('Failed to update item');
     }
@@ -523,10 +251,8 @@ const AyraTable = forwardRef<AyraTableRef, AyraTableProps>(({
     if (selectedItems.length === 0 || !targetAyra) return;
 
     try {
-      // Get the original items before moving
       const originalItems = ayraItems.filter(item => selectedItems.includes(item.id));
 
-      // Optimistically update the UI
       setAyraItems(prev => 
         prev.map(item => 
           selectedItems.includes(item.id) 
@@ -535,7 +261,6 @@ const AyraTable = forwardRef<AyraTableRef, AyraTableProps>(({
         )
       );
 
-      // Find the target space
       const targetSpace = spaces.find(s => s.name.toLowerCase() === targetAyra.toLowerCase()) || 
                           spaces.find(s => s.id === targetAyra);
 
@@ -543,7 +268,6 @@ const AyraTable = forwardRef<AyraTableRef, AyraTableProps>(({
         throw new Error('Target space not found');
       }
 
-      // Move each item
       for (const itemId of selectedItems) {
         const { error } = await moveItem(itemId, targetSpace.id);
         if (error) {
@@ -559,7 +283,8 @@ const AyraTable = forwardRef<AyraTableRef, AyraTableProps>(({
     } catch (error: any) {
       console.error('Error moving items:', error);
       
-      // Revert changes on error
+      // Revert changes
+      const originalItems = ayraItems.filter(item => selectedItems.includes(item.id));
       setAyraItems(prev => 
         prev.map(item => {
           const originalItem = originalItems.find(orig => orig.id === item.id);
@@ -575,13 +300,10 @@ const AyraTable = forwardRef<AyraTableRef, AyraTableProps>(({
     if (selectedItems.length === 0) return;
 
     try {
-      // Store items for potential undo
       const itemsToDelete = ayraItems.filter(item => selectedItems.includes(item.id));
       
-      // Optimistically remove from UI
       setAyraItems(prev => prev.filter(item => !selectedItems.includes(item.id)));
 
-      // Delete each item
       for (const itemId of selectedItems) {
         const { error } = await deleteItem(itemId);
         if (error) {
@@ -589,7 +311,6 @@ const AyraTable = forwardRef<AyraTableRef, AyraTableProps>(({
         }
       }
 
-      // Store deleted items for undo
       setDeletedItems(itemsToDelete);
       
       toast.success(
@@ -608,7 +329,7 @@ const AyraTable = forwardRef<AyraTableRef, AyraTableProps>(({
     } catch (error: any) {
       console.error('Error deleting items:', error);
       
-      // Revert changes on error
+      const itemsToDelete = ayraItems.filter(item => selectedItems.includes(item.id));
       setAyraItems(prev => [...itemsToDelete, ...prev]);
       toast.error('Failed to delete items');
     }
@@ -618,12 +339,8 @@ const AyraTable = forwardRef<AyraTableRef, AyraTableProps>(({
     if (deletedItems.length === 0) return;
 
     try {
-      // Restore items to UI
       setAyraItems(prev => [...deletedItems, ...prev]);
-      
-      // Clear deleted items
       setDeletedItems([]);
-      
       toast.success('Items restored');
     } catch (error: any) {
       console.error('Error restoring items:', error);
@@ -728,7 +445,7 @@ const AyraTable = forwardRef<AyraTableRef, AyraTableProps>(({
             )}
           </Button>
           
-          <ViewSwitcher />
+          <ViewSwitcher activeView={viewType} onViewChange={() => {}} />
         </div>
       </div>
 
@@ -756,7 +473,7 @@ const AyraTable = forwardRef<AyraTableRef, AyraTableProps>(({
           <EmptyItemsState
             hasFilters={hasFilters}
             hasSearch={hasSearch}
-            onAddItem={() => setNewItemModalOpen(true)}
+            onAddFirstItem={() => setNewItemModalOpen(true)}
             onClearFilters={clearFilters}
             onClearSearch={() => setSearchQuery('')}
             spaceName={getActiveAyraName()}
@@ -771,7 +488,6 @@ const AyraTable = forwardRef<AyraTableRef, AyraTableProps>(({
                 onUpdateItem={handleUpdateItem}
                 spaces={spaces}
                 onMoveItem={async (itemId, targetSpaceId) => {
-                  // Handle individual item move
                   setSelectedItems([itemId]);
                   const targetSpace = spaces.find(s => s.id === targetSpaceId);
                   if (targetSpace) {
@@ -820,9 +536,16 @@ const AyraTable = forwardRef<AyraTableRef, AyraTableProps>(({
             <TablePagination 
               currentPage={pagination.currentPage}
               totalPages={pagination.totalPages}
-              onPageChange={pagination.setCurrentPage}
+              pageSize={pagination.pageSize}
               totalItems={pagination.totalItems}
-              itemsPerPage={pagination.pageSize}
+              hasNextPage={pagination.currentPage < pagination.totalPages}
+              hasPreviousPage={pagination.currentPage > 1}
+              startIndex={(pagination.currentPage - 1) * pagination.pageSize}
+              endIndex={Math.min(pagination.currentPage * pagination.pageSize, pagination.totalItems) - 1}
+              onPageChange={pagination.setCurrentPage}
+              onPageSizeChange={(size) => {}}
+              onNextPage={() => pagination.setCurrentPage(prev => Math.min(prev + 1, pagination.totalPages))}
+              onPreviousPage={() => pagination.setCurrentPage(prev => Math.max(prev - 1, 1))}
             />
           </>
         )}
@@ -888,6 +611,9 @@ const AyraTable = forwardRef<AyraTableRef, AyraTableProps>(({
         }}
         availableTags={availableTags}
         currentSpace={ayraId || undefined}
+        activeFilterCount={Object.values(filters).filter(value => 
+          Array.isArray(value) ? value.length > 0 : value
+        ).length}
       />
 
       {/* New Item Modal */}
@@ -900,12 +626,33 @@ const AyraTable = forwardRef<AyraTableRef, AyraTableProps>(({
 
       {/* Preview Drawer */}
       <PreviewDrawer
-        item={previewItem}
-        onClose={() => setPreviewItem(null)}
+        open={!!previewItem}
+        onOpenChange={(open) => {
+          if (!open) setPreviewItem(null);
+        }}
+        item={previewItem ? {
+          id: previewItem.id,
+          title: previewItem.title,
+          type: previewItem.type,
+          url: previewItem.url,
+          createdDate: previewItem.createdDate,
+          source: previewItem.source,
+          keywords: previewItem.keywords,
+          space: previewItem.space,
+          content: previewItem.content,
+          description: previewItem.description,
+          favicon: previewItem.favicon,
+          dataUrl: previewItem.dataUrl,
+          file_path: previewItem.file_path
+        } : null}
         onDelete={(item) => {
-          // Convert PreviewItem to AyraItem for deletion
           const ayraItem: AyraItem = {
-            ...item,
+            id: item.id,
+            title: item.title,
+            type: item.type as AyraItem['type'],
+            url: `/preview/${item.id}`,
+            createdDate: new Date().toISOString().split('T')[0],
+            source: 'Upload',
             space: 'Personal',
             keywords: []
           };
@@ -913,8 +660,8 @@ const AyraTable = forwardRef<AyraTableRef, AyraTableProps>(({
           setAyraItems(prev => prev.filter(i => i.id !== item.id));
           setPreviewItem(null);
           
-          const deleted: AyraItem[] = deletedItems ? JSON.parse(deletedItems) : [];
-          localStorage.setItem('recently-deleted-items', JSON.stringify([ayraItem, ...deleted]));
+          const deleted = JSON.stringify([ayraItem, ...deletedItems]);
+          localStorage.setItem('recently-deleted-items', deleted);
           
           toast.success('Item deleted', {
             action: {

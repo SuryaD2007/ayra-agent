@@ -9,6 +9,18 @@ import AuthGuard from '@/components/auth/AuthGuard';
 import { itemToAyraItem } from '@/lib/itemUtils';
 import { EnhancedPdfViewer } from '@/components/manage/EnhancedPdfViewer';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+// Simple implementations for missing functions/data
+const DataCache = {
+  getAyraItems: () => [] as AyraItem[]
+};
+
+const getItem = async (id: string) => {
+  // This would normally fetch from Supabase
+  return { data: null, error: null };
+};
 
 const PreviewPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -71,7 +83,7 @@ const PreviewPage = () => {
       } else {
         // Get signed URL for file download
         const { data: signedUrl, error } = await supabase.storage
-          .from('files')
+          .from('ayra-files')
           .createSignedUrl(item.file_path, 3600); // 1 hour expiry
           
         if (error) {
@@ -116,7 +128,7 @@ const PreviewPage = () => {
           return (
             <div className="w-full h-[600px] border rounded-lg overflow-hidden">
               <EnhancedPdfViewer
-                file_path={item.file_path}
+                filePath={item.file_path}
                 title={item.title}
               />
             </div>

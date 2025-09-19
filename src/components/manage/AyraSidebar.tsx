@@ -71,8 +71,8 @@ interface AyraSidebarProps {
   spaceCounts?: { [spaceId: string]: number };
 }
 
-const CortexSidebar = ({ 
-  onCortexSelect, 
+const AyraSidebar = ({ 
+  onAyraSelect, 
   selectedCategoryId = 'private', 
   selectedItemId = 'overview',
   selectedSpace = null,
@@ -286,7 +286,7 @@ const CortexSidebar = ({
       return;
     }
     
-    onCortexSelect(categoryId, itemId, spaceSlug);
+    onAyraSelect(categoryId, itemId, spaceSlug);
   };
 
   const handleSpaceCreated = (space: Space) => {
@@ -302,7 +302,7 @@ const CortexSidebar = ({
     setCustomSpaces(prev => [...prev, customSpace]);
     
     // Navigate to the new space
-    onCortexSelect(space.visibility, space.id);
+    onAyraSelect(space.visibility, space.id);
     
     // Clear cache to ensure fresh data loads
     DataCache.clear();
@@ -337,7 +337,7 @@ const CortexSidebar = ({
       
       // If currently viewing this space, navigate to overview
       if (selectedItemId === spaceToDelete.id) {
-        onCortexSelect('private', 'overview');
+        onAyraSelect('private', 'overview');
       }
       
       toast.success(`Space "${spaceToDelete.name}" deleted successfully`);
@@ -373,7 +373,7 @@ const CortexSidebar = ({
       // Navigate to overview if currently viewing any space that will be deleted
       const shouldNavigateToOverview = allSpaceIds.includes(selectedItemId || '');
       if (shouldNavigateToOverview) {
-        onCortexSelect('private', 'overview');
+        onAyraSelect('private', 'overview');
       }
       
       const totalSpaces = customSpaces.length + allSpaceIds.filter(id => !id.startsWith('overview')).length;
@@ -813,7 +813,7 @@ const CortexSidebar = ({
         onUnlocked={() => {
           // Re-trigger the item click after unlocking
           if (selectedCategoryId === 'private' && selectedItemId) {
-            onCortexSelect(selectedCategoryId, selectedItemId);
+            onAyraSelect(selectedCategoryId, selectedItemId);
           }
         }}
       />
@@ -863,4 +863,4 @@ const CortexSidebar = ({
   );
 };
 
-export default CortexSidebar;
+export default AyraSidebar;
