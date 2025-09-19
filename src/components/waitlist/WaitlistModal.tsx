@@ -25,10 +25,27 @@ interface WaitlistFormData {
 }
 
 const UNIVERSITIES = [
+  // Top Universities (alphabetical)
+  "Harvard University",
+  "Stanford University", 
+  "Massachusetts Institute of Technology",
+  "California Institute of Technology",
+  "Princeton University",
+  "Yale University",
+  "University of Chicago",
+  "Columbia University",
+  "University of Pennsylvania",
+  "Northwestern University",
+  "Duke University",
+  "Johns Hopkins University",
+  "Dartmouth College",
+  "Brown University",
+  "Cornell University",
+  
   // Top Texas Universities
-  "University of Texas at Austin",
-  "Texas A&M University",
   "Rice University",
+  "Texas A&M University",
+  "University of Texas at Austin", 
   "University of Houston",
   "Texas Tech University",
   "Baylor University",
@@ -46,25 +63,9 @@ const UNIVERSITIES = [
   "Florida International University",
   "Nova Southeastern University",
   "Florida Atlantic University",
-  "Florida Institute of Technology",
   "University of South Florida",
   
-  // Top 100 Universities (selection)
-  "Harvard University",
-  "Stanford University",
-  "Massachusetts Institute of Technology",
-  "California Institute of Technology",
-  "Princeton University",
-  "Yale University",
-  "University of Chicago",
-  "Columbia University",
-  "University of Pennsylvania",
-  "Northwestern University",
-  "Duke University",
-  "Johns Hopkins University",
-  "Dartmouth College",
-  "Brown University",
-  "Cornell University",
+  // Other Top Universities
   "Vanderbilt University",
   "Washington University in St. Louis",
   "University of Notre Dame",
@@ -90,10 +91,11 @@ const UNIVERSITIES = [
   "University of Illinois at Urbana-Champaign",
   "University of Washington",
   "Other"
-].sort()
+]
 
 export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
   const [universityInput, setUniversityInput] = useState("")
+  const [suggestion, setSuggestion] = useState("")
   
   const {
     register,
@@ -110,6 +112,7 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
     })
     reset()
     setUniversityInput("")
+    setSuggestion("")
     onClose()
   }
 
@@ -118,21 +121,28 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
     setUniversityInput(value)
     setValue("university", value)
     
-    // Auto-fill if there's a match
     if (value.length >= 2) {
       const match = UNIVERSITIES.find(uni => 
         uni.toLowerCase().startsWith(value.toLowerCase())
       )
       if (match && match.toLowerCase() !== value.toLowerCase()) {
-        // Set the auto-filled value but keep cursor position
-        setTimeout(() => {
-          const input = e.target
-          const cursorPos = value.length
-          input.value = match
-          input.setSelectionRange(cursorPos, match.length)
-          setUniversityInput(match)
-          setValue("university", match)
-        }, 0)
+        setSuggestion(match.substring(value.length))
+      } else {
+        setSuggestion("")
+      }
+    } else {
+      setSuggestion("")
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Tab' || e.key === 'ArrowRight') {
+      if (suggestion) {
+        e.preventDefault()
+        const fullText = universityInput + suggestion
+        setUniversityInput(fullText)
+        setValue("university", fullText)
+        setSuggestion("")
       }
     }
   }
@@ -140,6 +150,7 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
   const handleClose = () => {
     reset()
     setUniversityInput("")
+    setSuggestion("")
     onClose()
   }
 
@@ -202,16 +213,28 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
           <div className="grid gap-3 animate-fade-in" style={{ animationDelay: "200ms" }}>
             <Label htmlFor="university" className="text-sm font-medium">School/University</Label>
             <div className="relative group">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors z-10" />
               <Input
                 id="university"
-                className="pl-10 h-11 border-muted-foreground/20 focus:border-primary transition-all duration-200 bg-background/50"
+                className="pl-10 h-11 border-muted-foreground/20 focus:border-primary transition-all duration-200 bg-background/50 relative z-10 bg-transparent"
                 placeholder="Start typing your school or university..."
                 value={universityInput}
                 onChange={handleUniversityChange}
+                onKeyDown={handleKeyDown}
                 autoComplete="off"
               />
+              {suggestion && (
+                <div className="absolute inset-0 pl-10 h-11 flex items-center pointer-events-none text-muted-foreground/60">
+                  <span className="invisible">{universityInput}</span>
+                  <span>{suggestion}</span>
+                </div>
+              )}
             </div>
+            {suggestion && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Press Tab or → to accept suggestion
+              </p>
+            )}
           </div>
 
           <Button 
