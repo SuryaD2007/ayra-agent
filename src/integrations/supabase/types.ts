@@ -14,33 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      beta_signups: {
-        Row: {
-          created_at: string
-          email: string
-          id: string
-          note: string | null
-          os: string
-          source: string | null
-        }
-        Insert: {
-          created_at?: string
-          email: string
-          id?: string
-          note?: string | null
-          os: string
-          source?: string | null
-        }
-        Update: {
-          created_at?: string
-          email?: string
-          id?: string
-          note?: string | null
-          os?: string
-          source?: string | null
-        }
-        Relationships: []
-      }
       chats: {
         Row: {
           created_at: string
