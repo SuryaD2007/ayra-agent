@@ -6,13 +6,13 @@ interface UniversityStudentsSectionProps {
 
 export const UniversityStudentsSection = ({ show }: UniversityStudentsSectionProps) => {
   const universities = [
-    { name: "University of Texas", short: "UT", logo: "🤘" },
-    { name: "Texas A&M University", short: "A&M", logo: "🐴" },
-    { name: "UT Dallas", short: "UTD", logo: "🔥" },
-    { name: "University of South Florida", short: "USF", logo: "🐂" },
-    { name: "University of Florida", short: "UF", logo: "🐊" },
-    { name: "University of Illinois", short: "UIUC", logo: "🌽" },
-    { name: "University of Southern California", short: "USC", logo: "⚔️" }
+    { name: "University of Texas", short: "UT", logo: "/assets/ut-logo.png", isImage: true },
+    { name: "Texas A&M University", short: "A&M", logo: "🐴", isImage: false },
+    { name: "UT Dallas", short: "UTD", logo: "🔥", isImage: false },
+    { name: "University of South Florida", short: "USF", logo: "🐂", isImage: false },
+    { name: "University of Florida", short: "UF", logo: "🐊", isImage: false },
+    { name: "University of Illinois", short: "UIUC", logo: "🌽", isImage: false },
+    { name: "University of Southern California", short: "USC", logo: "⚔️", isImage: false }
   ];
 
   return (
@@ -32,7 +32,15 @@ export const UniversityStudentsSection = ({ show }: UniversityStudentsSectionPro
                   className="flex-shrink-0 mx-6 flex flex-col items-center group hover:scale-110 transition-transform duration-300"
                 >
                   <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center text-2xl mb-2 group-hover:shadow-lg transition-shadow duration-300">
-                    {university.logo}
+                    {university.isImage ? (
+                      <img 
+                        src={university.logo} 
+                        alt={`${university.name} logo`} 
+                        className="w-10 h-10 object-contain"
+                      />
+                    ) : (
+                      university.logo
+                    )}
                   </div>
                   <span className="text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">
                     {university.short}
