@@ -62,8 +62,8 @@ export const UniversityStudentsSection = ({
           <div className="relative overflow-hidden">
             <div className="flex animate-slide-marquee">
               {[...universities, ...universities].map((university, index) => <div key={`${university.short}-${index}`} className="flex-shrink-0 mx-6 flex flex-col items-center group hover:scale-110 transition-transform duration-300">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center text-2xl mb-2 group-hover:shadow-lg transition-shadow duration-300">
-                    {university.isImage ? <img src={university.logo} alt={`${university.name} logo`} className="w-10 h-10 object-contain" /> : university.logo}
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center text-2xl mb-2 group-hover:shadow-lg transition-shadow duration-300">
+                    {university.isImage ? <img src={university.logo} alt={`${university.name} logo`} className="w-12 h-12 object-contain" /> : university.logo}
                   </div>
                   <span className="text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">
                     {university.short}
