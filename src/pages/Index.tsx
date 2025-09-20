@@ -1,9 +1,9 @@
 
 import { useState, useEffect } from 'react';
 import { useAnimateIn } from '@/lib/animations';
-import { HeroSection } from '@/components/landing/HeroSection';
-import { ManageSection } from '@/components/landing/ManageSection';
-import { DesignSection } from '@/components/landing/DesignSection';
+import { NewHeroSection } from '@/components/landing/NewHeroSection';
+import { EnhancedManageSection } from '@/components/landing/EnhancedManageSection';
+import { EnhancedDesignSection } from '@/components/landing/EnhancedDesignSection';
 import { DeploySection } from '@/components/landing/DeploySection';
 import { TestimonialsSection } from '@/components/landing/TestimonialsSection';
 import { CallToAction } from '@/components/landing/CallToAction';
@@ -36,37 +36,62 @@ const Index = () => {
   }
   
   return (
-    <div className="relative overflow-hidden">
-      {/* Background elements */}
-      <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-primary/5 to-transparent -z-10"></div>
-      <div className="absolute top-1/3 right-0 w-[300px] h-[300px] rounded-full bg-primary/5 blur-3xl -z-10"></div>
-      <div className="absolute bottom-1/3 left-0 w-[250px] h-[250px] rounded-full bg-accent/5 blur-3xl -z-10"></div>
+    <div className="relative overflow-hidden mesh-gradient min-h-screen">
+      {/* Floating orbs */}
+      <div className="floating-orb w-96 h-96 bg-primary-glow top-10 -left-48 animate-float-slow"></div>
+      <div className="floating-orb w-80 h-80 bg-secondary-glow top-1/2 -right-40 animate-particle-float"></div>
+      <div className="floating-orb w-64 h-64 bg-accent top-2/3 left-1/4 animate-morph"></div>
+      <div className="floating-orb w-48 h-48 bg-primary top-1/4 right-1/3 animate-wave"></div>
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-24">
-        <div className="flex flex-col">
-          {/* Hero Section */}
-          <HeroSection showTitle={showHero} />
-          
-          {/* Manage Section */}
-          <ManageSection show={showManage} />
-          
-          {/* Design Section */}
-          <DesignSection show={showDesign} />
-          
-          {/* Deploy Section */}
-          <DeploySection show={showDeploy} />
-          
-          {/* Use Cases Section */}
-          <UseCasesSection show={showUseCases} />
-          
-          {/* Testimonials Section */}
-          <TestimonialsSection showTestimonials={showTestimonials} />
-          
-          {/* Call to Action */}
-          <CallToAction show={showCallToAction} />
-          
-          {/* Footer */}
-          <Footer show={showFooter} />
+      {/* Grid pattern overlay */}
+      <div className="absolute inset-0 opacity-10">
+        <div className="absolute inset-0" style={{
+          backgroundImage: `radial-gradient(circle at 1px 1px, hsl(var(--primary)) 1px, transparent 0)`,
+          backgroundSize: '40px 40px'
+        }}></div>
+      </div>
+      
+      <div className="relative z-10">
+        <div className="max-w-8xl mx-auto px-6 sm:px-8 lg:px-12 pt-8 pb-16">
+          <div className="space-y-32">
+            {/* Hero Section */}
+            <section className="min-h-screen flex items-center justify-center">
+              <NewHeroSection showTitle={showHero} />
+            </section>
+            
+            {/* Manage Section */}
+            <section className="min-h-screen flex items-center">
+              <EnhancedManageSection show={showManage} />
+            </section>
+            
+            {/* Design Section */}
+            <section className="min-h-screen flex items-center">
+              <EnhancedDesignSection show={showDesign} />
+            </section>
+            
+            {/* Deploy Section */}
+            <section className="min-h-screen flex items-center">
+              <DeploySection show={showDeploy} />
+            </section>
+            
+            {/* Use Cases Section */}
+            <section className="py-32">
+              <UseCasesSection show={showUseCases} />
+            </section>
+            
+            {/* Testimonials Section */}
+            <section className="py-32">
+              <TestimonialsSection showTestimonials={showTestimonials} />
+            </section>
+            
+            {/* Call to Action */}
+            <section className="py-32">
+              <CallToAction show={showCallToAction} />
+            </section>
+            
+            {/* Footer */}
+            <Footer show={showFooter} />
+          </div>
         </div>
       </div>
     </div>
