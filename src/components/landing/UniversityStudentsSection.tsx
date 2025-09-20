@@ -55,9 +55,6 @@ export const UniversityStudentsSection = ({ show }: UniversityStudentsSectionPro
             <div className="px-4 py-2 bg-accent/5 rounded-full border border-accent/10">
               <span className="text-sm text-accent font-medium">50+ Universities</span>
             </div>
-            <div className="px-4 py-2 bg-secondary/5 rounded-full border border-secondary/10">
-              <span className="text-sm text-secondary-foreground font-medium">4.9★ Rating</span>
-            </div>
           </div>
         </div>
       </div>
