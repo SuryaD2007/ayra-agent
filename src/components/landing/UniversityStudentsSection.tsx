@@ -38,8 +38,8 @@ export const UniversityStudentsSection = ({
   }, {
     name: "University of Southern California",
     short: "USC",
-    logo: "⚔️",
-    isImage: false
+    logo: "/assets/usc-logo.png",
+    isImage: true
   }];
   return <AnimatedTransition show={show} animation="slide-up" duration={600}>
       <div className="mt-16 mb-8">
