@@ -103,6 +103,10 @@ export default {
 				'ripple': {
 					'0%': { transform: 'scale(0)', opacity: '1' },
 					'100%': { transform: 'scale(1)', opacity: '0' }
+				},
+				'slide-marquee': {
+					'0%': { transform: 'translateX(0%)' },
+					'100%': { transform: 'translateX(-50%)' }
 				}
 			},
 			animation: {
@@ -116,7 +120,8 @@ export default {
 				'pulse-slow': 'pulse-slow 3s infinite ease-in-out',
 				'float': 'float 3s infinite ease-in-out',
 				'spin-slow': 'spin-slow 12s linear infinite',
-				'ripple': 'ripple 1s linear'
+				'ripple': 'ripple 1s linear',
+				'slide-marquee': 'slide-marquee 20s linear infinite'
 			},
 			transitionTimingFunction: {
 				'in-expo': 'cubic-bezier(0.95, 0.05, 0.795, 0.035)',

@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useAnimateIn } from '@/lib/animations';
 import { HeroSection } from '@/components/landing/HeroSection';
+import { UniversityStudentsSection } from '@/components/landing/UniversityStudentsSection';
 import { ManageSection } from '@/components/landing/ManageSection';
 import { DesignSection } from '@/components/landing/DesignSection';
 import { DeploySection } from '@/components/landing/DeploySection';
@@ -14,13 +15,14 @@ import UseCasesSection from '@/components/landing/UseCasesSection';
 const Index = () => {
   const [loading, setLoading] = useState(true);
   const showHero = useAnimateIn(false, 300);
-  const showManage = useAnimateIn(false, 600);
-  const showDesign = useAnimateIn(false, 900);
-  const showDeploy = useAnimateIn(false, 1200);
-  const showUseCases = useAnimateIn(false, 1500);
-  const showTestimonials = useAnimateIn(false, 1800);
-  const showCallToAction = useAnimateIn(false, 2100);
-  const showFooter = useAnimateIn(false, 2400);
+  const showUniversities = useAnimateIn(false, 500);
+  const showManage = useAnimateIn(false, 700);
+  const showDesign = useAnimateIn(false, 1000);
+  const showDeploy = useAnimateIn(false, 1300);
+  const showUseCases = useAnimateIn(false, 1600);
+  const showTestimonials = useAnimateIn(false, 1900);
+  const showCallToAction = useAnimateIn(false, 2200);
+  const showFooter = useAnimateIn(false, 2500);
   
   useEffect(() => {
     // Simulate loading
@@ -46,6 +48,9 @@ const Index = () => {
         <div className="flex flex-col">
           {/* Hero Section */}
           <HeroSection showTitle={showHero} />
+          
+          {/* University Students Section */}
+          <UniversityStudentsSection show={showUniversities} />
           
           {/* Manage Section */}
           <ManageSection show={showManage} />
