@@ -37,6 +37,11 @@ export const HeroSection = ({
 
   return <div className="py-20 md:py-28 flex flex-col items-center text-center">
       <AnimatedTransition show={showTitle} animation="slide-up" duration={600}>
+        {/* Launch date announcement */}
+        <div className="mb-4 px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-medium border border-primary/20">
+          🚀 Launching October 17
+        </div>
+        
         {/* Title first */}
         <h1 className="text-4xl sm:text-5xl font-bold mb-6 bg-clip-text text-blue-600 md:text-7xl">
           Ayra - Your Personal AI Engine
