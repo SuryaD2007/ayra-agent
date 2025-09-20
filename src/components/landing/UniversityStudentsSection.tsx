@@ -40,6 +40,11 @@ export const UniversityStudentsSection = ({
     short: "USC",
     logo: "/assets/usc-logo.png",
     isImage: true
+  }, {
+    name: "Indiana University",
+    short: "IU",
+    logo: "/assets/iu-logo.png",
+    isImage: true
   }];
   return <AnimatedTransition show={show} animation="slide-up" duration={600}>
       <div className="mt-16 mb-8">
