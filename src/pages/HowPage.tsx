@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import AnimatedTransition from '@/components/AnimatedTransition';
 import { Link } from 'react-router-dom';
 import knowledgeVisual from '@/assets/knowledge-visual.jpg';
-import searchInterface from '@/assets/search-interface-ai.jpg';
+import searchInterface from '@/assets/search-interface-neural.jpg';
 import neuralConnections from '@/assets/neural-connections.jpg';
 import privacySecurity from '@/assets/privacy-security.jpg';
 import crossDeviceSync from '@/assets/cross-device-sync.jpg';
