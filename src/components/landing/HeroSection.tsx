@@ -38,7 +38,7 @@ export const HeroSection = ({
   return <div className="py-20 md:py-28 flex flex-col items-center text-center">
       <AnimatedTransition show={showTitle} animation="slide-up" duration={600}>
         {/* Launch date announcement */}
-        <div className="mb-4 px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-medium border border-primary/20">
+        <div className="mb-4 text-primary text-sm font-medium">
           🚀 Launching October 17
         </div>
         
