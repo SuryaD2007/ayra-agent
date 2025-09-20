@@ -5,6 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import AnimatedTransition from '@/components/AnimatedTransition';
 import { Link } from 'react-router-dom';
+import knowledgeVisual from '@/assets/knowledge-visual.jpg';
+import searchInterface from '@/assets/search-interface.jpg';
+import neuralConnections from '@/assets/neural-connections.jpg';
+import privacySecurity from '@/assets/privacy-security.jpg';
+import crossDeviceSync from '@/assets/cross-device-sync.jpg';
 const FeatureCard = ({
   icon,
   title,
@@ -165,7 +170,7 @@ const HowPage = () => {
         <div className="mb-24">
           <h2 className="text-3xl font-bold text-center mb-12">Designed for Your Digital Brain</h2>
           
-          <FeatureShowcase title="Your knowledge base is visual" description="Ayra transforms your notes and saved content into a beautiful, visual interface that makes browsing your digital mind a pleasure." image="/placeholder.svg" features={[{
+          <FeatureShowcase title="Your knowledge base is visual" description="Ayra transforms your notes and saved content into a beautiful, visual interface that makes browsing your digital mind a pleasure." image={knowledgeVisual} features={[{
           icon: <CheckCircle size={24} />,
           text: "Visual organization of your knowledge"
         }, {
@@ -179,7 +184,7 @@ const HowPage = () => {
           text: "Beautiful grid layouts that adapt to your content"
         }]} />
           
-          <FeatureShowcase title="Find anything instantly" description="Powerful semantic search understands what you're looking for, not just matching keywords but finding related concepts." image="/placeholder.svg" features={[{
+          <FeatureShowcase title="Find anything instantly" description="Powerful semantic search understands what you're looking for, not just matching keywords but finding related concepts." image={searchInterface} features={[{
           icon: <CheckCircle size={24} />,
           text: "Neural search that understands concepts, not just keywords"
         }, {
@@ -193,7 +198,7 @@ const HowPage = () => {
           text: "Chat with your knowledge base in natural language"
         }]} reversed={true} />
           
-          <FeatureShowcase title="AI-powered connections" description="Discover unexpected connections between ideas with our proprietary neural network that reveals patterns you might miss." image="/placeholder.svg" features={[{
+          <FeatureShowcase title="AI-powered connections" description="Discover unexpected connections between ideas with our proprietary neural network that reveals patterns you might miss." image={neuralConnections} features={[{
           icon: <CheckCircle size={24} />,
           text: "Neural connection map visualizes relationships between your ideas"
         }, {
@@ -207,7 +212,7 @@ const HowPage = () => {
           text: "Continuously learns from your usage patterns"
         }]} />
           
-          <FeatureShowcase title="Your private knowledge hub" description="Unlike social bookmarking tools, Ayra is completely private. Your data remains yours alone, secured with end-to-end encryption." image="/placeholder.svg" features={[{
+          <FeatureShowcase title="Your private knowledge hub" description="Unlike social bookmarking tools, Ayra is completely private. Your data remains yours alone, secured with end-to-end encryption." image={privacySecurity} features={[{
           icon: <CheckCircle size={24} />,
           text: "End-to-end encryption for all your data"
         }, {
@@ -221,7 +226,7 @@ const HowPage = () => {
           text: "Export your data anytime in standard formats"
         }]} reversed={true} />
           
-          <FeatureShowcase title="An extension for your mind" description="Ayra becomes an extension of your thinking process, available across all your devices and integrated with your workflow." image="/placeholder.svg" features={[{
+          <FeatureShowcase title="An extension for your mind" description="Ayra becomes an extension of your thinking process, available across all your devices and integrated with your workflow." image={crossDeviceSync} features={[{
           icon: <CheckCircle size={24} />,
           text: "Synchronized across all your devices in real-time"
         }, {
