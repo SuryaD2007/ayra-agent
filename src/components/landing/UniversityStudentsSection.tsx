@@ -10,7 +10,7 @@ export const UniversityStudentsSection = ({ show }: UniversityStudentsSectionPro
     { name: "Texas A&M University", short: "A&M", logo: "/assets/am-logo.png", isImage: true },
     { name: "UT Dallas", short: "UTD", logo: "🔥", isImage: false },
     { name: "University of South Florida", short: "USF", logo: "🐂", isImage: false },
-    { name: "University of Florida", short: "UF", logo: "🐊", isImage: false },
+    { name: "University of Florida", short: "UF", logo: "/assets/uf-logo.png", isImage: true },
     { name: "University of Illinois", short: "UIUC", logo: "🌽", isImage: false },
     { name: "University of Southern California", short: "USC", logo: "⚔️", isImage: false }
   ];
