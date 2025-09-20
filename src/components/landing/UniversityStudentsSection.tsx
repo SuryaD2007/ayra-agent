@@ -45,6 +45,11 @@ export const UniversityStudentsSection = ({
     short: "IU",
     logo: "/assets/iu-logo.png",
     isImage: true
+  }, {
+    name: "IIT Guwahati",
+    short: "IITG",
+    logo: "/assets/iitg-logo.png",
+    isImage: true
   }];
   return <AnimatedTransition show={show} animation="slide-up" duration={600}>
       <div className="mt-16 mb-8">
