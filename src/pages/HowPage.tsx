@@ -184,19 +184,11 @@ const HowPage = () => {
           text: "Beautiful grid layouts that adapt to your content"
         }]} />
           
-          <FeatureShowcase title="Find anything instantly" description="Powerful semantic search understands what you're looking for, not just matching keywords but finding related concepts." image={searchInterface} features={[{
-          icon: <CheckCircle size={24} />,
-          text: "Neural search that understands concepts, not just keywords"
-        }, {
-          icon: <CheckCircle size={24} />,
-          text: "Filter by content type, date, source, and custom tags"
-        }, {
-          icon: <CheckCircle size={24} />,
-          text: "Save complex searches for quick access later"
-        }, {
-          icon: <CheckCircle size={24} />,
-          text: "Chat with your knowledge base in natural language"
-        }]} reversed={true} />
+          <div className="my-16">
+            <div className="glass-panel rounded-lg overflow-hidden">
+              <img src={searchInterface} alt="Find anything instantly" className="w-full h-auto" />
+            </div>
+          </div>
           
           <FeatureShowcase title="AI-powered connections" description="Discover unexpected connections between ideas with our proprietary neural network that reveals patterns you might miss." image={neuralConnections} features={[{
           icon: <CheckCircle size={24} />,
