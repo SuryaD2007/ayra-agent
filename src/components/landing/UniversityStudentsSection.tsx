@@ -7,7 +7,7 @@ interface UniversityStudentsSectionProps {
 export const UniversityStudentsSection = ({ show }: UniversityStudentsSectionProps) => {
   const universities = [
     { name: "University of Texas", short: "UT", logo: "/assets/ut-logo.png", isImage: true },
-    { name: "Texas A&M University", short: "A&M", logo: "🐴", isImage: false },
+    { name: "Texas A&M University", short: "A&M", logo: "/assets/am-logo.png", isImage: true },
     { name: "UT Dallas", short: "UTD", logo: "🔥", isImage: false },
     { name: "University of South Florida", short: "USF", logo: "🐂", isImage: false },
     { name: "University of Florida", short: "UF", logo: "🐊", isImage: false },
