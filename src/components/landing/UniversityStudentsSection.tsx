@@ -53,7 +53,7 @@ export const UniversityStudentsSection = ({ show }: UniversityStudentsSectionPro
           {/* Student testimonial badges */}
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <div className="px-4 py-2 bg-accent/5 rounded-full border border-accent/10">
-              <span className="text-sm text-accent font-medium">50+ Universities</span>
+              <span className="text-sm text-accent font-medium">10+ Universities</span>
             </div>
           </div>
         </div>
