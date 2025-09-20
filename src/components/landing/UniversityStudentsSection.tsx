@@ -52,7 +52,7 @@ export const UniversityStudentsSection = ({
     isImage: true
   }, {
     name: "University of Virginia",
-    short: "UV",
+    short: "UVA",
     logo: "/assets/uv-logo.png",
     isImage: true
   }];
