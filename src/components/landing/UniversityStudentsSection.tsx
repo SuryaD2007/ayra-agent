@@ -33,8 +33,8 @@ export const UniversityStudentsSection = ({
   }, {
     name: "University of Illinois",
     short: "UIUC",
-    logo: "🌽",
-    isImage: false
+    logo: "/assets/uiuc-logo.png",
+    isImage: true
   }, {
     name: "University of Southern California",
     short: "USC",
