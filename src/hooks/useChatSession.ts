@@ -205,25 +205,27 @@ export function useChatSession() {
         // Read file contents if attachments are present
         let fileContents: Array<{name: string, type: string, content: string}> = [];
         if (context?.attachedFiles && context.attachedFiles.length > 0) {
-          fileContents = await Promise.all(
-            context.attachedFiles.map(async (file: any) => {
+          fileContents = (await Promise.all(
+            context.attachedFiles.map(async (attachedFile: any) => {
+              if (!attachedFile?.file) return null;
+              
               try {
-                const text = await file.file.text();
+                const text = await attachedFile.file.text();
                 return {
-                  name: file.file.name,
-                  type: file.file.type,
+                  name: attachedFile.file.name,
+                  type: attachedFile.file.type,
                   content: text
                 };
               } catch (error) {
-                console.error(`Error reading file ${file.file.name}:`, error);
+                console.error(`Error reading file ${attachedFile.file.name}:`, error);
                 return {
-                  name: file.file.name,
-                  type: file.file.type,
+                  name: attachedFile.file.name,
+                  type: attachedFile.file.type,
                   content: '[Unable to read file content]'
                 };
               }
             })
-          );
+          )).filter((f): f is {name: string, type: string, content: string} => f !== null);
         }
 
         // Call ChatGPT API
