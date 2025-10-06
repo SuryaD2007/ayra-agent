@@ -29,7 +29,15 @@ serve(async (req) => {
 
     // Get authorization header for user context
     const authHeader = req.headers.get('Authorization');
-    let documentContext = context || '';
+    let documentContext = '';
+    
+    // Process attached files if present
+    if (context?.fileContents && context.fileContents.length > 0) {
+      const filesText = context.fileContents
+        .map((file: any) => `File: ${file.name} (${file.type})\n\n${file.content}`)
+        .join('\n\n---\n\n');
+      documentContext += filesText;
+    }
     
     // If itemId is provided, fetch specific document content
     if (authHeader && itemId) {
@@ -65,7 +73,10 @@ serve(async (req) => {
               }
             }
             
-            documentContext = `Document: "${item.title}" (${item.type})\n${content}`;
+            const itemContext = `Document: "${item.title}" (${item.type})\n${content}`;
+            documentContext = documentContext 
+              ? `${documentContext}\n\n---\n\n${itemContext}`
+              : itemContext;
           }
         }
       } catch (error) {

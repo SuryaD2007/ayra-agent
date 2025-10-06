@@ -202,6 +202,30 @@ export function useChatSession() {
         if (userError) throw userError;
         setMessages(prev => [...prev, userMessageData as Message]);
 
+        // Read file contents if attachments are present
+        let fileContents: Array<{name: string, type: string, content: string}> = [];
+        if (context?.attachedFiles && context.attachedFiles.length > 0) {
+          fileContents = await Promise.all(
+            context.attachedFiles.map(async (file: any) => {
+              try {
+                const text = await file.file.text();
+                return {
+                  name: file.file.name,
+                  type: file.file.type,
+                  content: text
+                };
+              } catch (error) {
+                console.error(`Error reading file ${file.file.name}:`, error);
+                return {
+                  name: file.file.name,
+                  type: file.file.type,
+                  content: '[Unable to read file content]'
+                };
+              }
+            })
+          );
+        }
+
         // Call ChatGPT API
         const { data, error } = await supabase.functions.invoke('chat-gpt', {
           body: {
@@ -209,7 +233,10 @@ export function useChatSession() {
               type: msg.role === 'user' ? 'user' : 'assistant',
               content: msg.content
             })),
-            context,
+            context: {
+              ...context,
+              fileContents
+            },
             itemId: context?.itemId
           }
         });
