@@ -96,14 +96,38 @@ const SearchPage = () => {
     
     setChatInput('');
     
-    // Prepare context with files if any
-    const context = attachedFiles && attachedFiles.length > 0 ? {
-      attachedFiles: attachedFiles.map(af => ({
+    // Read file contents before sending
+    let fileContents: Array<{name: string, type: string, content: string}> = [];
+    if (attachedFiles && attachedFiles.length > 0) {
+      fileContents = await Promise.all(
+        attachedFiles.map(async (af) => {
+          try {
+            const text = await af.file.text();
+            return {
+              name: af.file.name,
+              type: af.file.type,
+              content: text
+            };
+          } catch (error) {
+            console.error(`Error reading file ${af.file.name}:`, error);
+            return {
+              name: af.file.name,
+              type: af.file.type,
+              content: '[Unable to read file content]'
+            };
+          }
+        })
+      );
+    }
+    
+    // Prepare context with file contents
+    const context = fileContents.length > 0 ? {
+      attachedFiles: attachedFiles?.map(af => ({
         name: af.file.name,
         type: af.file.type,
         size: af.file.size,
-        // Note: File content would need to be processed/uploaded separately
-      }))
+      })),
+      fileContents
     } : undefined;
     
     // If no active chat, create one with default title and send message
