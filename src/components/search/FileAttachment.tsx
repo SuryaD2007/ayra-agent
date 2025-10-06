@@ -1,8 +1,6 @@
-import React, { useCallback, useState } from 'react';
-import { useDropzone } from 'react-dropzone';
-import { Upload, X, File, Image, FileText, Paperclip } from 'lucide-react';
+import React from 'react';
+import { X, File, Image, FileText, Paperclip } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 export interface AttachedFile {
@@ -19,102 +17,12 @@ interface FileAttachmentProps {
   disabled?: boolean;
 }
 
-const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
-const MAX_FILES = 5;
-
 export const FileAttachment: React.FC<FileAttachmentProps> = ({
   onFilesAdded,
   onFileRemoved,
   attachedFiles,
   disabled = false
 }) => {
-  const { toast } = useToast();
-
-  const generateFileId = () => Date.now().toString() + Math.random().toString(36).substr(2, 9);
-
-  const createAttachedFile = (file: File): AttachedFile => {
-    const fileType = file.type.startsWith('image/') 
-      ? 'image' 
-      : file.type.includes('pdf') || file.type.includes('document') || file.type.includes('text')
-      ? 'document'
-      : 'other';
-
-    const attachedFile: AttachedFile = {
-      id: generateFileId(),
-      file,
-      type: fileType
-    };
-
-    // Create preview for images
-    if (fileType === 'image') {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        attachedFile.preview = e.target?.result as string;
-      };
-      reader.readAsDataURL(file);
-    }
-
-    return attachedFile;
-  };
-
-  const processFiles = useCallback((files: File[]) => {
-    if (disabled) return;
-
-    const totalFiles = attachedFiles.length + files.length;
-    if (totalFiles > MAX_FILES) {
-      toast({
-        title: "Too many files",
-        description: `Maximum ${MAX_FILES} files allowed`,
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const validFiles = files.filter(file => {
-      if (file.size > MAX_FILE_SIZE) {
-        toast({
-          title: "File too large",
-          description: `${file.name} exceeds 25MB limit`,
-          variant: "destructive"
-        });
-        return false;
-      }
-      return true;
-    });
-
-    if (validFiles.length > 0) {
-      const newAttachedFiles = validFiles.map(createAttachedFile);
-      onFilesAdded(newAttachedFiles);
-    }
-  }, [onFilesAdded, attachedFiles.length, disabled, toast]);
-
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    processFiles(acceptedFiles);
-  }, [processFiles]);
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'],
-      'application/pdf': ['.pdf'],
-      'text/*': ['.txt', '.md', '.csv', '.json'],
-      'application/msword': ['.doc'],
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-      'application/vnd.ms-excel': ['.xls'],
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx']
-    },
-    maxSize: MAX_FILE_SIZE,
-    disabled,
-    noClick: true // We'll use a separate button for click
-  });
-
-  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length > 0) {
-      processFiles(files);
-    }
-    e.target.value = ''; // Reset input
-  };
 
   const getFileIcon = (file: AttachedFile) => {
     switch (file.type) {
@@ -142,10 +50,41 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({
         <input
           type="file"
           multiple
-          onChange={handleFileInput}
+          onChange={(e) => {
+            const files = Array.from(e.target.files || []);
+            if (files.length > 0) {
+              const newAttachedFiles = files.map(file => {
+                const fileType = file.type.startsWith('image/') 
+                  ? 'image' 
+                  : file.type.includes('pdf') || file.type.includes('document') || file.type.includes('text')
+                  ? 'document'
+                  : 'other';
+
+                const attachedFile: AttachedFile = {
+                  id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                  file,
+                  type: fileType
+                };
+
+                // Create preview for images
+                if (fileType === 'image') {
+                  const reader = new FileReader();
+                  reader.onload = (e) => {
+                    attachedFile.preview = e.target?.result as string;
+                  };
+                  reader.readAsDataURL(file);
+                }
+
+                return attachedFile;
+              });
+              onFilesAdded(newAttachedFiles);
+            }
+            e.target.value = ''; // Reset input
+          }}
           className="hidden"
           id="file-upload"
           disabled={disabled}
+          accept="image/*,.pdf,.txt,.md,.csv,.json,.doc,.docx,.xls,.xlsx"
         />
         <Button
           type="button"
@@ -166,23 +105,10 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({
         
         {attachedFiles.length > 0 && (
           <span className="text-xs text-muted-foreground">
-            {attachedFiles.length}/{MAX_FILES} files
+            {attachedFiles.length}/5 files
           </span>
         )}
       </div>
-
-      {/* Drag and Drop Zone (only shows when dragging) */}
-      {isDragActive && (
-        <div
-          {...getRootProps()}
-          className="absolute inset-0 border-2 border-dashed border-primary bg-primary/5 rounded-lg flex items-center justify-center z-10"
-        >
-          <div className="text-center">
-            <Upload size={24} className="mx-auto mb-2 text-primary" />
-            <p className="text-sm text-primary font-medium">Drop files here</p>
-          </div>
-        </div>
-      )}
 
       {/* Attached Files Preview */}
       {attachedFiles.length > 0 && (
