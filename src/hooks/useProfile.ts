@@ -37,9 +37,34 @@ export const useProfile = () => {
         .from('profiles')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (profileError) throw profileError;
+
+      // If no profile exists, create one
+      if (!profileData) {
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: user.id,
+            name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+            email: user.email || '',
+          })
+          .select()
+          .single();
+
+        if (createError) throw createError;
+
+        setProfile({
+          id: newProfile.id,
+          name: newProfile.name,
+          email: newProfile.email,
+          description: newProfile.description,
+          links: [],
+        });
+        setLoading(false);
+        return;
+      }
 
       // Fetch profile links
       const { data: linksData, error: linksError } = await supabase
