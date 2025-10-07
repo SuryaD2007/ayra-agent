@@ -119,22 +119,45 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
 
         {/* Files Preview */}
         {project.project_files && project.project_files.length > 0 && (
-          <div className="space-y-1.5">
-            {project.project_files.slice(0, 2).map((file, index) => (
-              <div
-                key={index}
-                className="flex items-center gap-2 text-xs text-muted-foreground"
-              >
-                <FileText className="h-3 w-3 flex-shrink-0" />
-                <span className="truncate">{file.name}</span>
-                {file.size && (
-                  <span className="text-[10px]">({(file.size / 1024).toFixed(1)}KB)</span>
-                )}
-              </div>
-            ))}
-            {project.project_files.length > 2 && (
-              <p className="text-xs text-muted-foreground pl-5">
-                +{project.project_files.length - 2} more file{project.project_files.length - 2 > 1 ? 's' : ''}
+          <div className="space-y-2">
+            <div className="grid grid-cols-3 gap-2">
+              {project.project_files.slice(0, 3).map((file, index) => {
+                const isImage = file.type?.startsWith('image/');
+                return (
+                  <div
+                    key={index}
+                    className="relative group cursor-pointer hover-glow"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.open(file.url, '_blank');
+                    }}
+                  >
+                    {isImage ? (
+                      <img 
+                        src={file.url} 
+                        alt={file.name}
+                        className="w-full h-20 object-cover rounded-md"
+                      />
+                    ) : (
+                      <div className="w-full h-20 bg-muted rounded-md flex flex-col items-center justify-center">
+                        <FileText className="h-6 w-6 text-muted-foreground mb-1" />
+                        <span className="text-[10px] text-muted-foreground truncate max-w-full px-2">
+                          {file.name}
+                        </span>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-md flex items-center justify-center">
+                      <span className="text-white text-xs font-medium px-2 text-center">
+                        {isImage ? 'View' : 'Download'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {project.project_files.length > 3 && (
+              <p className="text-xs text-muted-foreground">
+                +{project.project_files.length - 3} more file{project.project_files.length - 3 > 1 ? 's' : ''}
               </p>
             )}
           </div>

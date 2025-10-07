@@ -7,8 +7,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { ProjectWithStage, ProjectLink, ProjectFile } from './types';
-import { Link2, Upload, X, Plus, Calendar, AlertCircle, FileText, Tag } from 'lucide-react';
+import { Link2, Upload, X, Plus, Calendar, AlertCircle, FileText, Tag, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface ProjectEditorProps {
   project: ProjectWithStage;
@@ -25,6 +27,8 @@ const ProjectEditor: React.FC<ProjectEditorProps> = ({
 }) => {
   const [newLink, setNewLink] = useState({ title: '', url: '' });
   const [newTag, setNewTag] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const { toast } = useToast();
 
   const addLink = () => {
     if (newLink.title && newLink.url) {
@@ -52,20 +56,84 @@ const ProjectEditor: React.FC<ProjectEditorProps> = ({
     onChange({ ...project, tags: updatedTags });
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (files) {
-      const newFiles: ProjectFile[] = Array.from(files).map(file => ({
-        name: file.name,
-        url: URL.createObjectURL(file),
-        size: file.size
-      }));
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    const newFiles: ProjectFile[] = [];
+
+    try {
+      for (const file of Array.from(files)) {
+        // Upload to Supabase Storage
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `project-files/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('ayra-files')
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          toast({
+            title: "Upload failed",
+            description: `Failed to upload ${file.name}`,
+            variant: "destructive"
+          });
+          continue;
+        }
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('ayra-files')
+          .getPublicUrl(filePath);
+
+        newFiles.push({
+          name: file.name,
+          url: publicUrl,
+          size: file.size,
+          type: file.type
+        });
+      }
+
       const updatedFiles = [...(project.project_files || []), ...newFiles];
       onChange({ ...project, project_files: updatedFiles });
+
+      toast({
+        title: "Files uploaded",
+        description: `${newFiles.length} file(s) uploaded successfully`
+      });
+    } catch (error) {
+      console.error('File upload error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to upload files",
+        variant: "destructive"
+      });
+    } finally {
+      setUploading(false);
+      e.target.value = ''; // Reset input
     }
   };
 
-  const removeFile = (index: number) => {
+  const removeFile = async (index: number) => {
+    const fileToRemove = project.project_files?.[index];
+    if (fileToRemove?.url) {
+      // Extract file path from URL and delete from storage
+      const urlParts = fileToRemove.url.split('/');
+      const filePath = urlParts.slice(urlParts.indexOf('project-files')).join('/');
+      
+      if (filePath.includes('project-files/')) {
+        await supabase.storage
+          .from('ayra-files')
+          .remove([filePath]);
+      }
+    }
+    
     const updatedFiles = (project.project_files || []).filter((_, i) => i !== index);
     onChange({ ...project, project_files: updatedFiles });
   };
@@ -229,47 +297,71 @@ const ProjectEditor: React.FC<ProjectEditorProps> = ({
           
           {project.project_files && project.project_files.length > 0 && (
             <div className="space-y-2 mb-4">
-              {project.project_files.map((file, index) => (
-                <div 
-                  key={index} 
-                  className="flex items-center gap-2 p-3 rounded-md bg-muted/50 hover-glow group"
-                >
-                  <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{file.name}</p>
-                    {file.size && (
-                      <p className="text-xs text-muted-foreground">
-                        {(file.size / 1024).toFixed(2)} KB
-                      </p>
-                    )}
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeFile(index)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity smooth-bounce"
+              {project.project_files.map((file, index) => {
+                const isImage = file.type?.startsWith('image/');
+                return (
+                  <div 
+                    key={index} 
+                    className="flex items-center gap-3 p-3 rounded-md bg-muted/50 hover-glow group"
                   >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
+                    {isImage ? (
+                      <img 
+                        src={file.url} 
+                        alt={file.name}
+                        className="h-12 w-12 object-cover rounded flex-shrink-0"
+                      />
+                    ) : (
+                      <FileText className="h-8 w-8 text-muted-foreground flex-shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{file.name}</p>
+                      {file.size && (
+                        <p className="text-xs text-muted-foreground">
+                          {(file.size / 1024).toFixed(2)} KB
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeFile(index)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity smooth-bounce"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                );
+              })}
             </div>
           )}
           
           <div className="flex items-center justify-center w-full">
-            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary/50 transition-all duration-200 hover-glow">
+            <label className={cn(
+              "flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary/50 transition-all duration-200 hover-glow",
+              uploading && "opacity-50 cursor-not-allowed"
+            )}>
               <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
-                <p className="mb-2 text-sm text-muted-foreground">
-                  <span className="font-semibold">Click to upload</span> or drag and drop
-                </p>
-                <p className="text-xs text-muted-foreground">Any file type supported</p>
+                {uploading ? (
+                  <>
+                    <Loader2 className="w-8 h-8 mb-2 text-primary animate-spin" />
+                    <p className="text-sm text-muted-foreground">Uploading files...</p>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
+                    <p className="mb-2 text-sm text-muted-foreground">
+                      <span className="font-semibold">Click to upload</span> or drag and drop
+                    </p>
+                    <p className="text-xs text-muted-foreground">Any file type supported</p>
+                  </>
+                )}
               </div>
               <input 
                 type="file" 
                 className="hidden" 
                 multiple 
                 onChange={handleFileUpload}
+                disabled={uploading}
               />
             </label>
           </div>
