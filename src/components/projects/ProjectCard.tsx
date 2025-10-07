@@ -1,8 +1,9 @@
 
 import React from 'react';
 import { Card, CardHeader, CardContent, CardFooter, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { ProjectWithStage } from './types';
-import { Edit, Star, Users, Trash2 } from 'lucide-react';
+import { Edit, Star, Users, Trash2, Link2, FileText, Calendar, AlertCircle, Tag } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,10 +45,100 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
         <CardTitle className="text-base">{project.title}</CardTitle>
       </CardHeader>
       
-      <CardContent className="p-4 pt-0 pb-2">
+      <CardContent className="p-4 pt-0 pb-2 space-y-3">
         <p className="text-sm text-muted-foreground">
           {project.description}
         </p>
+
+        {/* Priority & Due Date Preview */}
+        <div className="flex flex-wrap items-center gap-2">
+          {project.priority && (
+            <Badge 
+              variant="secondary" 
+              className={`text-xs ${
+                project.priority === 'high' 
+                  ? 'bg-destructive/10 text-destructive hover:bg-destructive/20' 
+                  : project.priority === 'medium'
+                  ? 'bg-accent text-accent-foreground'
+                  : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              <AlertCircle className="h-3 w-3 mr-1" />
+              {project.priority}
+            </Badge>
+          )}
+          
+          {project.due_date && (
+            <Badge variant="outline" className="text-xs">
+              <Calendar className="h-3 w-3 mr-1" />
+              {new Date(project.due_date).toLocaleDateString()}
+            </Badge>
+          )}
+        </div>
+
+        {/* Tags Preview */}
+        {project.tags && project.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {project.tags.slice(0, 3).map((tag, index) => (
+              <Badge key={index} variant="secondary" className="text-xs hover-glow">
+                <Tag className="h-3 w-3 mr-1" />
+                {tag}
+              </Badge>
+            ))}
+            {project.tags.length > 3 && (
+              <Badge variant="secondary" className="text-xs">
+                +{project.tags.length - 3}
+              </Badge>
+            )}
+          </div>
+        )}
+
+        {/* Links Preview */}
+        {project.project_links && project.project_links.length > 0 && (
+          <div className="space-y-1.5">
+            {project.project_links.slice(0, 2).map((link, index) => (
+              <a
+                key={index}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="flex items-center gap-2 text-xs text-primary hover:text-primary/80 transition-colors group"
+              >
+                <Link2 className="h-3 w-3 flex-shrink-0" />
+                <span className="truncate group-hover:underline">{link.title}</span>
+              </a>
+            ))}
+            {project.project_links.length > 2 && (
+              <p className="text-xs text-muted-foreground pl-5">
+                +{project.project_links.length - 2} more link{project.project_links.length - 2 > 1 ? 's' : ''}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Files Preview */}
+        {project.project_files && project.project_files.length > 0 && (
+          <div className="space-y-1.5">
+            {project.project_files.slice(0, 2).map((file, index) => (
+              <div
+                key={index}
+                className="flex items-center gap-2 text-xs text-muted-foreground"
+              >
+                <FileText className="h-3 w-3 flex-shrink-0" />
+                <span className="truncate">{file.name}</span>
+                {file.size && (
+                  <span className="text-[10px]">({(file.size / 1024).toFixed(1)}KB)</span>
+                )}
+              </div>
+            ))}
+            {project.project_files.length > 2 && (
+              <p className="text-xs text-muted-foreground pl-5">
+                +{project.project_files.length - 2} more file{project.project_files.length - 2 > 1 ? 's' : ''}
+              </p>
+            )}
+          </div>
+        )}
       </CardContent>
       
       <CardFooter className="p-4 pt-2 flex items-center justify-between">
