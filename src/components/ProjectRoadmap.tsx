@@ -1,41 +1,37 @@
 
 import React, { useState } from 'react';
 import { ProjectWithStage, ProjectStage } from './projects/types';
-import { enhancedProjects } from './projects/mockData';
 import ProjectStageColumn from './projects/ProjectStageColumn';
 import ProjectEditor from './projects/ProjectEditor';
+import { useProjects } from '@/hooks/useProjects';
+import { Loader2 } from 'lucide-react';
 
 const ProjectRoadmap: React.FC = () => {
-  const [projects, setProjects] = useState<ProjectWithStage[]>(enhancedProjects);
+  const { projects, loading, createProject, updateProject, deleteProject } = useProjects();
   const [editingProject, setEditingProject] = useState<ProjectWithStage | null>(null);
   const [draggedProject, setDraggedProject] = useState<ProjectWithStage | null>(null);
   
-  const addNewProject = () => {
-    const newProject: ProjectWithStage = {
-      id: Date.now().toString(),
+  const addNewProject = async () => {
+    await createProject({
       title: 'New Project',
       description: 'Click to edit project details',
       status: 'active',
       stage: 'planning',
       reviewCount: 0,
       reviewScore: 0
-    };
-    
-    setProjects([...projects, newProject]);
+    });
   };
   
-  const moveToNextStage = (projectId: string) => {
-    setProjects(projects.map(project => {
-      if (project.id === projectId) {
-        const stageOrder: ProjectStage[] = ['planning', 'inProgress', 'review', 'completed'];
-        const currentIndex = stageOrder.indexOf(project.stage!);
-        
-        if (currentIndex < stageOrder.length - 1) {
-          return { ...project, stage: stageOrder[currentIndex + 1] };
-        }
-      }
-      return project;
-    }));
+  const moveToNextStage = async (projectId: string) => {
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+
+    const stageOrder: ProjectStage[] = ['planning', 'inProgress', 'review', 'completed'];
+    const currentIndex = stageOrder.indexOf(project.stage!);
+    
+    if (currentIndex < stageOrder.length - 1) {
+      await updateProject(projectId, { stage: stageOrder[currentIndex + 1] });
+    }
   };
   
   const handleDragStart = (project: ProjectWithStage) => {
@@ -46,13 +42,9 @@ const ProjectRoadmap: React.FC = () => {
     e.preventDefault();
   };
   
-  const handleDrop = (targetStage: ProjectStage) => {
+  const handleDrop = async (targetStage: ProjectStage) => {
     if (draggedProject && draggedProject.stage !== targetStage) {
-      setProjects(projects.map(project => 
-        project.id === draggedProject.id 
-          ? { ...project, stage: targetStage } 
-          : project
-      ));
+      await updateProject(draggedProject.id, { stage: targetStage });
       setDraggedProject(null);
     }
   };
@@ -61,11 +53,9 @@ const ProjectRoadmap: React.FC = () => {
     setEditingProject({...project});
   };
   
-  const saveProjectChanges = () => {
+  const saveProjectChanges = async () => {
     if (editingProject) {
-      setProjects(projects.map(project => 
-        project.id === editingProject.id ? editingProject : project
-      ));
+      await updateProject(editingProject.id, editingProject);
       setEditingProject(null);
     }
   };
@@ -88,10 +78,18 @@ const ProjectRoadmap: React.FC = () => {
       />
     );
   }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
   
   return (
     <div className="w-full space-y-8">
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {(['planning', 'inProgress', 'review', 'completed'] as ProjectStage[]).map(stage => (
           <ProjectStageColumn
             key={stage}
@@ -102,6 +100,7 @@ const ProjectRoadmap: React.FC = () => {
             onDrop={handleDrop}
             onEdit={startEditingProject}
             onMoveNext={moveToNextStage}
+            onDelete={deleteProject}
             onAddNew={stage === 'planning' ? addNewProject : undefined}
           />
         ))}

@@ -12,6 +12,7 @@ interface ProjectStageColumnProps {
   onDrop: (stage: ProjectStage) => void;
   onEdit: (project: ProjectWithStage) => void;
   onMoveNext: (projectId: string) => void;
+  onDelete: (projectId: string) => void;
   onAddNew?: () => void;
 }
 
@@ -23,6 +24,7 @@ const ProjectStageColumn: React.FC<ProjectStageColumnProps> = ({
   onDrop,
   onEdit,
   onMoveNext,
+  onDelete,
   onAddNew
 }) => {
   const renderStageIcon = (stage: ProjectStage) => {
@@ -102,6 +104,7 @@ const ProjectStageColumn: React.FC<ProjectStageColumnProps> = ({
             onDragStart={onDragStart}
             onEdit={onEdit}
             onMoveNext={onMoveNext}
+            onDelete={onDelete}
             stage={stage}
           />
         ))}
