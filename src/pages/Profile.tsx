@@ -8,7 +8,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { UserProfile } from '@/lib/types';
-import { Mail, Save, X, Plus, ExternalLink } from 'lucide-react';
+import { Mail, Save, X, Plus, ExternalLink, AlertCircle } from 'lucide-react';
+import { validateLinkUrl } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const initialProfile: UserProfile = {
   name: 'Alex Johnson',
@@ -28,6 +30,8 @@ const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [tempProfile, setTempProfile] = useState<UserProfile>(initialProfile);
   const [tempLink, setTempLink] = useState({ title: '', url: '' });
+  const [linkErrors, setLinkErrors] = useState<{[key: number]: string}>({});
+  const [newLinkError, setNewLinkError] = useState<string | null>(null);
   
   const handleEditProfile = () => {
     setTempProfile({...profile});
@@ -35,8 +39,25 @@ const Profile = () => {
   };
   
   const handleSaveProfile = () => {
+    // Validate all links before saving
+    const errors: {[key: number]: string} = {};
+    tempProfile.links?.forEach((link, index) => {
+      const error = validateLinkUrl(link.title, link.url);
+      if (error) {
+        errors[index] = error;
+      }
+    });
+    
+    if (Object.keys(errors).length > 0) {
+      setLinkErrors(errors);
+      toast.error('Please fix invalid URLs before saving');
+      return;
+    }
+    
     setProfile({...tempProfile});
+    setLinkErrors({});
     setIsEditing(false);
+    toast.success('Profile saved successfully');
   };
   
   const handleCancelEdit = () => {
@@ -44,13 +65,23 @@ const Profile = () => {
   };
   
   const handleAddLink = () => {
-    if (tempLink.title && tempLink.url) {
-      setTempProfile({
-        ...tempProfile,
-        links: [...(tempProfile.links || []), tempLink]
-      });
-      setTempLink({ title: '', url: '' });
+    if (!tempLink.title || !tempLink.url) {
+      setNewLinkError('Both title and URL are required');
+      return;
     }
+    
+    const error = validateLinkUrl(tempLink.title, tempLink.url);
+    if (error) {
+      setNewLinkError(error);
+      return;
+    }
+    
+    setTempProfile({
+      ...tempProfile,
+      links: [...(tempProfile.links || []), tempLink]
+    });
+    setTempLink({ title: '', url: '' });
+    setNewLinkError(null);
   };
   
   const handleRemoveLink = (index: number) => {
@@ -146,64 +177,103 @@ const Profile = () => {
                   <div className="rounded-md border">
                     <div className="space-y-3 p-4">
                       {tempProfile.links?.map((link, index) => (
-                        <div key={index} className="flex items-center gap-2">
-                          <Input 
-                            value={link.title}
-                            onChange={(e) => {
-                              const newLinks = [...(tempProfile.links || [])];
-                              newLinks[index] = { ...link, title: e.target.value };
-                              setTempProfile({ ...tempProfile, links: newLinks });
-                            }}
-                            placeholder="Title"
-                            className="w-32"
-                          />
-                          <Input 
-                            value={link.url}
-                            onChange={(e) => {
-                              const newLinks = [...(tempProfile.links || [])];
-                              newLinks[index] = { ...link, url: e.target.value };
-                              setTempProfile({ ...tempProfile, links: newLinks });
-                            }}
-                            placeholder="URL"
-                            className="flex-1"
-                          />
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => handleRemoveLink(index)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
+                        <div key={index} className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Input 
+                              value={link.title}
+                              onChange={(e) => {
+                                const newLinks = [...(tempProfile.links || [])];
+                                newLinks[index] = { ...link, title: e.target.value };
+                                setTempProfile({ ...tempProfile, links: newLinks });
+                                
+                                // Clear error when editing
+                                if (linkErrors[index]) {
+                                  const newErrors = {...linkErrors};
+                                  delete newErrors[index];
+                                  setLinkErrors(newErrors);
+                                }
+                              }}
+                              placeholder="Title"
+                              className="w-32"
+                            />
+                            <Input 
+                              value={link.url}
+                              onChange={(e) => {
+                                const newLinks = [...(tempProfile.links || [])];
+                                newLinks[index] = { ...link, url: e.target.value };
+                                setTempProfile({ ...tempProfile, links: newLinks });
+                                
+                                // Validate on change
+                                const error = validateLinkUrl(link.title, e.target.value);
+                                if (error) {
+                                  setLinkErrors({...linkErrors, [index]: error});
+                                } else {
+                                  const newErrors = {...linkErrors};
+                                  delete newErrors[index];
+                                  setLinkErrors(newErrors);
+                                }
+                              }}
+                              placeholder="URL"
+                              className="flex-1"
+                            />
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => handleRemoveLink(index)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          {linkErrors[index] && (
+                            <div className="flex items-center gap-1 text-sm text-destructive ml-1">
+                              <AlertCircle className="h-3 w-3" />
+                              <span>{linkErrors[index]}</span>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="linkTitle">Link Title</Label>
-                    <Input 
-                      id="linkTitle" 
-                      value={tempLink.title}
-                      onChange={(e) => setTempLink({...tempLink, title: e.target.value})}
-                      placeholder="GitHub"
-                    />
-                  </div>
-                  <div className="space-y-2 sm:col-span-2">
-                    <Label htmlFor="linkUrl">URL</Label>
-                    <div className="flex gap-2">
+                <div className="space-y-2">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="linkTitle">Link Title</Label>
                       <Input 
-                        id="linkUrl" 
-                        value={tempLink.url}
-                        onChange={(e) => setTempLink({...tempLink, url: e.target.value})}
-                        placeholder="https://github.com/username"
+                        id="linkTitle" 
+                        value={tempLink.title}
+                        onChange={(e) => {
+                          setTempLink({...tempLink, title: e.target.value});
+                          setNewLinkError(null);
+                        }}
+                        placeholder="LinkedIn"
                       />
-                      <Button onClick={handleAddLink}>
-                        <Plus className="h-4 w-4" />
-                      </Button>
+                    </div>
+                    <div className="space-y-2 sm:col-span-2">
+                      <Label htmlFor="linkUrl">URL</Label>
+                      <div className="flex gap-2">
+                        <Input 
+                          id="linkUrl" 
+                          value={tempLink.url}
+                          onChange={(e) => {
+                            setTempLink({...tempLink, url: e.target.value});
+                            setNewLinkError(null);
+                          }}
+                          placeholder="https://linkedin.com/in/username"
+                        />
+                        <Button onClick={handleAddLink}>
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
+                  {newLinkError && (
+                    <div className="flex items-center gap-1 text-sm text-destructive ml-1">
+                      <AlertCircle className="h-3 w-3" />
+                      <span>{newLinkError}</span>
+                    </div>
+                  )}
                 </div>
               </CardContent>
               <CardFooter className="flex justify-end gap-2">
