@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AnimatedTransition } from '@/components/AnimatedTransition';
 import { useAnimateIn } from '@/lib/animations';
 import ProjectRoadmap from '@/components/ProjectRoadmap';
@@ -7,46 +7,69 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { UserProfile } from '@/lib/types';
-import { Mail, Save, X, Plus, ExternalLink, AlertCircle, User, Edit2 } from 'lucide-react';
-import { validateLinkUrl } from '@/lib/utils';
+import { Mail, Save, X, Plus, ExternalLink, User, Edit2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-
-const initialProfile: UserProfile = {
-  name: 'Alex Johnson',
-  email: 'alex@example.com',
-  description: 'AI researcher and knowledge management enthusiast. Building a digital second brain to enhance creativity and productivity.',
-  links: [
-    { title: 'Website', url: 'https://example.com' },
-    { title: 'LinkedIn', url: 'https://linkedin.com/in/alexjohnson' },
-    { title: 'GitHub', url: 'https://github.com' },
-    { title: 'Twitter', url: 'https://twitter.com' },
-  ],
-};
+import { useProfile } from '@/hooks/useProfile';
+import { validatePlatformUrl } from '@/lib/validations/profile';
 
 const Profile = () => {
   const showHeader = useAnimateIn(false, 200);
   const showProfileCard = useAnimateIn(false, 400);
   const showRoadmap = useAnimateIn(false, 600);
-  const [profile, setProfile] = useState<UserProfile>(initialProfile);
+  
+  const { profile, loading, updateProfile, addLink, updateLink, deleteLink } = useProfile();
+  
   const [isEditing, setIsEditing] = useState(false);
-  const [tempProfile, setTempProfile] = useState<UserProfile>(initialProfile);
+  const [tempProfile, setTempProfile] = useState({
+    name: '',
+    email: '',
+    description: '',
+  });
+  const [tempLinks, setTempLinks] = useState<Array<{id: string; title: string; url: string}>>([]);
   const [tempLink, setTempLink] = useState({ title: '', url: '' });
-  const [linkErrors, setLinkErrors] = useState<{[key: number]: string}>({});
+  const [linkErrors, setLinkErrors] = useState<{[key: string]: string}>({});
   const [newLinkError, setNewLinkError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (profile && !isEditing) {
+      setTempProfile({
+        name: profile.name,
+        email: profile.email,
+        description: profile.description || '',
+      });
+      setTempLinks(profile.links.map(link => ({
+        id: link.id,
+        title: link.title,
+        url: link.url,
+      })));
+    }
+  }, [profile, isEditing]);
   
   const handleEditProfile = () => {
-    setTempProfile({...profile});
-    setIsEditing(true);
+    if (profile) {
+      setTempProfile({
+        name: profile.name,
+        email: profile.email,
+        description: profile.description || '',
+      });
+      setTempLinks(profile.links.map(link => ({
+        id: link.id,
+        title: link.title,
+        url: link.url,
+      })));
+      setLinkErrors({});
+      setNewLinkError(null);
+      setIsEditing(true);
+    }
   };
   
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
     // Validate all links before saving
-    const errors: {[key: number]: string} = {};
-    tempProfile.links?.forEach((link, index) => {
-      const error = validateLinkUrl(link.title, link.url);
+    const errors: {[key: string]: string} = {};
+    tempLinks.forEach((link) => {
+      const error = validatePlatformUrl(link.title, link.url);
       if (error) {
-        errors[index] = error;
+        errors[link.id] = error;
       }
     });
     
@@ -55,44 +78,54 @@ const Profile = () => {
       toast.error('Please fix invalid URLs before saving');
       return;
     }
+
+    // Update profile info
+    const success = await updateProfile({
+      name: tempProfile.name,
+      email: tempProfile.email,
+      description: tempProfile.description,
+    });
+
+    if (!success) return;
+
+    // Update all links
+    const linkPromises = tempLinks.map(link => 
+      updateLink(link.id, link.title, link.url)
+    );
     
-    setProfile({...tempProfile});
+    await Promise.all(linkPromises);
+    
     setLinkErrors({});
     setIsEditing(false);
-    toast.success('Profile saved successfully');
   };
   
   const handleCancelEdit = () => {
     setIsEditing(false);
+    setLinkErrors({});
+    setNewLinkError(null);
   };
   
-  const handleAddLink = () => {
+  const handleAddLink = async () => {
     if (!tempLink.title || !tempLink.url) {
       setNewLinkError('Both title and URL are required');
       return;
     }
     
-    const error = validateLinkUrl(tempLink.title, tempLink.url);
+    const error = validatePlatformUrl(tempLink.title, tempLink.url);
     if (error) {
       setNewLinkError(error);
       return;
     }
     
-    setTempProfile({
-      ...tempProfile,
-      links: [...(tempProfile.links || []), tempLink]
-    });
-    setTempLink({ title: '', url: '' });
-    setNewLinkError(null);
+    const success = await addLink(tempLink.title, tempLink.url);
+    if (success) {
+      setTempLink({ title: '', url: '' });
+      setNewLinkError(null);
+    }
   };
   
-  const handleRemoveLink = (index: number) => {
-    const newLinks = [...(tempProfile.links || [])];
-    newLinks.splice(index, 1);
-    setTempProfile({
-      ...tempProfile,
-      links: newLinks
-    });
+  const handleRemoveLink = async (id: string) => {
+    await deleteLink(id);
   };
   
   return (
@@ -118,7 +151,17 @@ const Profile = () => {
         {/* Profile Card */}
         <AnimatedTransition show={showProfileCard} animation="slide-up" duration={600}>
           <div className="mb-12">
-            {!isEditing ? (
+            {loading ? (
+              <div className="flex items-center justify-center min-h-[300px]">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : !profile ? (
+              <Card className="w-full glass-panel">
+                <CardContent className="p-8 text-center">
+                  <p className="text-muted-foreground">Please log in to view your profile</p>
+                </CardContent>
+              </Card>
+            ) : !isEditing ? (
               <Card className="w-full glass-panel hover-float">
                 <CardHeader className="space-y-6 p-8">
                   {/* Profile Header with Avatar */}
@@ -156,9 +199,9 @@ const Profile = () => {
                     <div className="pt-6 border-t border-border/50">
                       <h3 className="text-sm font-semibold text-muted-foreground mb-4">Connect</h3>
                       <div className="flex flex-wrap gap-3">
-                        {profile.links.map((link, index) => (
+                        {profile.links.map((link) => (
                           <a 
-                            key={index} 
+                            key={link.id} 
                             href={link.url} 
                             target="_blank" 
                             rel="noopener noreferrer"
@@ -217,20 +260,20 @@ const Profile = () => {
                   <Label className="text-sm font-medium">External Links</Label>
                   <div className="rounded-lg border border-border/50 bg-muted/20">
                     <div className="space-y-3 p-4">
-                      {tempProfile.links?.map((link, index) => (
-                        <div key={index} className="space-y-2">
+                      {tempLinks.map((link) => (
+                        <div key={link.id} className="space-y-2">
                           <div className="flex items-center gap-2">
                             <Input 
                               value={link.title}
                               onChange={(e) => {
-                                const newLinks = [...(tempProfile.links || [])];
-                                newLinks[index] = { ...link, title: e.target.value };
-                                setTempProfile({ ...tempProfile, links: newLinks });
+                                setTempLinks(tempLinks.map(l => 
+                                  l.id === link.id ? { ...l, title: e.target.value } : l
+                                ));
                                 
                                 // Clear error when editing
-                                if (linkErrors[index]) {
+                                if (linkErrors[link.id]) {
                                   const newErrors = {...linkErrors};
-                                  delete newErrors[index];
+                                  delete newErrors[link.id];
                                   setLinkErrors(newErrors);
                                 }
                               }}
@@ -240,17 +283,17 @@ const Profile = () => {
                             <Input 
                               value={link.url}
                               onChange={(e) => {
-                                const newLinks = [...(tempProfile.links || [])];
-                                newLinks[index] = { ...link, url: e.target.value };
-                                setTempProfile({ ...tempProfile, links: newLinks });
+                                setTempLinks(tempLinks.map(l => 
+                                  l.id === link.id ? { ...l, url: e.target.value } : l
+                                ));
                                 
                                 // Validate on change
-                                const error = validateLinkUrl(link.title, e.target.value);
+                                const error = validatePlatformUrl(link.title, e.target.value);
                                 if (error) {
-                                  setLinkErrors({...linkErrors, [index]: error});
+                                  setLinkErrors({...linkErrors, [link.id]: error});
                                 } else {
                                   const newErrors = {...linkErrors};
-                                  delete newErrors[index];
+                                  delete newErrors[link.id];
                                   setLinkErrors(newErrors);
                                 }
                               }}
@@ -260,16 +303,16 @@ const Profile = () => {
                             <Button 
                               variant="ghost" 
                               size="icon"
-                              onClick={() => handleRemoveLink(index)}
+                              onClick={() => handleRemoveLink(link.id)}
                               className="hover:bg-destructive/10 hover:text-destructive"
                             >
                               <X className="h-4 w-4" />
                             </Button>
                           </div>
-                          {linkErrors[index] && (
+                          {linkErrors[link.id] && (
                             <div className="flex items-center gap-1 text-sm text-destructive ml-1">
-                              <AlertCircle className="h-3 w-3" />
-                              <span>{linkErrors[index]}</span>
+                              <X className="h-3 w-3" />
+                              <span>{linkErrors[link.id]}</span>
                             </div>
                           )}
                         </div>
@@ -316,7 +359,7 @@ const Profile = () => {
                   </div>
                   {newLinkError && (
                     <div className="flex items-center gap-1 text-sm text-destructive ml-1">
-                      <AlertCircle className="h-3 w-3" />
+                      <X className="h-3 w-3" />
                       <span>{newLinkError}</span>
                     </div>
                   )}
