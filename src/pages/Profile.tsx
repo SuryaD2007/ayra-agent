@@ -144,12 +144,29 @@ const Profile = () => {
                 <div className="space-y-2">
                   <Label>Links</Label>
                   <div className="rounded-md border">
-                    <div className="space-y-2 p-4">
+                    <div className="space-y-3 p-4">
                       {tempProfile.links?.map((link, index) => (
-                        <div key={index} className="flex items-center justify-between gap-2">
-                          <div className="flex-1 truncate">
-                            <span className="font-medium">{link.title}</span>: {link.url}
-                          </div>
+                        <div key={index} className="flex items-center gap-2">
+                          <Input 
+                            value={link.title}
+                            onChange={(e) => {
+                              const newLinks = [...(tempProfile.links || [])];
+                              newLinks[index] = { ...link, title: e.target.value };
+                              setTempProfile({ ...tempProfile, links: newLinks });
+                            }}
+                            placeholder="Title"
+                            className="w-32"
+                          />
+                          <Input 
+                            value={link.url}
+                            onChange={(e) => {
+                              const newLinks = [...(tempProfile.links || [])];
+                              newLinks[index] = { ...link, url: e.target.value };
+                              setTempProfile({ ...tempProfile, links: newLinks });
+                            }}
+                            placeholder="URL"
+                            className="flex-1"
+                          />
                           <Button 
                             variant="ghost" 
                             size="sm" 
