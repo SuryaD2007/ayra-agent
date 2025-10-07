@@ -307,11 +307,17 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          due_date: string | null
           id: string
+          notes: string | null
+          priority: string | null
+          project_files: Json | null
+          project_links: Json | null
           review_count: number
           review_score: number | null
           stage: string
           status: string
+          tags: string[] | null
           title: string
           updated_at: string
           user_id: string
@@ -319,11 +325,17 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string | null
+          due_date?: string | null
           id?: string
+          notes?: string | null
+          priority?: string | null
+          project_files?: Json | null
+          project_links?: Json | null
           review_count?: number
           review_score?: number | null
           stage?: string
           status?: string
+          tags?: string[] | null
           title: string
           updated_at?: string
           user_id: string
@@ -331,11 +343,17 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string | null
+          due_date?: string | null
           id?: string
+          notes?: string | null
+          priority?: string | null
+          project_files?: Json | null
+          project_links?: Json | null
           review_count?: number
           review_score?: number | null
           stage?: string
           status?: string
+          tags?: string[] | null
           title?: string
           updated_at?: string
           user_id?: string
