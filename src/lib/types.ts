@@ -23,6 +23,8 @@ export interface UserProfile {
   email: string;
   avatar?: string;
   description?: string;
+  website?: string;
+  linkedin?: string;
   links?: {
     title: string;
     url: string;

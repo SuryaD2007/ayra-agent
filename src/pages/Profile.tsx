@@ -14,8 +14,9 @@ const initialProfile: UserProfile = {
   name: 'Alex Johnson',
   email: 'alex@example.com',
   description: 'AI researcher and knowledge management enthusiast. Building a digital second brain to enhance creativity and productivity.',
+  website: 'https://example.com',
+  linkedin: 'https://linkedin.com/in/alexjohnson',
   links: [
-    { title: 'Personal Website', url: 'https://example.com' },
     { title: 'GitHub', url: 'https://github.com' },
     { title: 'Twitter', url: 'https://twitter.com' },
   ],
@@ -81,6 +82,28 @@ const Profile = () => {
                 </div>
                 
                 <div className="ml-auto flex gap-2">
+                  {profile.website && (
+                    <a 
+                      href={profile.website} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+                    >
+                      Website
+                      <ExternalLink size={14} />
+                    </a>
+                  )}
+                  {profile.linkedin && (
+                    <a 
+                      href={profile.linkedin} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+                    >
+                      LinkedIn
+                      <ExternalLink size={14} />
+                    </a>
+                  )}
                   {profile.links?.map((link, index) => (
                     <a 
                       key={index} 
@@ -138,6 +161,29 @@ const Profile = () => {
                     value={tempProfile.description || ''}
                     onChange={(e) => setTempProfile({...tempProfile, description: e.target.value})}
                   />
+                </div>
+                
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="website">Personal Website</Label>
+                    <Input 
+                      id="website" 
+                      type="url"
+                      placeholder="https://yourwebsite.com"
+                      value={tempProfile.website || ''}
+                      onChange={(e) => setTempProfile({...tempProfile, website: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="linkedin">LinkedIn Profile</Label>
+                    <Input 
+                      id="linkedin" 
+                      type="url"
+                      placeholder="https://linkedin.com/in/yourname"
+                      value={tempProfile.linkedin || ''}
+                      onChange={(e) => setTempProfile({...tempProfile, linkedin: e.target.value})}
+                    />
+                  </div>
                 </div>
                 
                 <div className="space-y-2">
