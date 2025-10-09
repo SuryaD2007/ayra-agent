@@ -21,6 +21,8 @@ import PreviewPage from "./pages/PreviewPage";
 import Navbar from "./components/Navbar";
 import ConfigurationBanner from "./components/ConfigurationBanner";
 import PreLaunchGuard from "./components/auth/PreLaunchGuard";
+import RoleGuard from "./components/auth/RoleGuard";
+import Admin from "./pages/Admin";
 import { useConfigurationValidation } from "./hooks/useConfigurationValidation";
 import './lib/sampleData'; // Import sample data utilities
 
@@ -114,6 +116,18 @@ const AppRoutes = () => {
           <PageTransition>
             <PreLaunchGuard>
               <Settings />
+            </PreLaunchGuard>
+          </PageTransition>
+        } 
+      />
+      <Route 
+        path="/admin" 
+        element={
+          <PageTransition>
+            <PreLaunchGuard>
+              <RoleGuard allowedRoles={['admin']}>
+                <Admin />
+              </RoleGuard>
             </PreLaunchGuard>
           </PageTransition>
         } 

@@ -10,9 +10,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRoles } from '@/hooks/useRoles';
+import RoleBadge from '@/components/admin/RoleBadge';
 
 const UserProfile: React.FC = () => {
   const { user, logout } = useAuth();
+  const { roles } = useRoles();
 
   const handleSignOut = async () => {
     try {
@@ -46,6 +49,13 @@ const UserProfile: React.FC = () => {
                 <div className="text-xs text-muted-foreground truncate">
                   {user.email}
                 </div>
+                {roles.length > 0 && (
+                  <div className="flex gap-1 mt-1">
+                    {roles.map((role) => (
+                      <RoleBadge key={role} role={role} size="sm" />
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </Button>
