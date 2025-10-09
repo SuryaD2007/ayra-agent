@@ -1,13 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Send } from 'lucide-react';
+import RichTextEditor from './RichTextEditor';
 
 interface EmailGroup {
   id: string;
@@ -26,7 +26,7 @@ export default function BulkEmailComposer() {
   const { toast } = useToast();
 
   // Load groups when component mounts
-  useState(() => {
+  useEffect(() => {
     const loadGroups = async () => {
       const { data } = await supabase
         .from('email_groups')
@@ -35,7 +35,7 @@ export default function BulkEmailComposer() {
       if (data) setGroups(data);
     };
     loadGroups();
-  });
+  }, []);
 
   const handleSend = async () => {
     if (!subject.trim() || !body.trim()) {
@@ -106,7 +106,7 @@ export default function BulkEmailComposer() {
             email: recipient.email,
             notificationType: 'bulk',
             subject,
-            body: body.replace(/\n/g, '<br>'),
+            body, // Already HTML from the rich text editor
           },
         })
       );
@@ -216,15 +216,10 @@ export default function BulkEmailComposer() {
 
         <div className="space-y-2 animate-fade-in">
           <Label htmlFor="body" className="text-sm font-medium">Message</Label>
-          <Textarea
-            id="body"
-            placeholder="Write your email message here..."
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            rows={10}
-            className="resize-none transition-all duration-300 hover:border-primary/50 focus:border-primary"
+          <RichTextEditor
+            content={body}
+            onChange={setBody}
           />
-          <p className="text-xs text-muted-foreground">Tip: Use HTML tags for formatting</p>
         </div>
 
         <Button 

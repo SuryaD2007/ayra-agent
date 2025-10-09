@@ -126,6 +126,48 @@
   @apply bg-gradient-to-br from-primary/20 to-primary/10 rounded-full shadow-lg;
 }
 
+/* Rich Text Editor Styles */
+.ProseMirror {
+  @apply min-h-[300px] outline-none;
+}
+
+.ProseMirror p {
+  @apply my-2;
+}
+
+.ProseMirror h1 {
+  @apply text-3xl font-bold mt-4 mb-2;
+}
+
+.ProseMirror h2 {
+  @apply text-2xl font-bold mt-3 mb-2;
+}
+
+.ProseMirror h3 {
+  @apply text-xl font-bold mt-2 mb-1;
+}
+
+.ProseMirror ul,
+.ProseMirror ol {
+  @apply pl-6 my-2;
+}
+
+.ProseMirror ul {
+  @apply list-disc;
+}
+
+.ProseMirror ol {
+  @apply list-decimal;
+}
+
+.ProseMirror img {
+  @apply max-w-full h-auto rounded-md my-2;
+}
+
+.ProseMirror a {
+  @apply text-primary underline cursor-pointer;
+}
+
 @keyframes pulse {
   0%, 100% {
     opacity: 1;
