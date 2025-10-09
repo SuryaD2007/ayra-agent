@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { Brain, LogIn, Search, Upload, User, Settings, LogOut, Moon, Sun, Table, Info, HelpCircle, Code } from 'lucide-react';
+import { Brain, LogIn, Search, Upload, User, Settings, LogOut, Moon, Sun, Table, Info, HelpCircle, Code, Shield } from 'lucide-react';
 import { useRippleEffect } from '@/lib/animations';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useRoles } from '@/hooks/useRoles';
 import AuthModal from '@/components/AuthModal';
 import NewItemModal from '@/components/manage/NewItemModal';
 import { Button } from '@/components/ui/button';
@@ -124,6 +125,7 @@ export const Navbar = () => {
   const [isNewItemModalOpen, setIsNewItemModalOpen] = useState(false);
   const { isAuthenticated, logout, loading } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { isAdmin } = useRoles();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   
@@ -163,6 +165,7 @@ export const Navbar = () => {
     { to: '/search', icon: <Search size={20} />, label: 'Search', id: 'search' },
     { to: '/profile', icon: <User size={20} />, label: 'Profile', id: 'profile' },
     { to: '/settings', icon: <Settings size={20} />, label: 'Settings', id: 'settings' },
+    ...(isAdmin() ? [{ to: '/admin', icon: <Shield size={20} />, label: 'Admin', id: 'admin' }] : []),
   ];
 
   const importNavItem = { 
