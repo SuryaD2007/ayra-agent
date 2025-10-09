@@ -168,21 +168,26 @@ export default function EmailGroupsManager() {
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      <Card>
-        <CardHeader>
+      <Card className="glass-panel border-border/50 animate-fade-in hover-float">
+        <CardHeader className="border-b border-border/30">
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Email Groups</CardTitle>
-              <CardDescription>Manage recipient groups</CardDescription>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Users className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-xl">Email Groups</CardTitle>
+                <CardDescription>Manage recipient groups</CardDescription>
+              </div>
             </div>
             <Dialog open={isNewGroupOpen} onOpenChange={setIsNewGroupOpen}>
               <DialogTrigger asChild>
-                <Button size="sm">
+                <Button size="sm" className="smooth-bounce">
                   <Plus className="h-4 w-4 mr-2" />
                   New Group
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="glass-panel">
                 <DialogHeader>
                   <DialogTitle>Create Email Group</DialogTitle>
                   <DialogDescription>
@@ -197,6 +202,7 @@ export default function EmailGroupsManager() {
                       value={newGroupName}
                       onChange={(e) => setNewGroupName(e.target.value)}
                       placeholder="e.g., Newsletter Subscribers"
+                      className="transition-all duration-300 hover:border-primary/50 focus:border-primary"
                     />
                   </div>
                   <div className="space-y-2">
@@ -206,9 +212,10 @@ export default function EmailGroupsManager() {
                       value={newGroupDesc}
                       onChange={(e) => setNewGroupDesc(e.target.value)}
                       placeholder="What is this group for?"
+                      className="transition-all duration-300 hover:border-primary/50 focus:border-primary"
                     />
                   </div>
-                  <Button onClick={createGroup} className="w-full">
+                  <Button onClick={createGroup} className="w-full hover-glow transition-all duration-300">
                     Create Group
                   </Button>
                 </div>
@@ -216,20 +223,22 @@ export default function EmailGroupsManager() {
             </Dialog>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-4">
           <div className="space-y-2">
             {groups.map((group) => (
               <div
                 key={group.id}
-                className={`p-3 rounded-lg border cursor-pointer hover:bg-accent transition-colors ${
-                  selectedGroup === group.id ? 'bg-accent' : ''
+                className={`p-3 rounded-lg border cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-md ${
+                  selectedGroup === group.id 
+                    ? 'bg-primary/10 border-primary/50 shadow-sm' 
+                    : 'hover:bg-accent hover:border-primary/30'
                 }`}
                 onClick={() => setSelectedGroup(group.id)}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4" />
+                      <Users className="h-4 w-4 text-primary" />
                       <h4 className="font-medium">{group.name}</h4>
                     </div>
                     {group.description && (
@@ -243,6 +252,7 @@ export default function EmailGroupsManager() {
                       e.stopPropagation();
                       deleteGroup(group.id);
                     }}
+                    className="hover:text-destructive transition-colors"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -250,32 +260,40 @@ export default function EmailGroupsManager() {
               </div>
             ))}
             {groups.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                No groups yet. Create your first group to get started.
-              </p>
+              <div className="text-center py-8 animate-fade-in">
+                <div className="text-4xl mb-3">👥</div>
+                <p className="text-sm text-muted-foreground">
+                  No groups yet. Create your first group to get started.
+                </p>
+              </div>
             )}
           </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
+      <Card className="glass-panel border-border/50 animate-fade-in hover-float">
+        <CardHeader className="border-b border-border/30">
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Group Members</CardTitle>
-              <CardDescription>
-                {selectedGroup ? 'Manage members in this group' : 'Select a group to view members'}
-              </CardDescription>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Mail className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-xl">Group Members</CardTitle>
+                <CardDescription>
+                  {selectedGroup ? 'Manage members in this group' : 'Select a group to view members'}
+                </CardDescription>
+              </div>
             </div>
             {selectedGroup && (
               <Dialog open={isAddMemberOpen} onOpenChange={setIsAddMemberOpen}>
                 <DialogTrigger asChild>
-                  <Button size="sm">
+                  <Button size="sm" className="smooth-bounce">
                     <Plus className="h-4 w-4 mr-2" />
                     Add Member
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="glass-panel">
                   <DialogHeader>
                     <DialogTitle>Add Member</DialogTitle>
                     <DialogDescription>Add a new member to this group</DialogDescription>
@@ -289,6 +307,7 @@ export default function EmailGroupsManager() {
                         value={newMemberEmail}
                         onChange={(e) => setNewMemberEmail(e.target.value)}
                         placeholder="member@example.com"
+                        className="transition-all duration-300 hover:border-primary/50 focus:border-primary"
                       />
                     </div>
                     <div className="space-y-2">
@@ -298,9 +317,10 @@ export default function EmailGroupsManager() {
                         value={newMemberName}
                         onChange={(e) => setNewMemberName(e.target.value)}
                         placeholder="John Doe"
+                        className="transition-all duration-300 hover:border-primary/50 focus:border-primary"
                       />
                     </div>
-                    <Button onClick={addMember} className="w-full">
+                    <Button onClick={addMember} className="w-full hover-glow transition-all duration-300">
                       Add Member
                     </Button>
                   </div>
@@ -309,17 +329,17 @@ export default function EmailGroupsManager() {
             )}
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-4">
           <div className="space-y-2">
             {selectedGroup ? (
               members.length > 0 ? (
                 members.map((member) => (
                   <div
                     key={member.id}
-                    className="p-3 rounded-lg border flex items-center justify-between"
+                    className="p-3 rounded-lg border flex items-center justify-between transition-all duration-300 hover:scale-[1.01] hover:shadow-sm hover:border-primary/30"
                   >
                     <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <Mail className="h-4 w-4 text-primary" />
                       <div>
                         <p className="font-medium">{member.name || member.email}</p>
                         {member.name && (
@@ -331,20 +351,27 @@ export default function EmailGroupsManager() {
                       size="sm"
                       variant="ghost"
                       onClick={() => removeMember(member.id)}
+                      className="hover:text-destructive transition-colors"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  No members in this group yet.
-                </p>
+                <div className="text-center py-8 animate-fade-in">
+                  <div className="text-4xl mb-3">📭</div>
+                  <p className="text-sm text-muted-foreground">
+                    No members in this group yet.
+                  </p>
+                </div>
               )
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                Select a group to view its members
-              </p>
+              <div className="text-center py-8 animate-fade-in">
+                <div className="text-4xl mb-3">👈</div>
+                <p className="text-sm text-muted-foreground">
+                  Select a group to view its members
+                </p>
+              </div>
             )}
           </div>
         </CardContent>

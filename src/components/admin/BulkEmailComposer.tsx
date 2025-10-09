@@ -18,8 +18,9 @@ interface EmailGroup {
 export default function BulkEmailComposer() {
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
-  const [recipientType, setRecipientType] = useState<'all' | 'group'>('all');
+  const [recipientType, setRecipientType] = useState<'all' | 'group' | 'individual'>('all');
   const [selectedGroup, setSelectedGroup] = useState('');
+  const [individualEmail, setIndividualEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [groups, setGroups] = useState<EmailGroup[]>([]);
   const { toast } = useToast();
@@ -55,6 +56,15 @@ export default function BulkEmailComposer() {
       return;
     }
 
+    if (recipientType === 'individual' && !individualEmail.trim()) {
+      toast({
+        title: 'No email provided',
+        description: 'Please enter an email address',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -66,13 +76,16 @@ export default function BulkEmailComposer() {
           .from('profiles')
           .select('email, name');
         recipients = profiles || [];
-      } else {
+      } else if (recipientType === 'group') {
         // Get group members
         const { data: members } = await supabase
           .from('email_group_members')
           .select('email, name')
           .eq('group_id', selectedGroup);
         recipients = members || [];
+      } else {
+        // Individual recipient
+        recipients = [{ email: individualEmail, name: 'User' }];
       }
 
       if (recipients.length === 0) {
@@ -109,6 +122,7 @@ export default function BulkEmailComposer() {
       setSubject('');
       setBody('');
       setSelectedGroup('');
+      setIndividualEmail('');
     } catch (error: any) {
       console.error('Error sending bulk emails:', error);
       toast({
@@ -122,37 +136,51 @@ export default function BulkEmailComposer() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Compose Bulk Email</CardTitle>
-        <CardDescription>
-          Send custom emails to all users or specific groups
-        </CardDescription>
+    <Card className="glass-panel border-border/50 animate-fade-in">
+      <CardHeader className="border-b border-border/30">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <Send className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <CardTitle className="text-xl">Compose Email</CardTitle>
+            <CardDescription>
+              Send custom emails to users, groups, or individuals
+            </CardDescription>
+          </div>
+        </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="recipient-type">Send To</Label>
-          <Select value={recipientType} onValueChange={(value: 'all' | 'group') => setRecipientType(value)}>
-            <SelectTrigger id="recipient-type">
+      <CardContent className="space-y-6 pt-6">
+        <div className="space-y-2 animate-fade-in">
+          <Label htmlFor="recipient-type" className="text-sm font-medium">Send To</Label>
+          <Select value={recipientType} onValueChange={(value: 'all' | 'group' | 'individual') => setRecipientType(value)}>
+            <SelectTrigger id="recipient-type" className="transition-all duration-300 hover:border-primary/50">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Users</SelectItem>
-              <SelectItem value="group">Specific Group</SelectItem>
+            <SelectContent className="glass-panel border-border/50 z-50">
+              <SelectItem value="all" className="cursor-pointer transition-colors">
+                📢 All Users
+              </SelectItem>
+              <SelectItem value="group" className="cursor-pointer transition-colors">
+                👥 Specific Group
+              </SelectItem>
+              <SelectItem value="individual" className="cursor-pointer transition-colors">
+                👤 Individual
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         {recipientType === 'group' && (
-          <div className="space-y-2">
-            <Label htmlFor="group">Select Group</Label>
+          <div className="space-y-2 animate-fade-in">
+            <Label htmlFor="group" className="text-sm font-medium">Select Group</Label>
             <Select value={selectedGroup} onValueChange={setSelectedGroup}>
-              <SelectTrigger id="group">
+              <SelectTrigger id="group" className="transition-all duration-300 hover:border-primary/50">
                 <SelectValue placeholder="Choose a group" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="glass-panel border-border/50 z-50">
                 {groups.map((group) => (
-                  <SelectItem key={group.id} value={group.id}>
+                  <SelectItem key={group.id} value={group.id} className="cursor-pointer transition-colors">
                     {group.name}
                   </SelectItem>
                 ))}
@@ -161,29 +189,49 @@ export default function BulkEmailComposer() {
           </div>
         )}
 
-        <div className="space-y-2">
-          <Label htmlFor="subject">Subject</Label>
+        {recipientType === 'individual' && (
+          <div className="space-y-2 animate-fade-in">
+            <Label htmlFor="individual-email" className="text-sm font-medium">Email Address</Label>
+            <Input
+              id="individual-email"
+              type="email"
+              placeholder="user@example.com"
+              value={individualEmail}
+              onChange={(e) => setIndividualEmail(e.target.value)}
+              className="transition-all duration-300 hover:border-primary/50 focus:border-primary"
+            />
+          </div>
+        )}
+
+        <div className="space-y-2 animate-fade-in">
+          <Label htmlFor="subject" className="text-sm font-medium">Subject</Label>
           <Input
             id="subject"
             placeholder="Email subject"
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
+            className="transition-all duration-300 hover:border-primary/50 focus:border-primary"
           />
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="body">Message</Label>
+        <div className="space-y-2 animate-fade-in">
+          <Label htmlFor="body" className="text-sm font-medium">Message</Label>
           <Textarea
             id="body"
             placeholder="Write your email message here..."
             value={body}
             onChange={(e) => setBody(e.target.value)}
             rows={10}
-            className="resize-none"
+            className="resize-none transition-all duration-300 hover:border-primary/50 focus:border-primary"
           />
+          <p className="text-xs text-muted-foreground">Tip: Use HTML tags for formatting</p>
         </div>
 
-        <Button onClick={handleSend} disabled={isLoading} className="w-full">
+        <Button 
+          onClick={handleSend} 
+          disabled={isLoading} 
+          className="w-full transition-all duration-300 hover-glow hover:scale-[1.02] active:scale-[0.98]"
+        >
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
