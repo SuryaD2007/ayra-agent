@@ -29,6 +29,8 @@ export default function IPBanManagement() {
   const [bannedIPs, setBannedIPs] = useState<BannedIP[]>([]);
   const [loginHistory, setLoginHistory] = useState<LoginHistory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [newIP, setNewIP] = useState('');
+  const [banReason, setBanReason] = useState('');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -63,6 +65,43 @@ export default function IPBanManagement() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const banIP = async () => {
+    if (!newIP.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Please enter an IP address',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('banned_ips')
+        .insert({
+          ip_address: newIP.trim(),
+          reason: banReason.trim() || null,
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: 'IP Banned',
+        description: `IP address ${newIP} has been banned`,
+      });
+
+      setNewIP('');
+      setBanReason('');
+      loadData();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
     }
   };
 
@@ -131,6 +170,29 @@ export default function IPBanManagement() {
           </TabsList>
 
           <TabsContent value="banned" className="space-y-4">
+            <div className="glass-panel border-border/50 p-4 space-y-4">
+              <div className="flex flex-col gap-3">
+                <h3 className="text-sm font-semibold">Manually Ban IP Address</h3>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Enter IP address (e.g., 192.168.1.1)"
+                    value={newIP}
+                    onChange={(e) => setNewIP(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Input
+                    placeholder="Reason (optional)"
+                    value={banReason}
+                    onChange={(e) => setBanReason(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button onClick={banIP} className="whitespace-nowrap">
+                    Ban IP
+                  </Button>
+                </div>
+              </div>
+            </div>
+            
             <div className="border rounded-lg overflow-hidden glass-panel border-border/50">
               <Table>
                 <TableHeader>
