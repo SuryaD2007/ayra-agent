@@ -63,6 +63,10 @@ export default function RichTextEditor({ content, onChange }: RichTextEditorProp
       attributes: {
         class: 'prose prose-sm max-w-none focus:outline-none min-h-[300px] p-4 border rounded-md',
       },
+      handleKeyDown: (view, event) => {
+        // Allow default backspace behavior - delete one character at a time
+        return false;
+      },
     },
   });
 
