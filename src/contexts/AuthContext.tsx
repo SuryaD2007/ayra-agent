@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { getItems, createSpace, createItem, upsertTag, setItemTags, DataCache } from '@/lib/data';
 import { toast } from '@/hooks/use-toast';
-import { useIPTracking } from '@/hooks/useIPTracking';
 
 interface AuthContextType {
   user: User | null;
@@ -24,9 +23,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
   const [migrationInProgress, setMigrationInProgress] = useState(false);
-
-  // Track user IP on login
-  useIPTracking(user?.id);
 
   // Convert base64 dataUrl to Blob
   const dataUrlToBlob = (dataUrl: string): Blob => {

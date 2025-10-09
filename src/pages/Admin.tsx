@@ -7,7 +7,6 @@ import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
 import NotificationsLog from '@/components/admin/NotificationsLog';
 import BulkEmailComposer from '@/components/admin/BulkEmailComposer';
 import EmailGroupsManager from '@/components/admin/EmailGroupsManager';
-import IPBanManagement from '@/components/admin/IPBanManagement';
 import { useAdminData } from '@/hooks/useAdminData';
 
 const Admin = () => {
@@ -54,7 +53,7 @@ const Admin = () => {
 
       <Tabs defaultValue="users" className="space-y-6">
         <TabsList className="glass-panel p-1.5 h-auto">
-          <div className="grid w-full grid-cols-2 md:grid-cols-5 gap-1">
+          <div className="grid w-full grid-cols-2 md:grid-cols-4 gap-1">
             <TabsTrigger value="users" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-300 hover-glow">
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Users</span>
@@ -62,10 +61,6 @@ const Admin = () => {
             <TabsTrigger value="analytics" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-300 hover-glow">
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Analytics</span>
-            </TabsTrigger>
-            <TabsTrigger value="security" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-300 hover-glow">
-              <Shield className="h-4 w-4" />
-              <span className="hidden sm:inline">Security</span>
             </TabsTrigger>
             <TabsTrigger value="notifications" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-300 hover-glow">
               <Bell className="h-4 w-4" />
@@ -106,10 +101,6 @@ const Admin = () => {
           <div className="glass-panel hover-float border-border/50 rounded-lg">
             <AnalyticsDashboard analytics={analytics} />
           </div>
-        </TabsContent>
-
-        <TabsContent value="security" className="space-y-4 animate-fade-in">
-          <IPBanManagement />
         </TabsContent>
 
         <TabsContent value="notifications" className="space-y-4 animate-fade-in">
