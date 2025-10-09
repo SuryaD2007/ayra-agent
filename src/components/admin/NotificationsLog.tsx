@@ -137,9 +137,10 @@ const NotificationsLog = ({ notifications }: NotificationsLogProps) => {
           <div className="space-y-4">
             <div>
               <h4 className="text-sm font-medium mb-2">Email Body:</h4>
-              <div className="bg-muted p-4 rounded-md text-sm whitespace-pre-wrap">
-                {selectedNotification?.body}
-              </div>
+              <div 
+                className="bg-background border border-border p-6 rounded-md text-sm overflow-auto max-h-[500px]"
+                dangerouslySetInnerHTML={{ __html: selectedNotification?.body || '' }}
+              />
             </div>
             <div className="text-xs text-muted-foreground">
               <p>Created: {new Date(selectedNotification?.created_at).toLocaleString()}</p>
