@@ -1,11 +1,10 @@
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shield, Users, BarChart3, Bell, Mail, Send } from 'lucide-react';
+import { Shield, Users, BarChart3, Bell, Send } from 'lucide-react';
 import UserManagement from '@/components/admin/UserManagement';
 import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
 import NotificationsLog from '@/components/admin/NotificationsLog';
-import EmailTester from '@/components/admin/EmailTester';
 import BulkEmailComposer from '@/components/admin/BulkEmailComposer';
 import EmailGroupsManager from '@/components/admin/EmailGroupsManager';
 import { useAdminData } from '@/hooks/useAdminData';
@@ -51,7 +50,7 @@ const Admin = () => {
 
       <Tabs defaultValue="users" className="space-y-6">
         <TabsList className="glass-panel p-1.5 h-auto">
-          <div className="grid w-full grid-cols-2 md:grid-cols-5 gap-1">
+          <div className="grid w-full grid-cols-2 md:grid-cols-4 gap-1">
             <TabsTrigger value="users" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-300 hover-glow">
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Users</span>
@@ -63,10 +62,6 @@ const Admin = () => {
             <TabsTrigger value="notifications" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-300 hover-glow">
               <Bell className="h-4 w-4" />
               <span className="hidden sm:inline">Notifications</span>
-            </TabsTrigger>
-            <TabsTrigger value="email" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-300 hover-glow">
-              <Mail className="h-4 w-4" />
-              <span className="hidden sm:inline">Test Email</span>
             </TabsTrigger>
             <TabsTrigger value="bulk" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-300 hover-glow">
               <Send className="h-4 w-4" />
@@ -117,12 +112,6 @@ const Admin = () => {
               <NotificationsLog notifications={notifications} />
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="email" className="space-y-4 animate-fade-in">
-          <div className="glass-panel hover-float border-border/50 rounded-lg">
-            <EmailTester />
-          </div>
         </TabsContent>
 
         <TabsContent value="bulk" className="space-y-4 animate-fade-in">
