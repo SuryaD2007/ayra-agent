@@ -9,6 +9,7 @@ export interface UserWithRoles {
   name: string;
   created_at: string;
   roles: string[];
+  status: string;
 }
 
 export interface AnalyticsSummary {
@@ -124,6 +125,80 @@ export const useAdminData = () => {
     }
   };
 
+  const banUser = async (userId: string, reason?: string) => {
+    try {
+      const { error } = await supabase.rpc('ban_user', {
+        _target_user_id: userId,
+        _reason: reason,
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: 'User banned',
+        description: 'User has been banned successfully',
+      });
+      
+      await fetchUsers();
+    } catch (error: any) {
+      console.error('Error banning user:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to ban user',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const unbanUser = async (userId: string) => {
+    try {
+      const { error } = await supabase.rpc('unban_user', {
+        _target_user_id: userId,
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: 'User unbanned',
+        description: 'User has been unbanned successfully',
+      });
+      
+      await fetchUsers();
+    } catch (error: any) {
+      console.error('Error unbanning user:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to unban user',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const deleteUser = async (userId: string, reason?: string) => {
+    try {
+      const { error } = await supabase.rpc('delete_user_account', {
+        _target_user_id: userId,
+        _reason: reason,
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: 'User deleted',
+        description: 'User account has been deleted successfully',
+      });
+      
+      await fetchUsers();
+    } catch (error: any) {
+      console.error('Error deleting user:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete user',
+        variant: 'destructive',
+      });
+    }
+  };
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
@@ -141,6 +216,9 @@ export const useAdminData = () => {
     loading,
     assignRole,
     removeRole,
+    banUser,
+    unbanUser,
+    deleteUser,
     refreshUsers: fetchUsers,
     refreshAnalytics: fetchAnalytics,
     refreshNotifications: fetchNotifications,

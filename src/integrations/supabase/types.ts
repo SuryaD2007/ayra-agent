@@ -420,6 +420,7 @@ export type Database = {
           email: string
           id: string
           name: string
+          status: string | null
           updated_at: string
           user_id: string
         }
@@ -429,6 +430,7 @@ export type Database = {
           email: string
           id?: string
           name: string
+          status?: string | null
           updated_at?: string
           user_id: string
         }
@@ -438,6 +440,7 @@ export type Database = {
           email?: string
           id?: string
           name?: string
+          status?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -614,8 +617,16 @@ export type Database = {
         }
         Returns: undefined
       }
+      ban_user: {
+        Args: { _reason?: string; _target_user_id: string }
+        Returns: undefined
+      }
       create_default_spaces_for_user: {
         Args: { user_id: string }
+        Returns: undefined
+      }
+      delete_user_account: {
+        Args: { _reason?: string; _target_user_id: string }
         Returns: undefined
       }
       get_all_users_with_roles: {
@@ -625,6 +636,7 @@ export type Database = {
           email: string
           name: string
           roles: string[]
+          status: string
           user_id: string
         }[]
       }
@@ -649,6 +661,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _target_user_id: string
         }
+        Returns: undefined
+      }
+      unban_user: {
+        Args: { _target_user_id: string }
         Returns: undefined
       }
     }

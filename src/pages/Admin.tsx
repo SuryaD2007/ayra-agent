@@ -17,6 +17,9 @@ const Admin = () => {
     loading,
     assignRole,
     removeRole,
+    banUser,
+    unbanUser,
+    deleteUser,
   } = useAdminData();
 
   if (loading) {
@@ -86,6 +89,9 @@ const Admin = () => {
                 users={users}
                 onAssignRole={assignRole}
                 onRemoveRole={removeRole}
+                onBanUser={banUser}
+                onUnbanUser={unbanUser}
+                onDeleteUser={deleteUser}
               />
             </CardContent>
           </Card>
