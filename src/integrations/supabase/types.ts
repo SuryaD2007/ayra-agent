@@ -65,6 +65,33 @@ export type Database = {
         }
         Relationships: []
       }
+      banned_ips: {
+        Row: {
+          banned_at: string | null
+          banned_by: string | null
+          expires_at: string | null
+          id: string
+          ip_address: string
+          reason: string | null
+        }
+        Insert: {
+          banned_at?: string | null
+          banned_by?: string | null
+          expires_at?: string | null
+          id?: string
+          ip_address: string
+          reason?: string | null
+        }
+        Update: {
+          banned_at?: string | null
+          banned_by?: string | null
+          expires_at?: string | null
+          id?: string
+          ip_address?: string
+          reason?: string | null
+        }
+        Relationships: []
+      }
       beta_signups: {
         Row: {
           created_at: string
@@ -551,6 +578,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_login_history: {
+        Row: {
+          id: string
+          ip_address: string
+          logged_in_at: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          ip_address: string
+          logged_in_at?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          id?: string
+          ip_address?: string
+          logged_in_at?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -621,6 +672,10 @@ export type Database = {
         Args: { _reason?: string; _target_user_id: string }
         Returns: undefined
       }
+      ban_user_ips: {
+        Args: { _reason?: string; _target_user_id: string }
+        Returns: undefined
+      }
       create_default_spaces_for_user: {
         Args: { user_id: string }
         Returns: undefined
@@ -656,6 +711,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_ip_banned: {
+        Args: { _ip_address: string }
+        Returns: boolean
+      }
       remove_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -664,6 +723,10 @@ export type Database = {
         Returns: undefined
       }
       unban_user: {
+        Args: { _target_user_id: string }
+        Returns: undefined
+      }
+      unban_user_ips: {
         Args: { _target_user_id: string }
         Returns: undefined
       }
