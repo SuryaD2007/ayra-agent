@@ -1,10 +1,11 @@
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shield, Users, BarChart3, Bell } from 'lucide-react';
+import { Shield, Users, BarChart3, Bell, Mail } from 'lucide-react';
 import UserManagement from '@/components/admin/UserManagement';
 import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
 import NotificationsLog from '@/components/admin/NotificationsLog';
+import EmailTester from '@/components/admin/EmailTester';
 import { useAdminData } from '@/hooks/useAdminData';
 
 const Admin = () => {
@@ -41,7 +42,7 @@ const Admin = () => {
       </div>
 
       <Tabs defaultValue="users" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
+        <TabsList className="grid w-full grid-cols-4 lg:w-[500px]">
           <TabsTrigger value="users" className="gap-2">
             <Users className="h-4 w-4" />
             Users
@@ -53,6 +54,10 @@ const Admin = () => {
           <TabsTrigger value="notifications" className="gap-2">
             <Bell className="h-4 w-4" />
             Notifications
+          </TabsTrigger>
+          <TabsTrigger value="email" className="gap-2">
+            <Mail className="h-4 w-4" />
+            Email
           </TabsTrigger>
         </TabsList>
 
@@ -90,6 +95,10 @@ const Admin = () => {
               <NotificationsLog notifications={notifications} />
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="email" className="space-y-4">
+          <EmailTester />
         </TabsContent>
       </Tabs>
     </div>
