@@ -1,11 +1,13 @@
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shield, Users, BarChart3, Bell, Mail } from 'lucide-react';
+import { Shield, Users, BarChart3, Bell, Mail, Send } from 'lucide-react';
 import UserManagement from '@/components/admin/UserManagement';
 import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
 import NotificationsLog from '@/components/admin/NotificationsLog';
 import EmailTester from '@/components/admin/EmailTester';
+import BulkEmailComposer from '@/components/admin/BulkEmailComposer';
+import EmailGroupsManager from '@/components/admin/EmailGroupsManager';
 import { useAdminData } from '@/hooks/useAdminData';
 
 const Admin = () => {
@@ -42,7 +44,7 @@ const Admin = () => {
       </div>
 
       <Tabs defaultValue="users" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 lg:w-[500px]">
+        <TabsList className="grid w-full grid-cols-5 lg:w-[600px]">
           <TabsTrigger value="users" className="gap-2">
             <Users className="h-4 w-4" />
             Users
@@ -57,7 +59,11 @@ const Admin = () => {
           </TabsTrigger>
           <TabsTrigger value="email" className="gap-2">
             <Mail className="h-4 w-4" />
-            Email
+            Test Email
+          </TabsTrigger>
+          <TabsTrigger value="bulk" className="gap-2">
+            <Send className="h-4 w-4" />
+            Bulk Email
           </TabsTrigger>
         </TabsList>
 
@@ -97,10 +103,17 @@ const Admin = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="email" className="space-y-4">
-          <EmailTester />
-        </TabsContent>
-      </Tabs>
+            <TabsContent value="email" className="space-y-4">
+              <EmailTester />
+            </TabsContent>
+
+            <TabsContent value="bulk" className="space-y-4">
+              <div className="grid gap-4">
+                <BulkEmailComposer />
+                <EmailGroupsManager />
+              </div>
+            </TabsContent>
+          </Tabs>
     </div>
   );
 };
