@@ -1,9 +1,11 @@
 import React from 'react';
-import { Search, MoreHorizontal, Download, RotateCcw, Square, Share, X } from 'lucide-react';
+import { Search, MoreHorizontal, Download, RotateCcw, Square, Share, X, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ContextChip } from '@/types/chat';
+import { toast } from 'sonner';
+import { useAnalytics } from '@/hooks/useAnalytics';
 
 interface ChatHeaderProps {
   contextChips: ContextChip[];
@@ -13,6 +15,7 @@ interface ChatHeaderProps {
   onShare?: () => void;
   onExport?: () => void;
   isStreaming?: boolean;
+  chatId?: string;
 }
 
 export function ChatHeader({
@@ -22,8 +25,36 @@ export function ChatHeader({
   onStop,
   onShare,
   onExport,
-  isStreaming = false
+  isStreaming = false,
+  chatId
 }: ChatHeaderProps) {
+  const { trackShareAction } = useAnalytics();
+
+  const handleShare = async () => {
+    try {
+      // Use Web Share API if available
+      if (navigator.share) {
+        await navigator.share({
+          title: 'Ayra Chat',
+          text: 'Check out my chat on Ayra',
+          url: window.location.href,
+        });
+        if (chatId) trackShareAction('web_share', chatId);
+        toast.success('Chat shared successfully!');
+      } else {
+        // Fallback to clipboard copy
+        const shareUrl = window.location.href;
+        await navigator.clipboard.writeText(shareUrl);
+        if (chatId) trackShareAction('clipboard', chatId);
+        toast.success('Chat link copied to clipboard!', {
+          icon: <Check className="h-4 w-4" />,
+        });
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+      toast.error('Failed to share chat');
+    }
+  };
   return (
     <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border/50 p-4">
       <div className="flex items-center justify-between">
@@ -78,12 +109,10 @@ export function ChatHeader({
                   Export as Markdown
                 </DropdownMenuItem>
               )}
-              {onShare && (
-                <DropdownMenuItem onClick={onShare}>
-                  <Share size={14} className="mr-2" />
-                  Share Chat
-                </DropdownMenuItem>
-              )}
+              <DropdownMenuItem onClick={handleShare}>
+                <Share size={14} className="mr-2" />
+                Share Chat
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

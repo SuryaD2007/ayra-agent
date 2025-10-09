@@ -13,6 +13,7 @@ import { useChatSession } from '@/hooks/useChatSession';
 import { ChatThread } from '@/components/search/ChatThread';
 import ChatInput from '@/components/search/ChatInput';
 import { AttachedFile } from '@/components/search/FileAttachment';
+import { useAnalytics } from '@/hooks/useAnalytics';
 
 interface SuggestedResult {
   id: string;
@@ -23,6 +24,12 @@ interface SuggestedResult {
 const SearchPage = () => {
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
+  const { trackPageView, trackChatMessage } = useAnalytics();
+  
+  useEffect(() => {
+    trackPageView('search');
+  }, [trackPageView]);
+  
   const {
     chats,
     folders,
@@ -135,9 +142,11 @@ const SearchPage = () => {
       const newChat = await createNewChat(); // Creates with default "New Chat" title
       if (newChat) {
         await sendMessage(content || `Shared ${attachedFiles?.length || 0} file(s)`, context, newChat);
+        trackChatMessage(newChat.id);
       }
     } else {
       await sendMessage(content || `Shared ${attachedFiles?.length || 0} file(s)`, context);
+      trackChatMessage(activeChat.id);
     }
   };
 
