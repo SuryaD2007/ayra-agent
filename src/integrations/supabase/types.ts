@@ -256,6 +256,78 @@ export type Database = {
         }
         Relationships: []
       }
+      integration_settings: {
+        Row: {
+          access_token: string | null
+          created_at: string
+          id: string
+          integration_type: string
+          is_connected: boolean
+          last_sync_at: string | null
+          refresh_token: string | null
+          settings: Json | null
+          sync_frequency: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          created_at?: string
+          id?: string
+          integration_type: string
+          is_connected?: boolean
+          last_sync_at?: string | null
+          refresh_token?: string | null
+          settings?: Json | null
+          sync_frequency?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          created_at?: string
+          id?: string
+          integration_type?: string
+          is_connected?: boolean
+          last_sync_at?: string | null
+          refresh_token?: string | null
+          settings?: Json | null
+          sync_frequency?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      integration_sync_logs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          integration_type: string
+          items_synced: number | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          integration_type: string
+          items_synced?: number | null
+          status: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          integration_type?: string
+          items_synced?: number | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       item_tags: {
         Row: {
           item_id: string

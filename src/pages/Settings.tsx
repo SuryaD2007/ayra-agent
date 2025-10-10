@@ -14,6 +14,9 @@ import { useRoles } from '@/hooks/useRoles';
 import RoleBadge from '@/components/admin/RoleBadge';
 import { useSettings } from '@/hooks/useSettings';
 import { useTheme } from '@/contexts/ThemeContext';
+import { GoogleDriveConnection } from '@/components/settings/GoogleDriveConnection';
+import { NotionConnection } from '@/components/settings/NotionConnection';
+import { GitHubConnection } from '@/components/settings/GitHubConnection';
 
 const Settings = () => {
   const showContent = useAnimateIn(false, 300);
@@ -243,46 +246,10 @@ const Settings = () => {
               </Card>
             </TabsContent>
             
-            <TabsContent value="integrations">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Integrations</CardTitle>
-                  <CardDescription>
-                    Connect your second brain with external services
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="google-drive" className="text-base">Google Drive</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Import and sync files from Google Drive
-                      </p>
-                    </div>
-                    <Switch id="google-drive" />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="notion" className="text-base">Notion</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Sync with your Notion workspaces
-                      </p>
-                    </div>
-                    <Switch id="notion" />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="github" className="text-base">GitHub</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Connect to your GitHub repositories
-                      </p>
-                    </div>
-                    <Switch id="github" />
-                  </div>
-                </CardContent>
-              </Card>
+            <TabsContent value="integrations" className="space-y-6">
+              <GoogleDriveConnection />
+              <NotionConnection />
+              <GitHubConnection />
             </TabsContent>
             
             {(isAdmin() || isModerator()) && (
