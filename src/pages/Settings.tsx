@@ -7,16 +7,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Shield, ExternalLink } from "lucide-react";
+import { Shield, ExternalLink, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { PasswordManagement } from '@/components/auth/PasswordManagement';
 import { useRoles } from '@/hooks/useRoles';
 import RoleBadge from '@/components/admin/RoleBadge';
+import { useSettings } from '@/hooks/useSettings';
 
 const Settings = () => {
   const showContent = useAnimateIn(false, 300);
   const navigate = useNavigate();
   const { roles, isAdmin, isModerator } = useRoles();
+  const { settings, updateSetting, loading } = useSettings();
   
   return (
     <div className="max-w-7xl mx-auto px-4 pt-24 pb-16">
@@ -49,35 +51,55 @@ const Settings = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="auto-save" className="text-base">Auto-save</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Automatically save changes as you work
-                      </p>
+                  {loading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                     </div>
-                    <Switch id="auto-save" defaultChecked />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="notifications" className="text-base">Notifications</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Receive notifications about updates and activity
-                      </p>
-                    </div>
-                    <Switch id="notifications" defaultChecked />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="ai-suggestions" className="text-base">AI Suggestions</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Allow AI to provide content suggestions
-                      </p>
-                    </div>
-                    <Switch id="ai-suggestions" defaultChecked />
-                  </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label htmlFor="auto-save" className="text-base">Auto-save</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Automatically save changes as you work
+                          </p>
+                        </div>
+                        <Switch 
+                          id="auto-save" 
+                          checked={settings.autoSave}
+                          onCheckedChange={(checked) => updateSetting('autoSave', checked)}
+                        />
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label htmlFor="notifications" className="text-base">Notifications</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Receive notifications about updates and activity
+                          </p>
+                        </div>
+                        <Switch 
+                          id="notifications" 
+                          checked={settings.notifications}
+                          onCheckedChange={(checked) => updateSetting('notifications', checked)}
+                        />
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label htmlFor="ai-suggestions" className="text-base">AI Suggestions</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Allow AI to provide content suggestions
+                          </p>
+                        </div>
+                        <Switch 
+                          id="ai-suggestions" 
+                          checked={settings.aiSuggestions}
+                          onCheckedChange={(checked) => updateSetting('aiSuggestions', checked)}
+                        />
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
