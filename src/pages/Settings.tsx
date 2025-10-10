@@ -116,25 +116,41 @@ const Settings = () => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="auto-lock" className="text-base">Auto-lock Private Items</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Automatically lock private items after 30 minutes of inactivity
-                        </p>
+                    {loading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                       </div>
-                      <Switch id="auto-lock" defaultChecked />
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="secure-delete" className="text-base">Secure Delete</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Permanently delete files instead of moving to trash
-                        </p>
-                      </div>
-                      <Switch id="secure-delete" />
-                    </div>
+                    ) : (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <Label htmlFor="auto-lock" className="text-base">Auto-lock Private Items</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Automatically lock private items after 30 minutes of inactivity
+                            </p>
+                          </div>
+                          <Switch 
+                            id="auto-lock" 
+                            checked={settings.autoLock}
+                            onCheckedChange={(checked) => updateSetting('autoLock', checked)}
+                          />
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <Label htmlFor="secure-delete" className="text-base">Secure Delete</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Permanently delete files instead of moving to trash
+                            </p>
+                          </div>
+                          <Switch 
+                            id="secure-delete" 
+                            checked={settings.secureDelete}
+                            onCheckedChange={(checked) => updateSetting('secureDelete', checked)}
+                          />
+                        </div>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
               </div>

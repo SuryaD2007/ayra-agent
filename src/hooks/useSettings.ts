@@ -48,7 +48,7 @@ export const useSettings = () => {
         if (error) throw error;
 
         if (data?.settings) {
-          setSettings({ ...DEFAULT_SETTINGS, ...data.settings });
+          setSettings({ ...DEFAULT_SETTINGS, ...(data.settings as Partial<UserSettings>) });
         }
       } catch (error) {
         console.error('Error loading settings:', error);
