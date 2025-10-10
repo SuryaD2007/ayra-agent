@@ -13,12 +13,24 @@ import { PasswordManagement } from '@/components/auth/PasswordManagement';
 import { useRoles } from '@/hooks/useRoles';
 import RoleBadge from '@/components/admin/RoleBadge';
 import { useSettings } from '@/hooks/useSettings';
+import { useTheme } from '@/contexts/ThemeContext';
 
 const Settings = () => {
   const showContent = useAnimateIn(false, 300);
   const navigate = useNavigate();
   const { roles, isAdmin, isModerator } = useRoles();
   const { settings, updateSetting, loading } = useSettings();
+  const { theme, toggleTheme } = useTheme();
+
+  // Sync theme with settings on mount
+  React.useEffect(() => {
+    if (!loading) {
+      const isDark = theme === 'dark';
+      if (settings.darkMode !== isDark) {
+        updateSetting('darkMode', isDark);
+      }
+    }
+  }, [theme, loading]);
   
   return (
     <div className="max-w-7xl mx-auto px-4 pt-24 pb-16">
@@ -164,43 +176,69 @@ const Settings = () => {
             </TabsContent>
             
             <TabsContent value="appearance">
-              <Card>
+              <Card className="animate-fade-in border-border/50 backdrop-blur-sm bg-card/50 shadow-lg hover:shadow-xl transition-all duration-500">
                 <CardHeader>
                   <CardTitle>Appearance</CardTitle>
                   <CardDescription>
                     Customize how your second brain looks
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="dark-mode" className="text-base">Dark Mode</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Toggle between light and dark themes
-                      </p>
+                <CardContent className="space-y-4">
+                  {loading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                     </div>
-                    <Switch id="dark-mode" defaultChecked />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="animations" className="text-base">Animations</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Enable smooth transitions and animations
-                      </p>
-                    </div>
-                    <Switch id="animations" defaultChecked />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="compact-view" className="text-base">Compact View</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Display more content with less spacing
-                      </p>
-                    </div>
-                    <Switch id="compact-view" />
-                  </div>
+                  ) : (
+                    <>
+                      <div className="group flex items-center justify-between p-4 rounded-xl transition-all duration-500 hover:bg-accent/50 hover:scale-[1.02] hover:shadow-md animate-fade-in border border-transparent hover:border-border/50" style={{ animationDelay: '0.1s', animationFillMode: 'backwards' }}>
+                        <div className="transition-transform duration-300 group-hover:translate-x-1">
+                          <Label htmlFor="dark-mode" className="text-base font-medium cursor-pointer">Dark Mode</Label>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Toggle between light and dark themes
+                          </p>
+                        </div>
+                        <Switch 
+                          id="dark-mode" 
+                          checked={theme === 'dark'}
+                          onCheckedChange={() => {
+                            toggleTheme();
+                            updateSetting('darkMode', theme === 'light');
+                          }}
+                          className="transition-all duration-300 hover:scale-110"
+                        />
+                      </div>
+                      
+                      <div className="group flex items-center justify-between p-4 rounded-xl transition-all duration-500 hover:bg-accent/50 hover:scale-[1.02] hover:shadow-md animate-fade-in border border-transparent hover:border-border/50" style={{ animationDelay: '0.2s', animationFillMode: 'backwards' }}>
+                        <div className="transition-transform duration-300 group-hover:translate-x-1">
+                          <Label htmlFor="animations" className="text-base font-medium cursor-pointer">Animations</Label>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Enable smooth transitions and animations
+                          </p>
+                        </div>
+                        <Switch 
+                          id="animations" 
+                          checked={settings.animations}
+                          onCheckedChange={(checked) => updateSetting('animations', checked)}
+                          className="transition-all duration-300 hover:scale-110"
+                        />
+                      </div>
+                      
+                      <div className="group flex items-center justify-between p-4 rounded-xl transition-all duration-500 hover:bg-accent/50 hover:scale-[1.02] hover:shadow-md animate-fade-in border border-transparent hover:border-border/50" style={{ animationDelay: '0.3s', animationFillMode: 'backwards' }}>
+                        <div className="transition-transform duration-300 group-hover:translate-x-1">
+                          <Label htmlFor="compact-view" className="text-base font-medium cursor-pointer">Compact View</Label>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Display more content with less spacing
+                          </p>
+                        </div>
+                        <Switch 
+                          id="compact-view" 
+                          checked={settings.compactView}
+                          onCheckedChange={(checked) => updateSetting('compactView', checked)}
+                          className="transition-all duration-300 hover:scale-110"
+                        />
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
