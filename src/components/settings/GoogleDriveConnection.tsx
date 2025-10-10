@@ -36,15 +36,21 @@ export const GoogleDriveConnection = () => {
   const handleConnect = async () => {
     setLoading(true);
     
-    const redirectUri = `${window.location.origin}/settings`;
-    
-    // Note: Set GOOGLE_CLIENT_ID in Supabase Edge Function secrets
-    toast.info('Redirecting to Google OAuth...');
-    
-    // The OAuth flow will be completed by the google-drive-oauth edge function
-    // For now, this is a placeholder - you'll need to implement the full OAuth flow
-    setLoading(false);
-    toast.error('OAuth flow not yet fully configured. Please add your Google Client ID to the edge function.');
+    try {
+      const redirectUri = `${window.location.origin}/settings`;
+      
+      const { data, error } = await supabase.functions.invoke('get-google-oauth-url', {
+        body: { redirectUri }
+      });
+
+      if (error) throw error;
+
+      window.location.href = data.authUrl;
+    } catch (error) {
+      console.error('Connect error:', error);
+      toast.error('Failed to initiate Google Drive connection');
+      setLoading(false);
+    }
   };
 
   const handleSync = async () => {

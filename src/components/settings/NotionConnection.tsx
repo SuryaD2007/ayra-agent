@@ -36,15 +36,21 @@ export const NotionConnection = () => {
   const handleConnect = async () => {
     setLoading(true);
     
-    const redirectUri = `${window.location.origin}/settings`;
-    
-    // Note: Set NOTION_CLIENT_ID in Supabase Edge Function secrets
-    toast.info('Redirecting to Notion OAuth...');
-    
-    // The OAuth flow will be completed by the notion-oauth edge function
-    // For now, this is a placeholder - you'll need to implement the full OAuth flow
-    setLoading(false);
-    toast.error('OAuth flow not yet fully configured. Please add your Notion Client ID to the edge function.');
+    try {
+      const redirectUri = `${window.location.origin}/settings`;
+      
+      const { data, error } = await supabase.functions.invoke('get-notion-oauth-url', {
+        body: { redirectUri }
+      });
+
+      if (error) throw error;
+
+      window.location.href = data.authUrl;
+    } catch (error) {
+      console.error('Connect error:', error);
+      toast.error('Failed to initiate Notion connection');
+      setLoading(false);
+    }
   };
 
   const handleDisconnect = async () => {

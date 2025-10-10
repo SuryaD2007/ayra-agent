@@ -46,6 +46,15 @@ verify_jwt = true
 [functions.sync-google-drive]
 verify_jwt = true
 
+[functions.get-google-oauth-url]
+verify_jwt = true
+
+[functions.get-notion-oauth-url]
+verify_jwt = true
+
+[functions.get-github-oauth-url]
+verify_jwt = true
+
 [storage]
 enabled = true
 port = 54323

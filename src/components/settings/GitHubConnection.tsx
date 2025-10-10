@@ -33,15 +33,21 @@ export const GitHubConnection = () => {
   const handleConnect = async () => {
     setLoading(true);
     
-    const redirectUri = `${window.location.origin}/settings`;
-    
-    // Note: Set GITHUB_CLIENT_ID in Supabase Edge Function secrets
-    toast.info('Redirecting to GitHub OAuth...');
-    
-    // The OAuth flow will be completed by the github-oauth edge function
-    // For now, this is a placeholder - you'll need to implement the full OAuth flow
-    setLoading(false);
-    toast.error('OAuth flow not yet fully configured. Please add your GitHub Client ID to the edge function.');
+    try {
+      const redirectUri = `${window.location.origin}/settings`;
+      
+      const { data, error } = await supabase.functions.invoke('get-github-oauth-url', {
+        body: { redirectUri }
+      });
+
+      if (error) throw error;
+
+      window.location.href = data.authUrl;
+    } catch (error) {
+      console.error('Connect error:', error);
+      toast.error('Failed to initiate GitHub connection');
+      setLoading(false);
+    }
   };
 
   const handleDisconnect = async () => {
