@@ -37,11 +37,7 @@ export const GoogleDriveConnection = () => {
     setLoading(true);
     
     try {
-      const redirectUri = `${window.location.origin}/settings`;
-      
-      const { data, error } = await supabase.functions.invoke('get-google-oauth-url', {
-        body: { redirectUri }
-      });
+      const { data, error } = await supabase.functions.invoke('get-google-oauth-url');
 
       if (error) throw error;
 

@@ -11,9 +11,11 @@ serve(async (req) => {
   }
 
   try {
-    const { redirectUri } = await req.json();
-    
     const clientId = Deno.env.get('GOOGLE_CLIENT_ID');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    
+    // The redirect URI should point to the OAuth callback edge function
+    const redirectUri = `${supabaseUrl}/functions/v1/google-drive-oauth`;
     const scope = 'https://www.googleapis.com/auth/drive.readonly';
     
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
@@ -21,7 +23,8 @@ serve(async (req) => {
       `redirect_uri=${encodeURIComponent(redirectUri)}&` +
       `response_type=code&` +
       `scope=${encodeURIComponent(scope)}&` +
-      `access_type=offline`;
+      `access_type=offline&` +
+      `prompt=consent`;
 
     return new Response(
       JSON.stringify({ authUrl }),
