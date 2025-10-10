@@ -112,7 +112,7 @@ export function PasswordManagement() {
 
   return (
     <>
-      <Card>
+      <Card className="border-border/50 backdrop-blur-sm bg-card/50 shadow-lg hover:shadow-xl transition-all duration-500">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
@@ -125,9 +125,9 @@ export function PasswordManagement() {
         <CardContent className="space-y-4">
           {hasPassword ? (
             <>
-              <div className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center gap-2">
-                  <Key className="h-4 w-4 text-green-600" />
+              <div className="group flex items-center justify-between p-4 border rounded-xl transition-all duration-500 hover:bg-accent/50 hover:scale-[1.02] hover:shadow-md hover:border-border/50">
+                <div className="flex items-center gap-2 transition-transform duration-300 group-hover:translate-x-1">
+                  <Key className="h-4 w-4 text-green-600 transition-transform duration-300 group-hover:scale-110" />
                   <span className="text-sm font-medium">Password is set</span>
                 </div>
                 <div className="flex gap-2">
@@ -135,6 +135,7 @@ export function PasswordManagement() {
                     variant="outline"
                     size="sm"
                     onClick={() => setShowChangeDialog(true)}
+                    className="transition-all duration-300 hover:scale-105"
                   >
                     Change
                   </Button>
@@ -142,31 +143,32 @@ export function PasswordManagement() {
                     variant="outline"
                     size="sm"
                     onClick={() => setShowResetDialog(true)}
-                    className="text-destructive hover:text-destructive"
+                    className="text-destructive hover:text-destructive transition-all duration-300 hover:scale-105"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground animate-fade-in" style={{ animationDelay: '0.1s' }}>
                 Your private items are protected with a password. You'll need to enter it to access them.
               </p>
             </>
           ) : (
             <>
-              <div className="flex items-center justify-between p-3 border rounded-lg border-dashed">
-                <div className="flex items-center gap-2">
-                  <Shield className="h-4 w-4 text-muted-foreground" />
+              <div className="group flex items-center justify-between p-4 border rounded-xl border-dashed transition-all duration-500 hover:bg-accent/50 hover:scale-[1.02] hover:shadow-md hover:border-border/50">
+                <div className="flex items-center gap-2 transition-transform duration-300 group-hover:translate-x-1">
+                  <Shield className="h-4 w-4 text-muted-foreground transition-transform duration-300 group-hover:scale-110" />
                   <span className="text-sm font-medium text-muted-foreground">No password set</span>
                 </div>
                 <Button
                   size="sm"
                   onClick={() => setShowSetupDialog(true)}
+                  className="transition-all duration-300 hover:scale-105"
                 >
                   Set Password
                 </Button>
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground animate-fade-in" style={{ animationDelay: '0.1s' }}>
                 Set up a password to protect your private items from unauthorized access.
               </p>
             </>
