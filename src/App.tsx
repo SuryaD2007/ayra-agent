@@ -156,8 +156,8 @@ const AppRoutes = () => {
   );
 };
 
-const App = () => {
-  const { showBanner, missingKeys, dismissBanner } = useConfigurationValidation();
+// Component to handle settings that require AuthProvider
+const SettingsHandler = ({ children }: { children: React.ReactNode }) => {
   const { settings } = useSettings();
 
   // Apply global classes based on settings
@@ -179,29 +179,37 @@ const App = () => {
     }
   }, [settings.animations, settings.compactView]);
 
+  return <>{children}</>;
+};
+
+const App = () => {
+  const { showBanner, missingKeys, dismissBanner } = useConfigurationValidation();
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <ThemeProvider>
           <AuthProvider>
-            <IPBanGuard>
-              <PrivateLockProvider>
-                <TooltipProvider>
-                  <Toaster />
-                  <Sonner />
-                  {showBanner && (
-                    <ConfigurationBanner 
-                      missingKeys={missingKeys} 
-                      onDismiss={dismissBanner}
-                    />
-                  )}
-                  <div className={`min-h-screen ${showBanner ? 'pt-20' : ''}`}>
-                    <Navbar />
-                    <AppRoutes />
-                  </div>
-                </TooltipProvider>
-              </PrivateLockProvider>
-            </IPBanGuard>
+            <SettingsHandler>
+              <IPBanGuard>
+                <PrivateLockProvider>
+                  <TooltipProvider>
+                    <Toaster />
+                    <Sonner />
+                    {showBanner && (
+                      <ConfigurationBanner 
+                        missingKeys={missingKeys} 
+                        onDismiss={dismissBanner}
+                      />
+                    )}
+                    <div className={`min-h-screen ${showBanner ? 'pt-20' : ''}`}>
+                      <Navbar />
+                      <AppRoutes />
+                    </div>
+                  </TooltipProvider>
+                </PrivateLockProvider>
+              </IPBanGuard>
+            </SettingsHandler>
           </AuthProvider>
         </ThemeProvider>
       </BrowserRouter>
