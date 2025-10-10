@@ -25,7 +25,6 @@ import PreLaunchGuard from "./components/auth/PreLaunchGuard";
 import RoleGuard from "./components/auth/RoleGuard";
 import Admin from "./pages/Admin";
 import { useConfigurationValidation } from "./hooks/useConfigurationValidation";
-import { useSettings } from "./hooks/useSettings";
 import './lib/sampleData'; // Import sample data utilities
 
 const queryClient = new QueryClient();
@@ -156,47 +155,9 @@ const AppRoutes = () => {
   );
 };
 
-const AppContent = () => {
-  const { showBanner, missingKeys, dismissBanner } = useConfigurationValidation();
-  const { settings } = useSettings();
-
-  useEffect(() => {
-    const root = document.documentElement;
-    
-    // Apply animations setting
-    if (!settings.animations) {
-      root.classList.add('no-animations');
-    } else {
-      root.classList.remove('no-animations');
-    }
-    
-    // Apply compact view setting
-    if (settings.compactView) {
-      root.classList.add('compact-view');
-    } else {
-      root.classList.remove('compact-view');
-    }
-  }, [settings.animations, settings.compactView]);
-
-  return (
-    <>
-      <Toaster />
-      <Sonner />
-      {showBanner && (
-        <ConfigurationBanner 
-          missingKeys={missingKeys} 
-          onDismiss={dismissBanner}
-        />
-      )}
-      <div className={`min-h-screen ${showBanner ? 'pt-20' : ''}`}>
-        <Navbar />
-        <AppRoutes />
-      </div>
-    </>
-  );
-};
-
 const App = () => {
+  const { showBanner, missingKeys, dismissBanner } = useConfigurationValidation();
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
@@ -205,7 +166,18 @@ const App = () => {
             <IPBanGuard>
               <PrivateLockProvider>
                 <TooltipProvider>
-                  <AppContent />
+                  <Toaster />
+                  <Sonner />
+                  {showBanner && (
+                    <ConfigurationBanner 
+                      missingKeys={missingKeys} 
+                      onDismiss={dismissBanner}
+                    />
+                  )}
+                  <div className={`min-h-screen ${showBanner ? 'pt-20' : ''}`}>
+                    <Navbar />
+                    <AppRoutes />
+                  </div>
                 </TooltipProvider>
               </PrivateLockProvider>
             </IPBanGuard>
