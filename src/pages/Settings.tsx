@@ -43,22 +43,22 @@ const Settings = () => {
             </TabsList>
             
             <TabsContent value="general">
-              <Card className="animate-fade-in border-border/50 backdrop-blur-sm">
+              <Card className="animate-fade-in border-border/50 backdrop-blur-sm bg-card/50 shadow-lg hover:shadow-xl transition-all duration-500">
                 <CardHeader>
                   <CardTitle>General Settings</CardTitle>
                   <CardDescription>
                     Manage your account settings and preferences.
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-4">
                   {loading ? (
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                     </div>
                   ) : (
                     <>
-                      <div className="flex items-center justify-between p-4 rounded-lg transition-all duration-300 hover:bg-accent/50 animate-fade-in" style={{ animationDelay: '0.1s' }}>
-                        <div>
+                      <div className="group flex items-center justify-between p-4 rounded-xl transition-all duration-500 hover:bg-accent/50 hover:scale-[1.02] hover:shadow-md animate-fade-in border border-transparent hover:border-border/50" style={{ animationDelay: '0.1s', animationFillMode: 'backwards' }}>
+                        <div className="transition-transform duration-300 group-hover:translate-x-1">
                           <Label htmlFor="auto-save" className="text-base font-medium cursor-pointer">Auto-save</Label>
                           <p className="text-sm text-muted-foreground mt-1">
                             Automatically save changes as you work
@@ -68,12 +68,12 @@ const Settings = () => {
                           id="auto-save" 
                           checked={settings.autoSave}
                           onCheckedChange={(checked) => updateSetting('autoSave', checked)}
-                          className="transition-all duration-300"
+                          className="transition-all duration-300 hover:scale-110"
                         />
                       </div>
                       
-                      <div className="flex items-center justify-between p-4 rounded-lg transition-all duration-300 hover:bg-accent/50 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-                        <div>
+                      <div className="group flex items-center justify-between p-4 rounded-xl transition-all duration-500 hover:bg-accent/50 hover:scale-[1.02] hover:shadow-md animate-fade-in border border-transparent hover:border-border/50" style={{ animationDelay: '0.2s', animationFillMode: 'backwards' }}>
+                        <div className="transition-transform duration-300 group-hover:translate-x-1">
                           <Label htmlFor="notifications" className="text-base font-medium cursor-pointer">Notifications</Label>
                           <p className="text-sm text-muted-foreground mt-1">
                             Receive notifications about updates and activity
@@ -83,12 +83,12 @@ const Settings = () => {
                           id="notifications" 
                           checked={settings.notifications}
                           onCheckedChange={(checked) => updateSetting('notifications', checked)}
-                          className="transition-all duration-300"
+                          className="transition-all duration-300 hover:scale-110"
                         />
                       </div>
                       
-                      <div className="flex items-center justify-between p-4 rounded-lg transition-all duration-300 hover:bg-accent/50 animate-fade-in" style={{ animationDelay: '0.3s' }}>
-                        <div>
+                      <div className="group flex items-center justify-between p-4 rounded-xl transition-all duration-500 hover:bg-accent/50 hover:scale-[1.02] hover:shadow-md animate-fade-in border border-transparent hover:border-border/50" style={{ animationDelay: '0.3s', animationFillMode: 'backwards' }}>
+                        <div className="transition-transform duration-300 group-hover:translate-x-1">
                           <Label htmlFor="ai-suggestions" className="text-base font-medium cursor-pointer">AI Suggestions</Label>
                           <p className="text-sm text-muted-foreground mt-1">
                             Allow AI to provide content suggestions
@@ -98,7 +98,7 @@ const Settings = () => {
                           id="ai-suggestions" 
                           checked={settings.aiSuggestions}
                           onCheckedChange={(checked) => updateSetting('aiSuggestions', checked)}
-                          className="transition-all duration-300"
+                          className="transition-all duration-300 hover:scale-110"
                         />
                       </div>
                     </>
@@ -109,26 +109,26 @@ const Settings = () => {
             
             <TabsContent value="security">
               <div className="space-y-6">
-                <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
+                <div className="animate-fade-in" style={{ animationDelay: '0.1s', animationFillMode: 'backwards' }}>
                   <PasswordManagement />
                 </div>
                 
-                <Card className="animate-fade-in border-border/50 backdrop-blur-sm" style={{ animationDelay: '0.2s' }}>
+                <Card className="animate-fade-in border-border/50 backdrop-blur-sm bg-card/50 shadow-lg hover:shadow-xl transition-all duration-500" style={{ animationDelay: '0.2s', animationFillMode: 'backwards' }}>
                   <CardHeader>
                     <CardTitle>Privacy Settings</CardTitle>
                     <CardDescription>
                       Control your data privacy and security options
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-6">
+                  <CardContent className="space-y-4">
                     {loading ? (
                       <div className="flex items-center justify-center py-8">
                         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                       </div>
                     ) : (
                       <>
-                        <div className="flex items-center justify-between p-4 rounded-lg transition-all duration-300 hover:bg-accent/50">
-                          <div>
+                        <div className="group flex items-center justify-between p-4 rounded-xl transition-all duration-500 hover:bg-accent/50 hover:scale-[1.02] hover:shadow-md border border-transparent hover:border-border/50">
+                          <div className="transition-transform duration-300 group-hover:translate-x-1">
                             <Label htmlFor="auto-lock" className="text-base font-medium cursor-pointer">Auto-lock Private Items</Label>
                             <p className="text-sm text-muted-foreground mt-1">
                               Automatically lock private items after 30 minutes of inactivity
@@ -138,12 +138,12 @@ const Settings = () => {
                             id="auto-lock" 
                             checked={settings.autoLock}
                             onCheckedChange={(checked) => updateSetting('autoLock', checked)}
-                            className="transition-all duration-300"
+                            className="transition-all duration-300 hover:scale-110"
                           />
                         </div>
                         
-                        <div className="flex items-center justify-between p-4 rounded-lg transition-all duration-300 hover:bg-accent/50">
-                          <div>
+                        <div className="group flex items-center justify-between p-4 rounded-xl transition-all duration-500 hover:bg-accent/50 hover:scale-[1.02] hover:shadow-md border border-transparent hover:border-border/50">
+                          <div className="transition-transform duration-300 group-hover:translate-x-1">
                             <Label htmlFor="secure-delete" className="text-base font-medium cursor-pointer">Secure Delete</Label>
                             <p className="text-sm text-muted-foreground mt-1">
                               Permanently delete files instead of moving to trash
@@ -153,7 +153,7 @@ const Settings = () => {
                             id="secure-delete" 
                             checked={settings.secureDelete}
                             onCheckedChange={(checked) => updateSetting('secureDelete', checked)}
-                            className="transition-all duration-300"
+                            className="transition-all duration-300 hover:scale-110"
                           />
                         </div>
                       </>
