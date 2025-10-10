@@ -36,19 +36,15 @@ export const GoogleDriveConnection = () => {
   const handleConnect = async () => {
     setLoading(true);
     
-    // OAuth URL (you'll need to set up Google OAuth credentials)
-    const clientId = 'YOUR_GOOGLE_CLIENT_ID';
     const redirectUri = `${window.location.origin}/settings`;
-    const scope = 'https://www.googleapis.com/auth/drive.readonly';
     
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
-      `client_id=${clientId}&` +
-      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-      `response_type=code&` +
-      `scope=${encodeURIComponent(scope)}&` +
-      `access_type=offline`;
-
-    window.location.href = authUrl;
+    // Note: Set GOOGLE_CLIENT_ID in Supabase Edge Function secrets
+    toast.info('Redirecting to Google OAuth...');
+    
+    // The OAuth flow will be completed by the google-drive-oauth edge function
+    // For now, this is a placeholder - you'll need to implement the full OAuth flow
+    setLoading(false);
+    toast.error('OAuth flow not yet fully configured. Please add your Google Client ID to the edge function.');
   };
 
   const handleSync = async () => {
