@@ -43,7 +43,7 @@ const Settings = () => {
             </TabsList>
             
             <TabsContent value="general">
-              <Card>
+              <Card className="animate-fade-in border-border/50 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle>General Settings</CardTitle>
                   <CardDescription>
@@ -57,10 +57,10 @@ const Settings = () => {
                     </div>
                   ) : (
                     <>
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between p-4 rounded-lg transition-all duration-300 hover:bg-accent/50 animate-fade-in" style={{ animationDelay: '0.1s' }}>
                         <div>
-                          <Label htmlFor="auto-save" className="text-base">Auto-save</Label>
-                          <p className="text-sm text-muted-foreground">
+                          <Label htmlFor="auto-save" className="text-base font-medium cursor-pointer">Auto-save</Label>
+                          <p className="text-sm text-muted-foreground mt-1">
                             Automatically save changes as you work
                           </p>
                         </div>
@@ -68,13 +68,14 @@ const Settings = () => {
                           id="auto-save" 
                           checked={settings.autoSave}
                           onCheckedChange={(checked) => updateSetting('autoSave', checked)}
+                          className="transition-all duration-300"
                         />
                       </div>
                       
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between p-4 rounded-lg transition-all duration-300 hover:bg-accent/50 animate-fade-in" style={{ animationDelay: '0.2s' }}>
                         <div>
-                          <Label htmlFor="notifications" className="text-base">Notifications</Label>
-                          <p className="text-sm text-muted-foreground">
+                          <Label htmlFor="notifications" className="text-base font-medium cursor-pointer">Notifications</Label>
+                          <p className="text-sm text-muted-foreground mt-1">
                             Receive notifications about updates and activity
                           </p>
                         </div>
@@ -82,13 +83,14 @@ const Settings = () => {
                           id="notifications" 
                           checked={settings.notifications}
                           onCheckedChange={(checked) => updateSetting('notifications', checked)}
+                          className="transition-all duration-300"
                         />
                       </div>
                       
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between p-4 rounded-lg transition-all duration-300 hover:bg-accent/50 animate-fade-in" style={{ animationDelay: '0.3s' }}>
                         <div>
-                          <Label htmlFor="ai-suggestions" className="text-base">AI Suggestions</Label>
-                          <p className="text-sm text-muted-foreground">
+                          <Label htmlFor="ai-suggestions" className="text-base font-medium cursor-pointer">AI Suggestions</Label>
+                          <p className="text-sm text-muted-foreground mt-1">
                             Allow AI to provide content suggestions
                           </p>
                         </div>
@@ -96,6 +98,7 @@ const Settings = () => {
                           id="ai-suggestions" 
                           checked={settings.aiSuggestions}
                           onCheckedChange={(checked) => updateSetting('aiSuggestions', checked)}
+                          className="transition-all duration-300"
                         />
                       </div>
                     </>
@@ -106,9 +109,11 @@ const Settings = () => {
             
             <TabsContent value="security">
               <div className="space-y-6">
-                <PasswordManagement />
+                <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
+                  <PasswordManagement />
+                </div>
                 
-                <Card>
+                <Card className="animate-fade-in border-border/50 backdrop-blur-sm" style={{ animationDelay: '0.2s' }}>
                   <CardHeader>
                     <CardTitle>Privacy Settings</CardTitle>
                     <CardDescription>
@@ -122,10 +127,10 @@ const Settings = () => {
                       </div>
                     ) : (
                       <>
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between p-4 rounded-lg transition-all duration-300 hover:bg-accent/50">
                           <div>
-                            <Label htmlFor="auto-lock" className="text-base">Auto-lock Private Items</Label>
-                            <p className="text-sm text-muted-foreground">
+                            <Label htmlFor="auto-lock" className="text-base font-medium cursor-pointer">Auto-lock Private Items</Label>
+                            <p className="text-sm text-muted-foreground mt-1">
                               Automatically lock private items after 30 minutes of inactivity
                             </p>
                           </div>
@@ -133,13 +138,14 @@ const Settings = () => {
                             id="auto-lock" 
                             checked={settings.autoLock}
                             onCheckedChange={(checked) => updateSetting('autoLock', checked)}
+                            className="transition-all duration-300"
                           />
                         </div>
                         
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between p-4 rounded-lg transition-all duration-300 hover:bg-accent/50">
                           <div>
-                            <Label htmlFor="secure-delete" className="text-base">Secure Delete</Label>
-                            <p className="text-sm text-muted-foreground">
+                            <Label htmlFor="secure-delete" className="text-base font-medium cursor-pointer">Secure Delete</Label>
+                            <p className="text-sm text-muted-foreground mt-1">
                               Permanently delete files instead of moving to trash
                             </p>
                           </div>
@@ -147,6 +153,7 @@ const Settings = () => {
                             id="secure-delete" 
                             checked={settings.secureDelete}
                             onCheckedChange={(checked) => updateSetting('secureDelete', checked)}
+                            className="transition-all duration-300"
                           />
                         </div>
                       </>
