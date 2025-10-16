@@ -14,7 +14,7 @@ import RoleBadge from '@/components/admin/RoleBadge';
 import { useSettings } from '@/hooks/useSettings';
 import { useTheme } from '@/contexts/ThemeContext';
 import { GoogleDriveConnection } from '@/components/settings/GoogleDriveConnection';
-import { NotionConnection } from '@/components/settings/NotionConnection';
+import { GoogleDocsConnection } from '@/components/settings/GoogleDocsConnection';
 import { GitHubConnection } from '@/components/settings/GitHubConnection';
 const Settings = () => {
   const showContent = useAnimateIn(false, 300);
@@ -226,7 +226,7 @@ const Settings = () => {
             
             <TabsContent value="integrations" className="space-y-6">
               <GoogleDriveConnection />
-              <NotionConnection />
+              <GoogleDocsConnection />
               <GitHubConnection />
             </TabsContent>
             

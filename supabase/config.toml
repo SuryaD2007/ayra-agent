@@ -37,9 +37,6 @@ verify_jwt = true
 [functions.google-drive-oauth]
 verify_jwt = true
 
-[functions.notion-oauth]
-verify_jwt = true
-
 [functions.github-oauth]
 verify_jwt = true
 
@@ -47,9 +44,6 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.get-google-oauth-url]
-verify_jwt = true
-
-[functions.get-notion-oauth-url]
 verify_jwt = true
 
 [functions.get-github-oauth-url]
