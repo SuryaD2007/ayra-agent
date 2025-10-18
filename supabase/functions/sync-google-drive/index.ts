@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
       .select('access_token')
       .eq('integration_type', 'google_drive')
       .eq('is_connected', true)
-      .single();
+      .maybeSingle();
 
     if (integrationError || !integration) {
       return new Response(JSON.stringify({ error: 'Google Drive not connected' }), {

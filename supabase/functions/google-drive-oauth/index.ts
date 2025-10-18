@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     if (error || !code || !state) {
       return new Response(null, {
         status: 302,
-        headers: { 'Location': `${Deno.env.get('SUPABASE_URL').replace('.supabase.co', '.lovable.app')}/settings?error=oauth_failed` }
+        headers: { 'Location': `${Deno.env.get('SUPABASE_URL')?.replace('.supabase.co', '.lovable.app')}/settings?error=oauth_failed` }
       });
     }
 
@@ -65,13 +65,13 @@ Deno.serve(async (req) => {
 
     return new Response(null, {
       status: 302,
-      headers: { 'Location': `${Deno.env.get('SUPABASE_URL').replace('.supabase.co', '.lovable.app')}/settings?success=google_drive_connected` }
+      headers: { 'Location': `${Deno.env.get('SUPABASE_URL')?.replace('.supabase.co', '.lovable.app')}/settings?success=google_drive_connected` }
     });
   } catch (error: any) {
     console.error('OAuth callback error:', error);
     return new Response(null, {
       status: 302,
-      headers: { 'Location': `${Deno.env.get('SUPABASE_URL').replace('.supabase.co', '.lovable.app')}/settings?error=oauth_failed` }
+      headers: { 'Location': `${Deno.env.get('SUPABASE_URL')?.replace('.supabase.co', '.lovable.app')}/settings?error=oauth_failed` }
     });
   }
 });
