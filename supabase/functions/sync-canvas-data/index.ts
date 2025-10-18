@@ -1,0 +1,98 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
+    );
+
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    const { data: integration, error: integrationError } = await supabaseClient
+      .from('canvas_integrations')
+      .select('*')
+      .eq('user_id', user.id)
+      .single();
+
+    if (integrationError || !integration) {
+      return new Response(JSON.stringify({ error: 'Canvas not connected' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    const baseUrl = `https://${integration.institution_url}/api/v1`;
+    const headers = { Authorization: `Bearer ${integration.access_token}` };
+
+    const coursesResponse = await fetch(`${baseUrl}/courses?enrollment_state=active`, { headers });
+    if (!coursesResponse.ok) throw new Error('Failed to fetch courses');
+    const courses = await coursesResponse.json();
+
+    let syncedCount = 0;
+
+    for (const course of courses) {
+      const assignmentsResponse = await fetch(
+        `${baseUrl}/courses/${course.id}/assignments`,
+        { headers }
+      );
+      
+      if (!assignmentsResponse.ok) continue;
+      const assignments = await assignmentsResponse.json();
+
+      for (const assignment of assignments) {
+        const { error: itemError } = await supabaseClient
+          .from('canvas_items')
+          .upsert({
+            user_id: user.id,
+            canvas_id: assignment.id.toString(),
+            type: 'assignment',
+            course_name: course.name,
+            title: assignment.name,
+            description: assignment.description,
+            due_date: assignment.due_at,
+            url: assignment.html_url,
+            metadata: {
+              points_possible: assignment.points_possible,
+              submission_types: assignment.submission_types
+            },
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'user_id,canvas_id' });
+
+        if (!itemError) syncedCount++;
+      }
+    }
+
+    await supabaseClient
+      .from('canvas_integrations')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('user_id', user.id);
+
+    return new Response(
+      JSON.stringify({ success: true, synced: syncedCount }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (error: any) {
+    console.error('Canvas sync error:', error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+});

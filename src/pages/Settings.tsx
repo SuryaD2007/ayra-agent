@@ -13,6 +13,8 @@ import { useRoles } from '@/hooks/useRoles';
 import RoleBadge from '@/components/admin/RoleBadge';
 import { useSettings } from '@/hooks/useSettings';
 import { useTheme } from '@/contexts/ThemeContext';
+import { GoogleDriveConnection } from '@/components/settings/GoogleDriveConnection';
+import { CanvasConnection } from '@/components/settings/CanvasConnection';
 const Settings = () => {
   const showContent = useAnimateIn(false, 300);
   const navigate = useNavigate();
@@ -51,10 +53,11 @@ const Settings = () => {
         
         <div className="max-w-3xl mx-auto">
           <Tabs defaultValue="general" className="w-full">
-            <TabsList className={`grid w-full mb-8 ${isAdmin() || isModerator() ? 'grid-cols-4' : 'grid-cols-3'}`}>
+            <TabsList className={`grid w-full mb-8 ${isAdmin() || isModerator() ? 'grid-cols-5' : 'grid-cols-4'}`}>
               <TabsTrigger value="general">General</TabsTrigger>
               <TabsTrigger value="security">Security</TabsTrigger>
               <TabsTrigger value="appearance">Appearance</TabsTrigger>
+              <TabsTrigger value="integrations">Integrations</TabsTrigger>
               {(isAdmin() || isModerator()) && <TabsTrigger value="admin">Admin</TabsTrigger>}
             </TabsList>
             
@@ -220,6 +223,10 @@ const Settings = () => {
               </Card>
             </TabsContent>
             
+            <TabsContent value="integrations" className="space-y-6">
+              <GoogleDriveConnection />
+              <CanvasConnection />
+            </TabsContent>
             
             {(isAdmin() || isModerator()) && <TabsContent value="admin">
                 <Card>
