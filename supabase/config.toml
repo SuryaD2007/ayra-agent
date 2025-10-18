@@ -34,15 +34,6 @@ verify_jwt = false
 [functions.send-notification]
 verify_jwt = true
 
-[functions.get-google-oauth-url]
-verify_jwt = true
-
-[functions.google-drive-oauth]
-verify_jwt = false
-
-[functions.sync-google-drive]
-verify_jwt = true
-
 [functions.get-canvas-oauth-url]
 verify_jwt = true
 

@@ -13,7 +13,6 @@ import { useRoles } from '@/hooks/useRoles';
 import RoleBadge from '@/components/admin/RoleBadge';
 import { useSettings } from '@/hooks/useSettings';
 import { useTheme } from '@/contexts/ThemeContext';
-import { GoogleDriveConnection } from '@/components/settings/GoogleDriveConnection';
 import { CanvasConnection } from '@/components/settings/CanvasConnection';
 const Settings = () => {
   const showContent = useAnimateIn(false, 300);
@@ -224,7 +223,6 @@ const Settings = () => {
             </TabsContent>
             
             <TabsContent value="integrations" className="space-y-6">
-              <GoogleDriveConnection />
               <CanvasConnection />
             </TabsContent>
             
