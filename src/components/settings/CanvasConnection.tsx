@@ -318,14 +318,14 @@ export const CanvasConnection = () => {
             </div>
           </>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* Introduction */}
-            <div className="text-center space-y-3 py-4">
-              <div className="inline-flex p-4 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 ring-1 ring-primary/20">
-                <GraduationCap className="h-12 w-12 text-primary" />
+            <div className="text-center space-y-2 py-2">
+              <div className="inline-flex p-3 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 ring-1 ring-primary/20">
+                <GraduationCap className="h-8 w-8 text-primary" />
               </div>
-              <h3 className="text-lg font-semibold">Connect Your Canvas</h3>
-              <p className="text-sm text-muted-foreground max-w-md mx-auto">
+              <h3 className="text-base font-semibold">Connect Your Canvas</h3>
+              <p className="text-xs text-muted-foreground max-w-md mx-auto">
                 Automatically sync your assignments, track deadlines, and keep all your course materials organized in one place
               </p>
             </div>
@@ -414,7 +414,6 @@ export const CanvasConnection = () => {
               onClick={handleConnect} 
               disabled={isLoading}
               className="w-full transition-all duration-300 hover:scale-[1.02]"
-              size="lg"
             >
               {isLoading ? (
                 <>
