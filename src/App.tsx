@@ -24,6 +24,7 @@ import ConfigurationBanner from "./components/ConfigurationBanner";
 import PreLaunchGuard from "./components/auth/PreLaunchGuard";
 import RoleGuard from "./components/auth/RoleGuard";
 import Admin from "./pages/Admin";
+import Assignments from "./pages/Assignments";
 import { useConfigurationValidation } from "./hooks/useConfigurationValidation";
 import { useSettings } from "./hooks/useSettings";
 import './lib/sampleData'; // Import sample data utilities
@@ -130,6 +131,16 @@ const AppRoutes = () => {
               <RoleGuard allowedRoles={['admin']}>
                 <Admin />
               </RoleGuard>
+            </PreLaunchGuard>
+          </PageTransition>
+        } 
+      />
+      <Route 
+        path="/assignments" 
+        element={
+          <PageTransition>
+            <PreLaunchGuard>
+              <Assignments />
             </PreLaunchGuard>
           </PageTransition>
         } 
