@@ -236,9 +236,21 @@ export const CanvasConnection = () => {
                 value={accessToken}
                 onChange={(e) => setAccessToken(e.target.value)}
               />
-              <p className="text-sm text-muted-foreground">
-                Generate from: Account → Settings → New Access Token
-              </p>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">
+                  To generate a token in Canvas:
+                </p>
+                <ol className="text-sm text-muted-foreground list-decimal list-inside space-y-1 ml-2">
+                  <li>Click on "Account" in the left sidebar</li>
+                  <li>Click "Settings"</li>
+                  <li>Scroll down to "Approved Integrations"</li>
+                  <li>Click "+ New Access Token"</li>
+                  <li>Give it a name (e.g., "Ayra") and click "Generate Token"</li>
+                </ol>
+                <p className="text-sm text-amber-600 dark:text-amber-400 mt-2">
+                  ⚠️ If you don't see "Approved Integrations", your institution may have disabled this feature. Contact your Canvas administrator.
+                </p>
+              </div>
             </div>
             <Button onClick={handleConnect}>
               Connect Canvas
