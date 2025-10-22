@@ -64,6 +64,27 @@ Deno.serve(async (req) => {
       const assignments = await assignmentsResponse.json();
 
       for (const assignment of assignments) {
+        // Fetch submission data to check if assignment is submitted
+        let submissionStatus = 'not_submitted';
+        let submittedAt = null;
+        
+        try {
+          const submissionResponse = await fetch(
+            `${baseUrl}/courses/${course.id}/assignments/${assignment.id}/submissions/self`,
+            { headers }
+          );
+          
+          if (submissionResponse.ok) {
+            const submission = await submissionResponse.json();
+            if (submission.submitted_at) {
+              submittedAt = submission.submitted_at;
+              submissionStatus = submission.grade ? 'graded' : 'submitted';
+            }
+          }
+        } catch (e) {
+          console.log('Could not fetch submission for assignment:', assignment.id);
+        }
+
         const { error: itemError } = await supabaseClient
           .from('canvas_items')
           .upsert({
@@ -75,6 +96,8 @@ Deno.serve(async (req) => {
             description: assignment.description,
             due_date: assignment.due_at,
             url: assignment.html_url,
+            submission_status: submissionStatus,
+            submitted_at: submittedAt,
             metadata: {
               points_possible: assignment.points_possible,
               submission_types: assignment.submission_types

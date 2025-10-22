@@ -161,6 +161,8 @@ export type Database = {
           due_date: string | null
           id: string
           metadata: Json | null
+          submission_status: string | null
+          submitted_at: string | null
           title: string | null
           type: string
           updated_at: string
@@ -175,6 +177,8 @@ export type Database = {
           due_date?: string | null
           id?: string
           metadata?: Json | null
+          submission_status?: string | null
+          submitted_at?: string | null
           title?: string | null
           type: string
           updated_at?: string
@@ -189,6 +193,8 @@ export type Database = {
           due_date?: string | null
           id?: string
           metadata?: Json | null
+          submission_status?: string | null
+          submitted_at?: string | null
           title?: string | null
           type?: string
           updated_at?: string
@@ -838,7 +844,7 @@ export type Database = {
         Returns: undefined
       }
       get_all_users_with_roles: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           created_at: string
           email: string
@@ -849,7 +855,7 @@ export type Database = {
         }[]
       }
       get_analytics_summary: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           event_count: number
           event_type: string
@@ -864,10 +870,7 @@ export type Database = {
         }
         Returns: boolean
       }
-      is_ip_banned: {
-        Args: { _ip_address: string }
-        Returns: boolean
-      }
+      is_ip_banned: { Args: { _ip_address: string }; Returns: boolean }
       remove_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -875,14 +878,8 @@ export type Database = {
         }
         Returns: undefined
       }
-      unban_user: {
-        Args: { _target_user_id: string }
-        Returns: undefined
-      }
-      unban_user_ips: {
-        Args: { _target_user_id: string }
-        Returns: undefined
-      }
+      unban_user: { Args: { _target_user_id: string }; Returns: undefined }
+      unban_user_ips: { Args: { _target_user_id: string }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

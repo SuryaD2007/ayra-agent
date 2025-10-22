@@ -18,6 +18,8 @@ interface CanvasAssignment {
   due_date: string | null;
   course_name: string;
   url: string;
+  submission_status: 'not_submitted' | 'submitted' | 'graded';
+  submitted_at: string | null;
   metadata: {
     points_possible?: number;
     submission_types?: string[];
@@ -28,7 +30,7 @@ const Assignments = () => {
   const showContent = useAnimateIn(false, 200);
   const [assignments, setAssignments] = useState<CanvasAssignment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedFilter, setSelectedFilter] = useState<'all' | 'upcoming' | 'due-soon' | 'overdue'>('all');
+  const [selectedFilter, setSelectedFilter] = useState<'all' | 'upcoming' | 'due-soon' | 'submitted'>('all');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -79,7 +81,7 @@ const Assignments = () => {
 
   // Calculate stats
   const totalAssignments = assignments.length;
-  const overdueCount = assignments.filter(a => a.due_date && new Date(a.due_date) < new Date()).length;
+  const submittedCount = assignments.filter(a => a.submission_status === 'submitted' || a.submission_status === 'graded').length;
   const dueSoonCount = assignments.filter(a => {
     if (!a.due_date) return false;
     const days = differenceInDays(new Date(a.due_date), new Date());
@@ -94,11 +96,14 @@ const Assignments = () => {
   // Filter assignments
   const filteredAssignments = assignments.filter(assignment => {
     if (selectedFilter === 'all') return true;
-    if (!assignment.due_date) return false;
     
+    if (selectedFilter === 'submitted') {
+      return assignment.submission_status === 'submitted' || assignment.submission_status === 'graded';
+    }
+    
+    if (!assignment.due_date) return false;
     const days = differenceInDays(new Date(assignment.due_date), new Date());
     
-    if (selectedFilter === 'overdue') return days < 0;
     if (selectedFilter === 'due-soon') return days >= 0 && days <= 3;
     if (selectedFilter === 'upcoming') return days > 3 && days <= 7;
     return true;
@@ -174,8 +179,8 @@ const Assignments = () => {
               <div className="flex items-center gap-2">
                 <Trophy className="h-6 w-6 text-amber-500 animate-pulse-slow" />
                 <div className="text-right">
-                  <p className="text-2xl font-bold">{totalAssignments - overdueCount}</p>
-                  <p className="text-xs text-muted-foreground">On Track</p>
+                  <p className="text-2xl font-bold">{submittedCount}</p>
+                  <p className="text-xs text-muted-foreground">Submitted</p>
                 </div>
               </div>
             </div>
@@ -234,19 +239,19 @@ const Assignments = () => {
               </Card>
 
               <Card 
-                onClick={() => setSelectedFilter('overdue')}
+                onClick={() => setSelectedFilter('submitted')}
                 className={cn(
                   "cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg border-border/50",
-                  selectedFilter === 'overdue' && "ring-2 ring-destructive shadow-lg bg-destructive/5"
+                  selectedFilter === 'submitted' && "ring-2 ring-green-500 shadow-lg bg-green-500/5"
                 )}
               >
                 <CardContent className="p-6 space-y-2">
                   <div className="flex items-center justify-between">
-                    <Circle className="h-8 w-8 text-destructive" />
-                    <Badge variant="destructive" className="text-xs">{overdueCount}</Badge>
+                    <CheckCircle2 className="h-8 w-8 text-green-500" />
+                    <Badge className="bg-green-500 text-xs">{submittedCount}</Badge>
                   </div>
-                  <p className="text-2xl font-bold">{overdueCount}</p>
-                  <p className="text-sm text-muted-foreground">Overdue</p>
+                  <p className="text-2xl font-bold">{submittedCount}</p>
+                  <p className="text-sm text-muted-foreground">Submitted</p>
                 </CardContent>
               </Card>
             </div>
@@ -259,7 +264,7 @@ const Assignments = () => {
                 <CheckCircle2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                 <h3 className="text-lg font-semibold mb-2">No {selectedFilter !== 'all' && selectedFilter.replace('-', ' ')} assignments</h3>
                 <p className="text-muted-foreground mb-4">
-                  {selectedFilter === 'overdue' && "Great job! You don't have any overdue assignments."}
+                  {selectedFilter === 'submitted' && "No submitted assignments yet. Keep working!"}
                   {selectedFilter === 'due-soon' && "No assignments due in the next 3 days."}
                   {selectedFilter === 'upcoming' && "No assignments due this week."}
                 </p>
@@ -288,17 +293,27 @@ const Assignments = () => {
                         style={{ animationDelay: `${(idx * 100) + (assignIdx * 50)}ms` }}
                       >
                         <CardHeader>
-                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex items-start justify-between gap-4">
                             <div className="flex-1 space-y-3">
                               <div className="flex items-start gap-3">
                                 <div className="mt-1">
-                                  <Circle className="h-5 w-5 text-muted-foreground" />
+                                  {(assignment.submission_status === 'submitted' || assignment.submission_status === 'graded') ? (
+                                    <CheckCircle2 className="h-5 w-5 text-green-500" />
+                                  ) : (
+                                    <Circle className="h-5 w-5 text-muted-foreground" />
+                                  )}
                                 </div>
                                 <div className="flex-1">
                                   <CardTitle className="text-xl mb-2 hover:text-primary transition-colors">
                                     {assignment.title}
                                   </CardTitle>
                                   <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                                    {(assignment.submission_status === 'submitted' || assignment.submission_status === 'graded') && assignment.submitted_at && (
+                                      <div className="flex items-center gap-1.5 text-green-600">
+                                        <CheckCircle2 className="h-4 w-4" />
+                                        <span>Submitted: {format(new Date(assignment.submitted_at), 'PPP')}</span>
+                                      </div>
+                                    )}
                                     {assignment.due_date && (
                                       <div className="flex items-center gap-1.5">
                                         <Calendar className="h-4 w-4" />
