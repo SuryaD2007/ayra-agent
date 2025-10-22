@@ -209,6 +209,97 @@ export const CanvasConnection = () => {
     return `${days} day${days > 1 ? 's' : ''} ago`;
   };
 
+  const getUniversityName = (url: string): string => {
+    const urlLower = url.toLowerCase();
+    
+    // Common university Canvas URL patterns
+    const universityMap: { [key: string]: string } = {
+      'gatech': 'Georgia Institute of Technology',
+      'uga': 'University of Georgia',
+      'ufl': 'University of Florida',
+      'fsu': 'Florida State University',
+      'ucf': 'University of Central Florida',
+      'usf': 'University of South Florida',
+      'miami': 'University of Miami',
+      'emory': 'Emory University',
+      'clemson': 'Clemson University',
+      'unc': 'University of North Carolina',
+      'duke': 'Duke University',
+      'vanderbilt': 'Vanderbilt University',
+      'rice': 'Rice University',
+      'utexas': 'University of Texas at Austin',
+      'tamu': 'Texas A&M University',
+      'utd': 'University of Texas at Dallas',
+      'uh': 'University of Houston',
+      'umd': 'University of Maryland',
+      'vt': 'Virginia Tech',
+      'uva': 'University of Virginia',
+      'wm': 'College of William & Mary',
+      'gmu': 'George Mason University',
+      'gwu': 'George Washington University',
+      'american': 'American University',
+      'howard': 'Howard University',
+      'nyu': 'New York University',
+      'columbia': 'Columbia University',
+      'cornell': 'Cornell University',
+      'upenn': 'University of Pennsylvania',
+      'princeton': 'Princeton University',
+      'harvard': 'Harvard University',
+      'yale': 'Yale University',
+      'brown': 'Brown University',
+      'dartmouth': 'Dartmouth College',
+      'mit': 'Massachusetts Institute of Technology',
+      'bu': 'Boston University',
+      'northeastern': 'Northeastern University',
+      'umich': 'University of Michigan',
+      'msu': 'Michigan State University',
+      'osu': 'Ohio State University',
+      'purdue': 'Purdue University',
+      'northwestern': 'Northwestern University',
+      'uchicago': 'University of Chicago',
+      'uiuc': 'University of Illinois Urbana-Champaign',
+      'wisc': 'University of Wisconsin-Madison',
+      'umn': 'University of Minnesota',
+      'usc': 'University of Southern California',
+      'ucla': 'University of California, Los Angeles',
+      'berkeley': 'University of California, Berkeley',
+      'ucsd': 'University of California, San Diego',
+      'uci': 'University of California, Irvine',
+      'ucsb': 'University of California, Santa Barbara',
+      'ucr': 'University of California, Riverside',
+      'stanford': 'Stanford University',
+      'caltech': 'California Institute of Technology',
+      'uw': 'University of Washington',
+      'wsu': 'Washington State University',
+      'uoregon': 'University of Oregon',
+      'oregonstate': 'Oregon State University',
+      'asu': 'Arizona State University',
+      'uarizona': 'University of Arizona',
+      'colorado': 'University of Colorado',
+      'utah': 'University of Utah',
+    };
+
+    // Check if URL contains any known university identifier
+    for (const [key, name] of Object.entries(universityMap)) {
+      if (urlLower.includes(key)) {
+        return name;
+      }
+    }
+
+    // If no match found, try to extract a readable name from the URL
+    const parts = url.split('.');
+    if (parts.length > 0) {
+      // Get the first part (usually the institution identifier)
+      const identifier = parts[0].replace('canvas', '').trim();
+      if (identifier) {
+        // Capitalize and format
+        return identifier.charAt(0).toUpperCase() + identifier.slice(1);
+      }
+    }
+
+    return url; // Return original URL if can't parse
+  };
+
   return (
     <Card className={cn(
       "border-border/50 backdrop-blur-sm bg-card/50 shadow-lg hover:shadow-xl transition-all duration-500",
@@ -277,7 +368,7 @@ export const CanvasConnection = () => {
               <div className="flex items-center gap-2 text-xs">
                 <LinkIcon className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="text-muted-foreground">Institution:</span>
-                <span className="font-medium">{institutionUrl}</span>
+                <span className="font-medium">{getUniversityName(institutionUrl)}</span>
               </div>
               {lastSync && (
                 <div className="flex items-center gap-2 text-xs">
