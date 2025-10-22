@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { Brain, LogIn, Search, Upload, User, Settings, LogOut, Moon, Sun, Table, Info, HelpCircle, Code, Shield, Calendar } from 'lucide-react';
 import { useRippleEffect } from '@/lib/animations';
 import { cn } from '@/lib/utils';
@@ -130,9 +130,25 @@ export const Navbar = () => {
   const { isConnected: isCanvasConnected } = useCanvasConnection();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   
   // Check if admin access is enabled (for owner login access)
   const isAdminMode = searchParams.get('admin') === 'true' || isAuthenticated;
+  
+  // Update active state based on current route
+  useEffect(() => {
+    const path = location.pathname;
+    if (path === '/') setActive('what');
+    else if (path === '/why') setActive('why');
+    else if (path === '/how') setActive('how');
+    else if (path === '/manage') setActive('manage');
+    else if (path === '/search') setActive('search');
+    else if (path === '/assignments') setActive('assignments');
+    else if (path === '/profile') setActive('profile');
+    else if (path === '/settings') setActive('settings');
+    else if (path === '/admin') setActive('admin');
+    else if (path === '/import') setActive('import');
+  }, [location.pathname]);
   
   const handleOpenAuthModal = () => {
     setIsAuthModalOpen(true);
