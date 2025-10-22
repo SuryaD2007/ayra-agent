@@ -69,11 +69,16 @@ export const CanvasConnection = () => {
       
       if (!user) throw new Error('Not authenticated');
 
+      // Normalize URL: remove protocol and trailing slashes
+      const normalizedUrl = institutionUrl.trim()
+        .replace(/^https?:\/\//, '')
+        .replace(/\/+$/, '');
+
       const { error } = await supabase
         .from('canvas_integrations')
         .upsert({
           user_id: user.id,
-          institution_url: institutionUrl.trim(),
+          institution_url: normalizedUrl,
           access_token: accessToken.trim(),
           updated_at: new Date().toISOString()
         }, { onConflict: 'user_id' });

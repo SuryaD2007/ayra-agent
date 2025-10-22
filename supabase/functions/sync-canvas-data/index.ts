@@ -38,8 +38,15 @@ Deno.serve(async (req) => {
       });
     }
 
-    const baseUrl = `https://${integration.institution_url}/api/v1`;
+    // Normalize URL: remove protocol and extra slashes
+    const cleanUrl = integration.institution_url
+      .replace(/^https?:\/\//, '')
+      .replace(/\/+$/, '');
+    
+    const baseUrl = `https://${cleanUrl}/api/v1`;
     const headers = { Authorization: `Bearer ${integration.access_token}` };
+
+    console.log('Fetching from Canvas URL:', baseUrl);
 
     const coursesResponse = await fetch(`${baseUrl}/courses?enrollment_state=active`, { headers });
     if (!coursesResponse.ok) throw new Error('Failed to fetch courses');
