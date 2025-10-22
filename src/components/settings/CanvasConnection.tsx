@@ -210,7 +210,11 @@ export const CanvasConnection = () => {
   };
 
   const getUniversityName = (url: string): string => {
-    const urlLower = url.toLowerCase();
+    // Strip protocol and normalize
+    const cleanUrl = url.toLowerCase()
+      .replace(/^https?:\/\//, '')
+      .replace(/\/$/, '')
+      .split('/')[0]; // Get just the domain
     
     // Common university Canvas URL patterns
     const universityMap: { [key: string]: string } = {
@@ -231,6 +235,10 @@ export const CanvasConnection = () => {
       'tamu': 'Texas A&M University',
       'utd': 'University of Texas at Dallas',
       'uh': 'University of Houston',
+      'collin': 'Collin College',
+      'dcccd': 'Dallas County Community College',
+      'austincc': 'Austin Community College',
+      'hccs': 'Houston Community College',
       'umd': 'University of Maryland',
       'vt': 'Virginia Tech',
       'uva': 'University of Virginia',
@@ -279,25 +287,29 @@ export const CanvasConnection = () => {
       'utah': 'University of Utah',
     };
 
-    // Check if URL contains any known university identifier
+    // Check if cleanUrl contains any known university identifier
     for (const [key, name] of Object.entries(universityMap)) {
-      if (urlLower.includes(key)) {
+      if (cleanUrl.includes(key)) {
         return name;
       }
     }
 
     // If no match found, try to extract a readable name from the URL
-    const parts = url.split('.');
+    const parts = cleanUrl.split('.');
     if (parts.length > 0) {
-      // Get the first part (usually the institution identifier)
-      const identifier = parts[0].replace('canvas', '').trim();
+      // Get the first part before any dots
+      let identifier = parts[0];
+      
+      // Remove common prefixes like 'canvas'
+      identifier = identifier.replace(/^canvas[-.]?/, '');
+      
       if (identifier) {
-        // Capitalize and format
-        return identifier.charAt(0).toUpperCase() + identifier.slice(1);
+        // Capitalize first letter and format
+        return identifier.charAt(0).toUpperCase() + identifier.slice(1) + ' College';
       }
     }
 
-    return url; // Return original URL if can't parse
+    return cleanUrl; // Return cleaned URL if can't parse
   };
 
   return (
