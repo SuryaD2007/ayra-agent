@@ -13,6 +13,7 @@ export const CanvasConnection = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [institutionUrl, setInstitutionUrl] = useState('');
+  const [accessToken, setAccessToken] = useState('');
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const { toast } = useToast();
 
@@ -53,17 +54,38 @@ export const CanvasConnection = () => {
       return;
     }
 
+    if (!accessToken.trim()) {
+      toast({
+        title: 'Missing Token',
+        description: 'Please enter your Canvas personal access token',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     try {
       setIsLoading(true);
-      const { data, error } = await supabase.functions.invoke('get-canvas-oauth-url', {
-        body: { institutionUrl: institutionUrl.trim() }
-      });
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) throw new Error('Not authenticated');
+
+      const { error } = await supabase
+        .from('canvas_integrations')
+        .upsert({
+          user_id: user.id,
+          institution_url: institutionUrl.trim(),
+          access_token: accessToken.trim(),
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' });
 
       if (error) throw error;
-      
-      if (data?.url) {
-        window.location.href = data.url;
-      }
+
+      setIsConnected(true);
+      setAccessToken(''); // Clear the token from state for security
+      toast({
+        title: 'Connected',
+        description: 'Canvas has been connected successfully'
+      });
     } catch (error: any) {
       toast({
         title: 'Connection failed',
@@ -203,6 +225,19 @@ export const CanvasConnection = () => {
               />
               <p className="text-sm text-muted-foreground">
                 Enter your school's Canvas domain (without https://)
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="canvas-token">Personal Access Token</Label>
+              <Input
+                id="canvas-token"
+                type="password"
+                placeholder="Your Canvas personal access token"
+                value={accessToken}
+                onChange={(e) => setAccessToken(e.target.value)}
+              />
+              <p className="text-sm text-muted-foreground">
+                Generate from: Account → Settings → New Access Token
               </p>
             </div>
             <Button onClick={handleConnect}>

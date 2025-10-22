@@ -34,12 +34,6 @@ verify_jwt = false
 [functions.send-notification]
 verify_jwt = true
 
-[functions.get-canvas-oauth-url]
-verify_jwt = true
-
-[functions.canvas-oauth]
-verify_jwt = false
-
 [functions.sync-canvas-data]
 verify_jwt = true
 
