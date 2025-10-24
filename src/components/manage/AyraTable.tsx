@@ -55,52 +55,16 @@ import EmptyItemsState from './EmptyItemsState';
 import TablePagination from './TablePagination';
 import NewItemModal from './NewItemModal';
 import PreviewDrawer from './PreviewDrawer';
-
-// Simple data layer functions for now
-const getItems = async (params: any) => {
-  // This would normally fetch from Supabase
-  return { data: [], error: null };
-};
-
-const getSpaces = async () => {
-  // This would normally fetch from Supabase  
-  return { data: [], error: null };
-};
-
-const updateItem = async (id: string, updates: any) => {
-  // This would normally update in Supabase
-  return { error: null };
-};
-
-const moveItem = async (itemId: string, targetSpaceId: string) => {
-  // This would normally move item in Supabase
-  return { error: null };
-};
-
-const deleteItem = async (itemId: string) => {
-  // This would normally delete from Supabase
-  return { error: null };
-};
-
-// Simple DataCache implementation
-const DataCache = {
-  getAyraItems: () => [],
-  setAyraItems: (items: AyraItem[]) => {},
-  clear: () => {}
-};
-
-// Simple Item type
-type Item = {
-  id: string;
-  title: string;
-  content?: string;
-  type: string;
-  created_at: string;
-  source?: string;
-  file_path?: string;
-  size_bytes?: number;
-  space_id?: string;
-};
+import { 
+  getItems, 
+  getSpaces, 
+  updateItem, 
+  deleteItems, 
+  bulkMoveItems,
+  restoreItem,
+  Item,
+  GetItemsParams
+} from '@/lib/data';
 
 interface AyraTableProps {
   viewType?: 'table' | 'grid' | 'list' | 'kanban';
@@ -139,10 +103,17 @@ const AyraTable = forwardRef<AyraTableRef, AyraTableProps>(({
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [spaces, setSpaces] = useState<any[]>([]);
   const [ayraItems, setAyraItems] = useState<AyraItem[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const MAX_RETRIES = 3;
-  const RETRY_DELAY = 1000;
+
+  const {
+    filters,
+    updateFilters,
+    clearFilters,
+    availableTags,
+    pagination
+  } = useFilters([], ayraId || undefined);
 
   // Check authentication status
   useEffect(() => {
@@ -169,13 +140,37 @@ const AyraTable = forwardRef<AyraTableRef, AyraTableProps>(({
     return () => subscription.unsubscribe();
   }, []);
 
-  const {
-    filters,
-    updateFilters,
-    clearFilters,
-    availableTags,
-    pagination
-  } = useFilters([], ayraId || undefined);
+  // Load items from Supabase
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const loadData = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const spacesData = await getSpaces();
+        setSpaces(spacesData);
+
+        const params: GetItemsParams = {
+          spaceId: ayraId && ayraId !== 'overview' ? ayraId : undefined,
+          search: searchQuery || undefined,
+        };
+
+        const { items, total } = await getItems(params);
+        const convertedItems = itemsToAyraItems(items);
+        setAyraItems(convertedItems);
+        setTotalCount(total);
+      } catch (err: any) {
+        console.error('Error loading data:', err);
+        setError(err.message || 'Failed to load data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [isAuthenticated, ayraId, searchQuery]);
 
   // Function to get the active ayra name for display
   const getActiveAyraName = () => {
@@ -207,33 +202,23 @@ const AyraTable = forwardRef<AyraTableRef, AyraTableProps>(({
       const originalItem = ayraItems.find(item => item.id === id);
       if (!originalItem) return;
 
+      // Optimistic update
       setAyraItems(prev => 
         prev.map(item => 
           item.id === id ? { ...item, ...updates } : item
         )
       );
 
-      const itemUpdates: any = {};
+      const itemUpdates: Partial<Item> = {};
       if (updates.title !== undefined) itemUpdates.title = updates.title;
       if (updates.content !== undefined) itemUpdates.content = updates.content;
 
-      const { error } = await updateItem(id, itemUpdates);
-      
-      if (error) {
-        setAyraItems(prev => 
-          prev.map(item => 
-            item.id === id ? originalItem : item
-          )
-        );
-        
-        toast.error('Failed to update item');
-        console.error('Update item error:', error);
-      } else {
-        toast.success('Item updated successfully');
-      }
+      await updateItem(id, itemUpdates);
+      toast.success('Item updated successfully');
     } catch (error: any) {
       console.error('Error updating item:', error);
       
+      // Revert on error
       const originalItem = ayraItems.find(item => item.id === id);
       if (originalItem) {
         setAyraItems(prev => 
@@ -251,16 +236,6 @@ const AyraTable = forwardRef<AyraTableRef, AyraTableProps>(({
     if (selectedItems.length === 0 || !targetAyra) return;
 
     try {
-      const originalItems = ayraItems.filter(item => selectedItems.includes(item.id));
-
-      setAyraItems(prev => 
-        prev.map(item => 
-          selectedItems.includes(item.id) 
-            ? { ...item, space: targetAyra as AyraItem['space'] }
-            : item
-        )
-      );
-
       const targetSpace = spaces.find(s => s.name.toLowerCase() === targetAyra.toLowerCase()) || 
                           spaces.find(s => s.id === targetAyra);
 
@@ -268,30 +243,18 @@ const AyraTable = forwardRef<AyraTableRef, AyraTableProps>(({
         throw new Error('Target space not found');
       }
 
-      for (const itemId of selectedItems) {
-        const { error } = await moveItem(itemId, targetSpace.id);
-        if (error) {
-          throw error;
-        }
-      }
+      // Move items in bulk
+      await bulkMoveItems(selectedItems, targetSpace.id);
+
+      // Remove items from current view
+      setAyraItems(prev => prev.filter(item => !selectedItems.includes(item.id)));
 
       toast.success(`Moved ${selectedItems.length} item(s) to ${targetAyra}`);
       setSelectedItems([]);
       setMoveDialogOpen(false);
       setTargetAyra('');
-
     } catch (error: any) {
       console.error('Error moving items:', error);
-      
-      // Revert changes
-      const originalItems = ayraItems.filter(item => selectedItems.includes(item.id));
-      setAyraItems(prev => 
-        prev.map(item => {
-          const originalItem = originalItems.find(orig => orig.id === item.id);
-          return originalItem || item;
-        })
-      );
-      
       toast.error('Failed to move items');
     }
   };
@@ -302,14 +265,11 @@ const AyraTable = forwardRef<AyraTableRef, AyraTableProps>(({
     try {
       const itemsToDelete = ayraItems.filter(item => selectedItems.includes(item.id));
       
+      // Optimistic update
       setAyraItems(prev => prev.filter(item => !selectedItems.includes(item.id)));
 
-      for (const itemId of selectedItems) {
-        const { error } = await deleteItem(itemId);
-        if (error) {
-          throw error;
-        }
-      }
+      // Soft delete items
+      await deleteItems(selectedItems);
 
       setDeletedItems(itemsToDelete);
       
@@ -325,10 +285,10 @@ const AyraTable = forwardRef<AyraTableRef, AyraTableProps>(({
 
       setSelectedItems([]);
       setDeleteDialogOpen(false);
-
     } catch (error: any) {
       console.error('Error deleting items:', error);
       
+      // Revert on error
       const itemsToDelete = ayraItems.filter(item => selectedItems.includes(item.id));
       setAyraItems(prev => [...itemsToDelete, ...prev]);
       toast.error('Failed to delete items');
@@ -339,6 +299,11 @@ const AyraTable = forwardRef<AyraTableRef, AyraTableProps>(({
     if (deletedItems.length === 0) return;
 
     try {
+      // Restore each item
+      for (const item of deletedItems) {
+        await restoreItem(item.id);
+      }
+      
       setAyraItems(prev => [...deletedItems, ...prev]);
       setDeletedItems([]);
       toast.success('Items restored');

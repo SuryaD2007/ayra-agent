@@ -59,8 +59,8 @@ type CustomSpace = {
 type CustomCategory = {
   id: string;
   name: string;
-  icon: string;
-  color: string;
+  emoji?: string;
+  visibility?: 'private' | 'public';
 };
 
 interface AyraSidebarProps {

@@ -20,6 +20,7 @@ import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { useSignedUrl } from '@/hooks/useSignedUrl';
+import { updateItem, upsertTag, setItemTags, getSpaces } from '@/lib/data';
 
 interface PreviewItem {
   id: string;
@@ -52,12 +53,34 @@ const PreviewDrawer = ({ open, onOpenChange, item, onDelete }: PreviewDrawerProp
   const [isEditingSpace, setIsEditingSpace] = useState(false);
   const [newTagInput, setNewTagInput] = useState('');
   const [isAddingTag, setIsAddingTag] = useState(false);
+  const [spaces, setSpaces] = useState<any[]>([]);
+  const [currentTags, setCurrentTags] = useState<string[]>([]);
 
   // MUST call all hooks before any early returns or conditional logic
   const { url: pdfUrl, loading: isPdfLoading, error: pdfUrlError, refresh: refreshPdfUrl } = useSignedUrl(
     item?.type === 'PDF' && item?.file_path ? item.file_path : null,
     3600
   );
+
+  // Load spaces
+  useEffect(() => {
+    const loadSpaces = async () => {
+      try {
+        const spacesData = await getSpaces();
+        setSpaces(spacesData);
+      } catch (error) {
+        console.error('Error loading spaces:', error);
+      }
+    };
+    loadSpaces();
+  }, []);
+
+  // Initialize tags when item changes
+  useEffect(() => {
+    if (item) {
+      setCurrentTags(item.keywords || []);
+    }
+  }, [item]);
 
   // Listen for library title changes
   useEffect(() => {
@@ -96,14 +119,25 @@ const PreviewDrawer = ({ open, onOpenChange, item, onDelete }: PreviewDrawerProp
     setEditedTitle(item.title);
   };
 
-  const handleSaveTitle = () => {
-    // Here you would typically call an API to update the title
-    console.log('Save title:', editedTitle);
-    setIsEditingTitle(false);
-    toast({
-      title: "Title updated",
-      description: "Item title has been saved successfully."
-    });
+  const handleSaveTitle = async () => {
+    if (!item || !editedTitle.trim()) return;
+    
+    try {
+      await updateItem(item.id, { title: editedTitle.trim() });
+      item.title = editedTitle.trim(); // Update local state
+      setIsEditingTitle(false);
+      toast({
+        title: "Title updated",
+        description: "Item title has been saved successfully."
+      });
+    } catch (error) {
+      console.error('Error updating title:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update title. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleCancelEditTitle = () => {
@@ -111,35 +145,88 @@ const PreviewDrawer = ({ open, onOpenChange, item, onDelete }: PreviewDrawerProp
     setEditedTitle(item.title);
   };
 
-  const handleSpaceChange = (spaceId: string) => {
-    // Here you would typically call an API to update the space
-    console.log('Change space to:', spaceId);
-    toast({
-      title: "Space updated",
-      description: "Item moved to new space successfully."
-    });
+  const handleSpaceChange = async (spaceId: string) => {
+    if (!item) return;
+    
+    try {
+      await updateItem(item.id, { space_id: spaceId });
+      const space = spaces.find(s => s.id === spaceId);
+      if (space) {
+        item.space = space.name;
+      }
+      toast({
+        title: "Space updated",
+        description: "Item moved to new space successfully."
+      });
+    } catch (error) {
+      console.error('Error updating space:', error);
+      toast({
+        title: "Error",
+        description: "Failed to move item. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleAddTag = () => {
-    if (newTagInput.trim()) {
-      // Here you would typically call an API to add the tag
-      console.log('Add tag:', newTagInput);
+  const handleAddTag = async () => {
+    if (!newTagInput.trim() || !item) return;
+    
+    try {
+      // Upsert tag (creates if doesn't exist)
+      await upsertTag(newTagInput.trim());
+      
+      // Add to current tags
+      const updatedTags = [...currentTags, newTagInput.trim()];
+      setCurrentTags(updatedTags);
+      
+      // Update item tags
+      await setItemTags(item.id, updatedTags);
+      
+      // Update local item
+      item.keywords = updatedTags;
+      
       setNewTagInput('');
       setIsAddingTag(false);
       toast({
         title: "Tag added",
         description: "New tag has been added successfully."
       });
+    } catch (error) {
+      console.error('Error adding tag:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add tag. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
-  const handleRemoveTag = (tagToRemove: string) => {
-    // Here you would typically call an API to remove the tag
-    console.log('Remove tag:', tagToRemove);
-    toast({
-      title: "Tag removed",
-      description: "Tag has been removed successfully."
-    });
+  const handleRemoveTag = async (tagToRemove: string) => {
+    if (!item) return;
+    
+    try {
+      // Remove from current tags
+      const updatedTags = currentTags.filter(t => t !== tagToRemove);
+      setCurrentTags(updatedTags);
+      
+      // Update item tags
+      await setItemTags(item.id, updatedTags);
+      
+      // Update local item
+      item.keywords = updatedTags;
+      
+      toast({
+        title: "Tag removed",
+        description: "Tag has been removed successfully."
+      });
+    } catch (error) {
+      console.error('Error removing tag:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove tag. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleOpenInNewTab = () => {
@@ -309,15 +396,19 @@ const PreviewDrawer = ({ open, onOpenChange, item, onDelete }: PreviewDrawerProp
                 <div className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm font-medium">Space:</span>
-                  <Select value={item.space} onValueChange={handleSpaceChange}>
+                  <Select 
+                    value={spaces.find(s => s.name === item.space)?.id || ''} 
+                    onValueChange={handleSpaceChange}
+                  >
                     <SelectTrigger className="w-48 h-8">
-                      <SelectValue />
+                      <SelectValue placeholder="Select space" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Personal">Personal</SelectItem>
-                      <SelectItem value="Work">Work</SelectItem>
-                      <SelectItem value="School">School</SelectItem>
-                      <SelectItem value="Team">Team</SelectItem>
+                      {spaces.map((space) => (
+                        <SelectItem key={space.id} value={space.id}>
+                          {space.emoji} {space.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -326,7 +417,7 @@ const PreviewDrawer = ({ open, onOpenChange, item, onDelete }: PreviewDrawerProp
                 <div className="flex items-center gap-2 flex-wrap">
                   <Tag className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm font-medium">Tags:</span>
-                  {item.keywords.map((tag) => (
+                  {currentTags.map((tag) => (
                     <Badge 
                       key={tag} 
                       variant="secondary" 

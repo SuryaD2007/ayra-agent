@@ -3,14 +3,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Share, Users, Lock, Folder, Building, Globe } from 'lucide-react';
 import { toast } from 'sonner';
+import { createSpace } from '@/lib/data';
 
 interface CustomCategory {
   id: string;
   name: string;
-  icon: string;
-  color: string;
+  emoji?: string;
+  visibility: 'private' | 'public';
 }
 
 interface NewCategoryModalProps {
@@ -19,48 +21,42 @@ interface NewCategoryModalProps {
   onCategoryCreated: (category: CustomCategory) => void;
 }
 
-const iconOptions = [
-  { icon: 'Folder', component: Folder, color: 'text-blue-500' },
-  { icon: 'Share', component: Share, color: 'text-blue-500' },
-  { icon: 'Users', component: Users, color: 'text-green-500' },
-  { icon: 'Lock', component: Lock, color: 'text-amber-500' },
-  { icon: 'Building', component: Building, color: 'text-purple-500' },
-  { icon: 'Globe', component: Globe, color: 'text-cyan-500' },
-];
+const emojiOptions = ['📁', '🗂️', '📊', '🎯', '💼', '🔒', '🌟', '⚡', '🚀', '💡', '🎨', '📚'];
 
 const NewCategoryModal = ({ open, onOpenChange, onCategoryCreated }: NewCategoryModalProps) => {
   const [name, setName] = useState('');
-  const [selectedIcon, setSelectedIcon] = useState('Folder');
-  const [selectedColor, setSelectedColor] = useState('text-blue-500');
+  const [selectedEmoji, setSelectedEmoji] = useState('📁');
+  const [visibility, setVisibility] = useState<'private' | 'public'>('private');
   const [isCreating, setIsCreating] = useState(false);
 
   const handleCreate = async () => {
     if (!name.trim()) {
-      toast.error('Please enter a category name');
+      toast.error('Please enter a space name');
       return;
     }
 
     setIsCreating(true);
     
     try {
-      const newCategory: CustomCategory = {
-        id: `custom-${Date.now()}`,
+      const newSpace = await createSpace({
         name: name.trim(),
-        icon: selectedIcon,
-        color: selectedColor,
+        emoji: selectedEmoji,
+        visibility: visibility,
+      });
+
+      const category: CustomCategory = {
+        id: newSpace.id,
+        name: newSpace.name,
+        emoji: newSpace.emoji,
+        visibility: newSpace.visibility as 'private' | 'public',
       };
 
-      // Save to localStorage
-      const existingCategories = JSON.parse(localStorage.getItem('custom-categories') || '[]');
-      const updatedCategories = [...existingCategories, newCategory];
-      localStorage.setItem('custom-categories', JSON.stringify(updatedCategories));
-
-      onCategoryCreated(newCategory);
-      toast.success(`Category "${name}" created successfully!`);
+      onCategoryCreated(category);
+      toast.success(`Space "${name}" created successfully!`);
       handleClose();
     } catch (error) {
-      console.error('Error creating category:', error);
-      toast.error('Failed to create category');
+      console.error('Error creating space:', error);
+      toast.error('Failed to create space');
     } finally {
       setIsCreating(false);
     }
@@ -68,28 +64,23 @@ const NewCategoryModal = ({ open, onOpenChange, onCategoryCreated }: NewCategory
 
   const handleClose = () => {
     setName('');
-    setSelectedIcon('Folder');
-    setSelectedColor('text-blue-500');
+    setSelectedEmoji('📁');
+    setVisibility('private');
     onOpenChange(false);
-  };
-
-  const handleIconSelect = (iconName: string, color: string) => {
-    setSelectedIcon(iconName);
-    setSelectedColor(color);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Create New Category</DialogTitle>
+          <DialogTitle>Create New Space</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="categoryName">Category Name</Label>
+            <Label htmlFor="spaceName">Space Name</Label>
             <Input
-              id="categoryName"
+              id="spaceName"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g., Work Projects, Personal, Research"
@@ -98,32 +89,52 @@ const NewCategoryModal = ({ open, onOpenChange, onCategoryCreated }: NewCategory
           </div>
 
           <div className="space-y-2">
-            <Label>Icon & Color</Label>
-            <div className="grid grid-cols-3 gap-2">
-              {iconOptions.map(({ icon, component: IconComponent, color }) => (
+            <Label>Emoji Icon</Label>
+            <div className="grid grid-cols-6 gap-2">
+              {emojiOptions.map((emoji) => (
                 <button
-                  key={icon}
+                  key={emoji}
                   type="button"
-                  className={`flex items-center justify-center p-3 rounded-lg border transition-colors ${
-                    selectedIcon === icon && selectedColor === color
+                  className={`flex items-center justify-center p-3 rounded-lg border transition-colors text-2xl ${
+                    selectedEmoji === emoji
                       ? 'border-primary bg-primary/10'
                       : 'border-border hover:bg-muted/50'
                   }`}
-                  onClick={() => handleIconSelect(icon, color)}
+                  onClick={() => setSelectedEmoji(emoji)}
                 >
-                  <IconComponent size={20} className={color} />
+                  {emoji}
                 </button>
               ))}
             </div>
           </div>
 
+          <div className="space-y-2">
+            <Label>Visibility</Label>
+            <Select value={visibility} onValueChange={(v: any) => setVisibility(v)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="private">
+                  <div className="flex items-center gap-2">
+                    <Lock className="w-4 h-4" />
+                    Private - Only you
+                  </div>
+                </SelectItem>
+                <SelectItem value="public">
+                  <div className="flex items-center gap-2">
+                    <Share className="w-4 h-4" />
+                    Public - Everyone
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="p-3 bg-muted/30 rounded-lg">
             <div className="flex items-center gap-2 text-sm">
-              {React.createElement(
-                iconOptions.find(opt => opt.icon === selectedIcon)?.component || Folder,
-                { size: 16, className: selectedColor }
-              )}
-              <span className="font-medium">{name || 'Category Name'}</span>
+              <span className="text-xl">{selectedEmoji}</span>
+              <span className="font-medium">{name || 'Space Name'}</span>
             </div>
             <p className="text-xs text-muted-foreground mt-1">Preview</p>
           </div>
@@ -134,7 +145,7 @@ const NewCategoryModal = ({ open, onOpenChange, onCategoryCreated }: NewCategory
             Cancel
           </Button>
           <Button onClick={handleCreate} disabled={isCreating || !name.trim()}>
-            {isCreating ? 'Creating...' : 'Create Category'}
+            {isCreating ? 'Creating...' : 'Create Space'}
           </Button>
         </DialogFooter>
       </DialogContent>
