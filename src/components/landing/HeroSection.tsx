@@ -39,7 +39,7 @@ export const HeroSection = ({
       <AnimatedTransition show={showTitle} animation="slide-up" duration={600}>
         {/* Launch date announcement */}
         <div className="mb-4 text-primary text-sm font-medium">
-          Launching October 17
+          Launching November 21
         </div>
         
         {/* Title first */}

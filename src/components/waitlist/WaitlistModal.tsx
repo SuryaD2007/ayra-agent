@@ -123,7 +123,7 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
 
   const onSubmit = async (data: WaitlistFormData) => {
     console.log("Waitlist submission:", data)
-    toast.success("🎉 Welcome to Ayra! We'll notify you on October 17th when we launch!", {
+    toast.success("🎉 Welcome to Ayra! We'll notify you on November 21st when we launch!", {
       duration: 5000,
     })
     reset()
@@ -182,7 +182,7 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
             Join Our Waitlist
           </DialogTitle>
           <DialogDescription className="text-muted-foreground text-base">
-            Be among the first to experience Ayra when we launch on <strong>October 17th</strong>.
+            Be among the first to experience Ayra when we launch on <strong>November 21st</strong>.
           </DialogDescription>
         </DialogHeader>
         

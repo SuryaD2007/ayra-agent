@@ -48,7 +48,7 @@ const PreLaunchGuard = ({ children }: PreLaunchGuardProps) => {
         </div>
         <h2 className="text-2xl font-semibold mb-4 animate-fade-in bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent" style={{ animationDelay: "200ms" }}>Still building...</h2>
         <p className="text-muted-foreground mb-8 animate-fade-in bg-gradient-to-r from-primary/20 to-accent/20 px-4 py-2 rounded-lg border border-primary/30" style={{ animationDelay: "400ms" }}>
-          Launching October 17, 2025
+          Launching November 21, 2025
         </p>
         
         <form onSubmit={handleSubmit} className="space-y-4 animate-fade-in" style={{ animationDelay: "600ms" }}>
