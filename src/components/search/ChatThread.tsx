@@ -3,18 +3,17 @@ import { Bot, User, ThumbsUp, ThumbsDown, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Message, SourceCard } from '@/types/chat';
-import { SourceCard as SourceCardComponent } from './SourceCard';
+import { Message } from '@/types/chat';
+import { SourcesList } from './SourcesList';
 import ReactMarkdown from 'react-markdown';
 
 interface ChatThreadProps {
   messages: Message[];
   isLoading?: boolean;
-  sources?: SourceCard[];
   onSuggestionClick?: (message: string) => void;
 }
 
-export function ChatThread({ messages, isLoading = false, sources = [], onSuggestionClick }: ChatThreadProps) {
+export function ChatThread({ messages, isLoading = false, onSuggestionClick }: ChatThreadProps) {
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Record<string, 'up' | 'down'>>({});
 
@@ -195,14 +194,9 @@ export function ChatThread({ messages, isLoading = false, sources = [], onSugges
             </div>
 
             {/* Sources for assistant messages */}
-            {message.role === 'assistant' && sources.length > 0 && (
-              <div className="ml-12 space-y-3">
-                <div className="text-sm font-medium text-muted-foreground">Sources</div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {sources.map((source) => (
-                    <SourceCardComponent key={source.id} source={source} />
-                  ))}
-                </div>
+            {message.role === 'assistant' && message.sources && message.sources.length > 0 && (
+              <div className="ml-12">
+                <SourcesList sources={message.sources} />
               </div>
             )}
           </div>

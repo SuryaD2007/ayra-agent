@@ -15,6 +15,16 @@ export interface Message {
   tokens_in?: number;
   tokens_out?: number;
   created_at: string;
+  sources?: SearchResult[];
+}
+
+export interface SearchResult {
+  id: string;
+  title: string;
+  type: string;
+  content: string;
+  source?: string;
+  relevanceScore: number;
 }
 
 export interface Folder {

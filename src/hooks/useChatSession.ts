@@ -210,13 +210,14 @@ export function useChatSession() {
               content: msg.content
             })),
             context,
-            itemId: context?.itemId
+            itemId: context?.itemId,
+            searchQuery: content // Send the user's message as search query
           }
         });
 
         if (error) throw error;
 
-        // Add assistant response
+        // Add assistant response with sources
         const assistantMessage = {
           chat_id: chatToUse.id,
           role: 'assistant' as const,
@@ -230,7 +231,14 @@ export function useChatSession() {
           .single();
 
         if (assistantError) throw assistantError;
-        setMessages(prev => [...prev, assistantMessageData as Message]);
+        
+        // Append sources to the message object (not stored in DB, just in memory)
+        const messageWithSources = {
+          ...assistantMessageData as Message,
+          sources: data.sources
+        };
+        
+        setMessages(prev => [...prev, messageWithSources]);
       }
 
       // Auto-generate title for first message if it's a regular text message
