@@ -243,10 +243,7 @@ const AyraSidebar = ({
   const customCategoryItems: CortexCategory[] = customCategories.map(category => ({
     id: category.id,
     name: category.name,
-    icon: React.createElement(getIconComponent(category.icon), {
-      size: 16,
-      className: category.color
-    }),
+    icon: <span className="text-base">{category.emoji || '📁'}</span>,
     items: getSpacesForCategory(category.id)
   }));
 
