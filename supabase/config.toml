@@ -31,6 +31,9 @@ verify_jwt = true
 [functions.process-video-transcript]
 verify_jwt = false
 
+[functions.scrape-webpage]
+verify_jwt = false
+
 [functions.send-notification]
 verify_jwt = true
 

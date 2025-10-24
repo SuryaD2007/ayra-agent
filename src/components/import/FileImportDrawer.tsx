@@ -109,26 +109,43 @@ export const FileImportDrawer = ({ onClose, preselectedSpace }: FileImportDrawer
 
           if (uploadError) throw uploadError;
 
-          // Get public URL
-          const { data: { publicUrl } } = supabase.storage
-            .from('ayra-files')
-            .getPublicUrl(filePath);
+          // Determine file type
+          const isPdf = file.type === 'application/pdf';
+          const isImage = file.type.startsWith('image/');
+          const itemType = isPdf ? 'pdf' : isImage ? 'image' : 'note';
 
           // Create item in database
-          const { error: insertError } = await supabase
+          const { data: newItem, error: insertError } = await supabase
             .from('items')
             .insert({
               title: file.title,
-              content: `File: ${file.name}`,
-              type: file.type.startsWith('image/') ? 'image' : 'document',
-              space: space,
-              tags: file.tags ? file.tags.split(',').map(tag => tag.trim()).filter(Boolean) : [],
-              source: 'file-upload',
-              file_url: publicUrl,
+              content: isPdf ? 'PDF document - parsing content...' : `File: ${file.name}`,
+              type: itemType,
+              space_id: space === 'overview' ? null : space,
+              source: file.name,
+              file_path: filePath,
+              mime_type: file.type,
+              size_bytes: file.size,
               user_id: user.id
-            });
+            })
+            .select()
+            .single();
 
           if (insertError) throw insertError;
+
+          // If PDF, trigger parsing in background
+          if (isPdf && newItem) {
+            supabase.functions.invoke('parse-pdf-content', {
+              body: { itemId: newItem.id }
+            }).then(({ data, error }) => {
+              if (error) {
+                console.error('PDF parsing error:', error);
+              } else {
+                console.log('PDF parsed successfully:', data);
+              }
+            });
+          }
+
           successCount++;
         } catch (error) {
           console.error('Error uploading file:', error);
@@ -256,7 +273,6 @@ export const FileImportDrawer = ({ onClose, preselectedSpace }: FileImportDrawer
           </div>
         )}
 
-        {/* Space Selection */}
         <div className="space-y-2">
           <Label htmlFor="space">Space</Label>
           <Select value={space} onValueChange={setSpace}>

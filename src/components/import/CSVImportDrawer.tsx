@@ -120,10 +120,7 @@ export const CSVImportDrawer = ({ onClose, preselectedSpace }: CSVImportDrawerPr
           title: row[titleIndex]?.trim() || 'Untitled',
           content: row.join(' | '), // Join all columns as content
           type: typeIndex >= 0 ? (row[typeIndex]?.trim() || 'note') : 'note',
-          space: space,
-          tags: tagsIndex >= 0 && row[tagsIndex] 
-            ? row[tagsIndex].split(',').map(tag => tag.trim()).filter(Boolean)
-            : [],
+          space_id: space === 'overview' ? null : space,
           source: 'csv-import',
           user_id: user.id
         }));

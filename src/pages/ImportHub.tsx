@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { FileSpreadsheet, Plug, Globe2, Upload, Type } from 'lucide-react';
+import { FileSpreadsheet, Plug, Globe2, Upload, Type, Youtube } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { CSVImportDrawer } from '@/components/import/CSVImportDrawer';
 import { APIConnectDrawer } from '@/components/import/APIConnectDrawer';  
 import { LinkImportDrawer } from '@/components/import/LinkImportDrawer';
 import { FileImportDrawer } from '@/components/import/FileImportDrawer';
 import { TextImportDrawer } from '@/components/import/TextImportDrawer';
+import { VideoImportDrawer } from '@/components/import/VideoImportDrawer';
 import { AnimatedTransition } from '@/components/AnimatedTransition';
 import { useAnimateIn } from '@/lib/animations';
 import { cn } from '@/lib/utils';
 
-type ImportType = 'csv' | 'api' | 'url' | 'file' | 'text';
+type ImportType = 'csv' | 'api' | 'url' | 'file' | 'text' | 'video';
 
 interface ImportCard {
   id: ImportType;
@@ -22,16 +23,10 @@ interface ImportCard {
 
 const importCards: ImportCard[] = [
   {
-    id: 'csv',
-    title: 'CSV File',
-    description: 'Import structured data from CSV files',
-    icon: <FileSpreadsheet size={24} />
-  },
-  {
-    id: 'api',
-    title: 'API Integration',
-    description: 'Connect to external APIs and services',
-    icon: <Plug size={24} />
+    id: 'file',
+    title: 'Document Upload',
+    description: 'Upload documents, PDFs, and other files',
+    icon: <Upload size={24} />
   },
   {
     id: 'url',
@@ -40,16 +35,28 @@ const importCards: ImportCard[] = [
     icon: <Globe2 size={24} />
   },
   {
-    id: 'file',
-    title: 'Document Upload',
-    description: 'Upload documents, PDFs, and other files',
-    icon: <Upload size={24} />
+    id: 'video',
+    title: 'YouTube Video',
+    description: 'Import YouTube videos with AI transcript',
+    icon: <Youtube size={24} />
+  },
+  {
+    id: 'csv',
+    title: 'CSV File',
+    description: 'Import structured data from CSV files',
+    icon: <FileSpreadsheet size={24} />
   },
   {
     id: 'text',
     title: 'Text Input',
     description: 'Directly input or paste text content',
     icon: <Type size={24} />
+  },
+  {
+    id: 'api',
+    title: 'API Integration',
+    description: 'Connect to external APIs and services',
+    icon: <Plug size={24} />
   }
 ];
 
@@ -70,19 +77,22 @@ const ImportHub = () => {
 
       switch (e.key) {
         case '1':
-          setActiveDrawer('csv');
+          setActiveDrawer('file');
           break;
         case '2':
-          setActiveDrawer('api');
-          break;
-        case '3':
           setActiveDrawer('url');
           break;
+        case '3':
+          setActiveDrawer('video');
+          break;
         case '4':
-          setActiveDrawer('file');
+          setActiveDrawer('csv');
           break;
         case '5':
           setActiveDrawer('text');
+          break;
+        case '6':
+          setActiveDrawer('api');
           break;
         case 'Escape':
           setActiveDrawer(null);
@@ -169,6 +179,12 @@ const ImportHub = () => {
             )}
             {activeDrawer === 'url' && (
               <LinkImportDrawer 
+                onClose={closeDrawer} 
+                preselectedSpace={preselectedSpace}
+              />
+            )}
+            {activeDrawer === 'video' && (
+              <VideoImportDrawer 
                 onClose={closeDrawer} 
                 preselectedSpace={preselectedSpace}
               />

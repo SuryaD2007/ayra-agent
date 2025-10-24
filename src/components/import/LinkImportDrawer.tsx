@@ -44,21 +44,42 @@ export const LinkImportDrawer = ({ onClose, preselectedSpace }: LinkImportDrawer
         throw new Error('User not authenticated');
       }
 
-      // Extract domain for title
-      const urlObj = new URL(url);
-      const domain = urlObj.hostname;
-      const title = `Article from ${domain}`;
+      let title = '';
+      let content = '';
+      let description = '';
+
+      // If extracting content, scrape the webpage
+      if (extractMainContent) {
+        const { data: scrapeData, error: scrapeError } = await supabase.functions.invoke('scrape-webpage', {
+          body: { url, extractContent: true }
+        });
+
+        if (scrapeError) {
+          console.error('Scraping error:', scrapeError);
+          // Fall back to basic import
+          const urlObj = new URL(url);
+          title = `Article from ${urlObj.hostname}`;
+          content = 'Failed to extract content automatically';
+        } else if (scrapeData && scrapeData.success) {
+          title = scrapeData.title || `Article from ${new URL(url).hostname}`;
+          content = scrapeData.content || '';
+          description = scrapeData.description || '';
+        }
+      } else {
+        // Basic import without content extraction
+        const urlObj = new URL(url);
+        title = `Article from ${urlObj.hostname}`;
+        content = `Webpage link: ${url}`;
+      }
 
       const { error } = await supabase
         .from('items')
         .insert({
           title: title,
-          content: extractMainContent ? 'Content will be extracted from the webpage' : 'Webpage link imported',
+          content: content,
           type: 'link',
-          space: preselectedSpace,
-          tags: [],
-          source: 'url-import',
-          external_url: url,
+          space_id: preselectedSpace === 'overview' ? null : preselectedSpace,
+          source: url,
           user_id: user.id
         });
 
@@ -66,7 +87,7 @@ export const LinkImportDrawer = ({ onClose, preselectedSpace }: LinkImportDrawer
 
       toast({
         title: "URL imported successfully",
-        description: "The webpage has been added to your library",
+        description: extractMainContent ? "Content extracted and saved" : "The webpage has been added to your library",
         action: (
           <Button variant="outline" size="sm" onClick={() => window.location.href = `/manage?space=${encodeURIComponent(preselectedSpace)}`}>
             View in Library
