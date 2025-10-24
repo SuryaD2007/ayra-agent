@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, ExternalLink, Loader2, BookOpen, Clock, Target, Zap, CheckCircle2, Circle, Trophy } from 'lucide-react';
+import { Calendar, ExternalLink, Loader2, BookOpen, Clock, Target, Zap, CheckCircle2, Circle, Trophy, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format, differenceInDays } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -23,6 +23,8 @@ interface CanvasAssignment {
   metadata: {
     points_possible?: number;
     submission_types?: string[];
+    grade?: string;
+    score?: number;
   };
 }
 
@@ -30,6 +32,7 @@ const Assignments = () => {
   const showContent = useAnimateIn(false, 200);
   const [assignments, setAssignments] = useState<CanvasAssignment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'upcoming' | 'due-soon' | 'submitted'>('all');
   const { toast } = useToast();
 
@@ -56,6 +59,63 @@ const Assignments = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const markAsSubmitted = async (assignmentId: string) => {
+    try {
+      const { error } = await supabase
+        .from('canvas_items')
+        .update({ 
+          submission_status: 'submitted',
+          submitted_at: new Date().toISOString()
+        })
+        .eq('id', assignmentId);
+
+      if (error) throw error;
+
+      // Update local state
+      setAssignments(prev => prev.map(a => 
+        a.id === assignmentId 
+          ? { ...a, submission_status: 'submitted', submitted_at: new Date().toISOString() }
+          : a
+      ));
+
+      toast({
+        title: 'Status updated',
+        description: 'Assignment marked as submitted'
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: 'Failed to update status',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleSync = async () => {
+    try {
+      setIsSyncing(true);
+      const { data, error } = await supabase.functions.invoke('sync-canvas-data');
+
+      if (error) throw error;
+
+      toast({
+        title: 'Sync complete',
+        description: `Synced ${data?.synced || 0} assignments from Canvas`
+      });
+
+      // Refresh assignments
+      await fetchAssignments();
+    } catch (error: any) {
+      toast({
+        title: 'Sync failed',
+        description: error.message || 'Failed to sync Canvas data',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -177,10 +237,31 @@ const Assignments = () => {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <Trophy className="h-6 w-6 text-amber-500 animate-pulse-slow" />
-                <div className="text-right">
-                  <p className="text-2xl font-bold">{submittedCount}</p>
-                  <p className="text-xs text-muted-foreground">Submitted</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSync}
+                  disabled={isSyncing}
+                  className="gap-2"
+                >
+                  {isSyncing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Syncing...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="h-4 w-4" />
+                      Sync from Canvas
+                    </>
+                  )}
+                </Button>
+                <div className="flex items-center gap-2">
+                  <Trophy className="h-6 w-6 text-amber-500 animate-pulse-slow" />
+                  <div className="text-right">
+                    <p className="text-2xl font-bold">{submittedCount}</p>
+                    <p className="text-xs text-muted-foreground">Submitted</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -307,12 +388,21 @@ const Assignments = () => {
                                   <CardTitle className="text-xl mb-2 hover:text-primary transition-colors">
                                     {assignment.title}
                                   </CardTitle>
-                                  <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                                   <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                                     {(assignment.submission_status === 'submitted' || assignment.submission_status === 'graded') && assignment.submitted_at && (
                                       <div className="flex items-center gap-1.5 text-green-600">
                                         <CheckCircle2 className="h-4 w-4" />
                                         <span>Submitted: {format(new Date(assignment.submitted_at), 'PPP')}</span>
                                       </div>
+                                    )}
+                                    {assignment.submission_status === 'graded' && assignment.metadata.grade && (
+                                      <Badge className="bg-green-600 text-xs gap-1">
+                                        <Trophy className="h-3 w-3" />
+                                        Grade: {assignment.metadata.grade}
+                                        {assignment.metadata.score && assignment.metadata.points_possible && (
+                                          <span> ({assignment.metadata.score}/{assignment.metadata.points_possible})</span>
+                                        )}
+                                      </Badge>
                                     )}
                                     {assignment.due_date && (
                                       <div className="flex items-center gap-1.5">
@@ -349,17 +439,30 @@ const Assignments = () => {
                               />
                             )}
                             {assignment.url && (
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                asChild
-                                className="hover-glide smooth-bounce"
-                              >
-                                <a href={assignment.url} target="_blank" rel="noopener noreferrer">
-                                  View in Canvas
-                                  <ExternalLink className="ml-2 h-4 w-4" />
-                                </a>
-                              </Button>
+                              <div className="flex gap-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  asChild
+                                  className="hover-glide smooth-bounce"
+                                >
+                                  <a href={assignment.url} target="_blank" rel="noopener noreferrer">
+                                    View in Canvas
+                                    <ExternalLink className="ml-2 h-4 w-4" />
+                                  </a>
+                                </Button>
+                                {assignment.submission_status === 'not_submitted' && (
+                                  <Button 
+                                    variant="default" 
+                                    size="sm"
+                                    onClick={() => markAsSubmitted(assignment.id)}
+                                    className="hover-glide smooth-bounce"
+                                  >
+                                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                                    Mark as Submitted
+                                  </Button>
+                                )}
+                              </div>
                             )}
                           </CardContent>
                         )}

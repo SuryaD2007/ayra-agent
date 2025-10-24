@@ -79,6 +79,12 @@ Deno.serve(async (req) => {
             if (submission.submitted_at) {
               submittedAt = submission.submitted_at;
               submissionStatus = submission.grade ? 'graded' : 'submitted';
+              
+              // Add grade info to metadata if available
+              if (submission.grade) {
+                assignment.grade = submission.grade;
+                assignment.score = submission.score;
+              }
             }
           }
         } catch (e) {
@@ -100,7 +106,9 @@ Deno.serve(async (req) => {
             submitted_at: submittedAt,
             metadata: {
               points_possible: assignment.points_possible,
-              submission_types: assignment.submission_types
+              submission_types: assignment.submission_types,
+              grade: assignment.grade,
+              score: assignment.score
             },
             updated_at: new Date().toISOString()
           }, { onConflict: 'user_id,canvas_id' });
@@ -114,8 +122,23 @@ Deno.serve(async (req) => {
       .update({ updated_at: new Date().toISOString() })
       .eq('user_id', user.id);
 
+    // Fetch updated stats
+    const { data: items } = await supabaseClient
+      .from('canvas_items')
+      .select('type, course_name, submission_status');
+    
+    const courses = new Set(items?.map(item => item.course_name) || []).size;
+    const assignments = items?.filter(item => item.type === 'assignment').length || 0;
+    const submitted = items?.filter(item => 
+      item.submission_status === 'submitted' || item.submission_status === 'graded'
+    ).length || 0;
+
     return new Response(
-      JSON.stringify({ success: true, synced: syncedCount }),
+      JSON.stringify({ 
+        success: true, 
+        synced: syncedCount,
+        stats: { courses, assignments, submitted }
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {

@@ -104,10 +104,17 @@ export const CanvasConnection = () => {
 
       setIsConnected(true);
       setAccessToken(''); // Clear the token from state for security
+      
+      // Trigger initial sync
       toast({
         title: 'Connected',
-        description: 'Canvas has been connected successfully'
+        description: 'Starting initial sync...'
       });
+      
+      // Wait a moment then sync
+      setTimeout(async () => {
+        await handleSync();
+      }, 1000);
     } catch (error: any) {
       toast({
         title: 'Connection failed',
@@ -155,14 +162,28 @@ export const CanvasConnection = () => {
   const handleSync = async () => {
     try {
       setIsSyncing(true);
-      const { error } = await supabase.functions.invoke('sync-canvas-data');
+      const { data, error } = await supabase.functions.invoke('sync-canvas-data');
 
       if (error) throw error;
 
       setLastSync(new Date());
+      
+      // Update stats if returned
+      if (data?.stats) {
+        setStats(data.stats);
+      }
+      
+      // Refresh connection to get latest data
+      await checkConnection();
+      
       toast({
         title: 'Sync complete',
-        description: 'Your Canvas assignments and materials have been synced'
+        description: `Synced ${data?.synced || 0} assignments from Canvas`,
+        action: (
+          <Button variant="outline" size="sm" onClick={() => window.location.href = '/assignments'}>
+            View Assignments
+          </Button>
+        )
       });
     } catch (error: any) {
       toast({

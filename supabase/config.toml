@@ -22,6 +22,9 @@ port = 54322
 [functions.chat-gpt]
 verify_jwt = false
 
+[functions.check-assignment-deadlines]
+verify_jwt = false
+
 [functions.parse-pdf]
 verify_jwt = false
 
