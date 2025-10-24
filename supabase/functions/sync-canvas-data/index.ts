@@ -127,9 +127,9 @@ Deno.serve(async (req) => {
       .from('canvas_items')
       .select('type, course_name, submission_status');
     
-    const courses = new Set(items?.map(item => item.course_name) || []).size;
-    const assignments = items?.filter(item => item.type === 'assignment').length || 0;
-    const submitted = items?.filter(item => 
+    const coursesCount = new Set(items?.map(item => item.course_name) || []).size;
+    const assignmentsCount = items?.filter(item => item.type === 'assignment').length || 0;
+    const submittedCount = items?.filter(item => 
       item.submission_status === 'submitted' || item.submission_status === 'graded'
     ).length || 0;
 
@@ -137,7 +137,7 @@ Deno.serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         synced: syncedCount,
-        stats: { courses, assignments, submitted }
+        stats: { courses: coursesCount, assignments: assignmentsCount, submitted: submittedCount }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
