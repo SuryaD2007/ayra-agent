@@ -39,17 +39,28 @@ export const GoogleDriveConnection = () => {
     }
   };
 
-  const handleConnect = () => {
-    const clientId = 'GOOGLE_CLIENT_ID';
-    const redirectUri = `${window.location.origin}/settings?google_auth=true`;
-    const scope = [
-      'https://www.googleapis.com/auth/drive.readonly',
-      'https://www.googleapis.com/auth/userinfo.email',
-    ].join(' ');
+  const handleConnect = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await supabase.functions.invoke('google-oauth-init', {
+        body: { service: 'drive' },
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+      });
 
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&access_type=offline&prompt=consent&state=drive`;
+      if (response.error) throw response.error;
 
-    window.location.href = authUrl;
+      window.location.href = response.data.authUrl;
+    } catch (error) {
+      console.error('Error initiating OAuth:', error);
+      toast({
+        title: 'Connection Failed',
+        description: 'Failed to initiate Google Drive connection. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleSync = async () => {
