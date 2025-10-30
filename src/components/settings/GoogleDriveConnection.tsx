@@ -2,12 +2,15 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, HardDrive, RefreshCw, Unlink } from 'lucide-react';
+import { Loader2, HardDrive, RefreshCw, Unlink, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useGoogleConnection } from '@/hooks/useGoogleConnection';
+import { useAuth } from '@/contexts/AuthContext';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export const GoogleDriveConnection = () => {
+  const { isAuthenticated } = useAuth();
   const { driveEnabled, loading: connectionLoading } = useGoogleConnection();
   const [isSyncing, setIsSyncing] = useState(false);
   const [stats, setStats] = useState({ files: 0, lastSync: null as string | null });
@@ -40,37 +43,56 @@ export const GoogleDriveConnection = () => {
   };
 
   const handleConnect = async () => {
+    if (!isAuthenticated) {
+      toast({
+        title: 'Authentication Required',
+        description: 'Please log in to connect Google Drive.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
-      console.log('Session:', session ? 'exists' : 'missing');
-      console.log('Invoking google-oauth-init...');
+      if (!session) {
+        throw new Error('No active session found');
+      }
+
+      console.log('Initiating Google Drive connection...');
       
       const response = await supabase.functions.invoke('google-oauth-init', {
         body: { service: 'drive' },
         headers: {
-          Authorization: `Bearer ${session?.access_token}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
       });
 
-      console.log('OAuth init response:', response);
-      console.log('Response data:', response.data);
-      console.log('Response error:', response.error);
+      console.log('Response:', response);
 
       if (response.error) {
-        throw new Error(JSON.stringify(response.error));
+        const errorMsg = typeof response.error === 'string' 
+          ? response.error 
+          : response.error.message || 'Unknown error';
+        
+        if (errorMsg.includes('Google Client ID not configured')) {
+          throw new Error('Google Drive integration is not configured yet. Please contact the administrator to set up Google OAuth credentials.');
+        }
+        
+        throw new Error(errorMsg);
       }
 
       if (!response.data?.authUrl) {
-        throw new Error('No authUrl received from server');
+        throw new Error('Invalid response from server. Please try again.');
       }
 
+      console.log('Redirecting to Google OAuth...');
       window.location.href = response.data.authUrl;
-    } catch (error) {
-      console.error('Error initiating OAuth:', error);
+    } catch (error: any) {
+      console.error('Connection error:', error);
       toast({
         title: 'Connection Failed',
-        description: `Failed to initiate Google Drive connection: ${error.message || 'Please try again.'}`,
+        description: error.message || 'Failed to connect to Google Drive. Please try again.',
         variant: 'destructive',
       });
     }
@@ -159,6 +181,14 @@ export const GoogleDriveConnection = () => {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {!isAuthenticated && (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Please log in to connect Google Drive.
+            </AlertDescription>
+          </Alert>
+        )}
         {driveEnabled ? (
           <>
             <div className="grid grid-cols-2 gap-4">
@@ -191,7 +221,11 @@ export const GoogleDriveConnection = () => {
             </div>
           </>
         ) : (
-          <Button onClick={handleConnect} className="w-full">
+          <Button 
+            onClick={handleConnect} 
+            className="w-full"
+            disabled={!isAuthenticated}
+          >
             <HardDrive className="h-4 w-4 mr-2" />
             Connect Google Drive
           </Button>

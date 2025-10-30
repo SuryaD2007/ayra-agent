@@ -2,12 +2,15 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Calendar, RefreshCw, Unlink } from 'lucide-react';
+import { Loader2, Calendar, RefreshCw, Unlink, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useGoogleConnection } from '@/hooks/useGoogleConnection';
+import { useAuth } from '@/contexts/AuthContext';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export const GoogleCalendarConnection = () => {
+  const { isAuthenticated } = useAuth();
   const { calendarEnabled, loading: connectionLoading } = useGoogleConnection();
   const [isSyncing, setIsSyncing] = useState(false);
   const [stats, setStats] = useState({ 
@@ -45,37 +48,56 @@ export const GoogleCalendarConnection = () => {
   };
 
   const handleConnect = async () => {
+    if (!isAuthenticated) {
+      toast({
+        title: 'Authentication Required',
+        description: 'Please log in to connect Google Calendar.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
-      console.log('Session:', session ? 'exists' : 'missing');
-      console.log('Invoking google-oauth-init...');
+      if (!session) {
+        throw new Error('No active session found');
+      }
+
+      console.log('Initiating Google Calendar connection...');
       
       const response = await supabase.functions.invoke('google-oauth-init', {
         body: { service: 'calendar' },
         headers: {
-          Authorization: `Bearer ${session?.access_token}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
       });
 
-      console.log('OAuth init response:', response);
-      console.log('Response data:', response.data);
-      console.log('Response error:', response.error);
+      console.log('Response:', response);
 
       if (response.error) {
-        throw new Error(JSON.stringify(response.error));
+        const errorMsg = typeof response.error === 'string' 
+          ? response.error 
+          : response.error.message || 'Unknown error';
+        
+        if (errorMsg.includes('Google Client ID not configured')) {
+          throw new Error('Google Calendar integration is not configured yet. Please contact the administrator to set up Google OAuth credentials.');
+        }
+        
+        throw new Error(errorMsg);
       }
 
       if (!response.data?.authUrl) {
-        throw new Error('No authUrl received from server');
+        throw new Error('Invalid response from server. Please try again.');
       }
 
+      console.log('Redirecting to Google OAuth...');
       window.location.href = response.data.authUrl;
-    } catch (error) {
-      console.error('Error initiating OAuth:', error);
+    } catch (error: any) {
+      console.error('Connection error:', error);
       toast({
         title: 'Connection Failed',
-        description: `Failed to initiate Google Calendar connection: ${error.message || 'Please try again.'}`,
+        description: error.message || 'Failed to connect to Google Calendar. Please try again.',
         variant: 'destructive',
       });
     }
@@ -164,6 +186,14 @@ export const GoogleCalendarConnection = () => {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {!isAuthenticated && (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Please log in to connect Google Calendar.
+            </AlertDescription>
+          </Alert>
+        )}
         {calendarEnabled ? (
           <>
             <div className="grid grid-cols-3 gap-4">
@@ -200,7 +230,11 @@ export const GoogleCalendarConnection = () => {
             </div>
           </>
         ) : (
-          <Button onClick={handleConnect} className="w-full">
+          <Button 
+            onClick={handleConnect} 
+            className="w-full"
+            disabled={!isAuthenticated}
+          >
             <Calendar className="h-4 w-4 mr-2" />
             Connect Google Calendar
           </Button>
