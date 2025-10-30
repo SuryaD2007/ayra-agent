@@ -11,97 +11,102 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
-    );
-
-    const {
-      data: { user },
-    } = await supabaseClient.auth.getUser();
-
-    if (!user) {
-      throw new Error('Not authenticated');
-    }
-
-    const { code, service } = await req.json();
-
-    if (!code) {
-      throw new Error('Authorization code is required');
-    }
-
-    // Exchange code for tokens
-    const redirectUri = `${Deno.env.get('SUPABASE_URL')}/functions/v1/google-oauth-callback`;
+    const url = new URL(req.url);
+    const code = url.searchParams.get('code');
+    const state = url.searchParams.get('state');
     
+    if (!code || !state) {
+      throw new Error('Missing authorization code or state');
+    }
+
+    const { service, userId } = JSON.parse(state);
+    
+    const clientId = Deno.env.get('GOOGLE_CLIENT_ID');
+    const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    
+    if (!clientId || !clientSecret) {
+      throw new Error('Google OAuth credentials not configured');
+    }
+
+    const redirectUri = `${supabaseUrl}/functions/v1/google-oauth-callback`;
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
         code,
-        client_id: Deno.env.get('GOOGLE_CLIENT_ID') ?? '',
-        client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '',
+        client_id: clientId,
+        client_secret: clientSecret,
         redirect_uri: redirectUri,
         grant_type: 'authorization_code',
       }),
     });
 
     if (!tokenResponse.ok) {
-      const errorData = await tokenResponse.text();
-      console.error('Token exchange failed:', errorData);
+      const error = await tokenResponse.text();
+      console.error('Token exchange failed:', error);
       throw new Error('Failed to exchange authorization code');
     }
 
-    const tokenData = await tokenResponse.json();
-    const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000);
+    const tokens = await tokenResponse.json();
+    
+    const supabaseClient = createClient(
+      supabaseUrl ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
 
-    // Store or update tokens
+    const expiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
+    
     const { data: existing } = await supabaseClient
       .from('google_integrations')
       .select('id')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .maybeSingle();
 
-    const integrationData = {
-      user_id: user.id,
-      access_token: tokenData.access_token,
-      refresh_token: tokenData.refresh_token,
-      token_expires_at: expiresAt.toISOString(),
-      drive_enabled: service === 'drive' || service === 'both',
-      calendar_enabled: service === 'calendar' || service === 'both',
-      updated_at: new Date().toISOString(),
-    };
-
     if (existing) {
-      const { error } = await supabaseClient
-        .from('google_integrations')
-        .update(integrationData)
-        .eq('user_id', user.id);
+      const updateData: any = {
+        access_token: tokens.access_token,
+        token_expires_at: expiresAt,
+      };
+      
+      if (tokens.refresh_token) updateData.refresh_token = tokens.refresh_token;
+      if (service === 'drive') updateData.drive_enabled = true;
+      if (service === 'calendar') updateData.calendar_enabled = true;
 
-      if (error) throw error;
+      await supabaseClient
+        .from('google_integrations')
+        .update(updateData)
+        .eq('user_id', userId);
     } else {
-      const { error } = await supabaseClient
+      await supabaseClient
         .from('google_integrations')
-        .insert(integrationData);
-
-      if (error) throw error;
+        .insert({
+          user_id: userId,
+          access_token: tokens.access_token,
+          refresh_token: tokens.refresh_token,
+          token_expires_at: expiresAt,
+          drive_enabled: service === 'drive',
+          calendar_enabled: service === 'calendar',
+        });
     }
 
-    console.log(`Google ${service} connected for user ${user.id}`);
-
-    return new Response(
-      JSON.stringify({ success: true, service }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    const appUrl = 'https://5b048333-08cf-4bbf-8a84-3ca4b713ec40.lovableproject.com';
+    return new Response(null, {
+      status: 302,
+      headers: {
+        ...corsHeaders,
+        'Location': `${appUrl}/settings?google_connected=true`,
+      },
+    });
   } catch (error) {
-    console.error('Error in OAuth callback:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    console.error('OAuth callback error:', error);
+    const appUrl = 'https://5b048333-08cf-4bbf-8a84-3ca4b713ec40.lovableproject.com';
+    return new Response(null, {
+      status: 302,
+      headers: {
+        ...corsHeaders,
+        'Location': `${appUrl}/settings?google_error=${encodeURIComponent(error.message)}`,
+      },
+    });
   }
 });
