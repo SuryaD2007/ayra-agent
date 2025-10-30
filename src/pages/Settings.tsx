@@ -14,6 +14,8 @@ import RoleBadge from '@/components/admin/RoleBadge';
 import { useSettings } from '@/hooks/useSettings';
 import { useTheme } from '@/contexts/ThemeContext';
 import { CanvasConnection } from '@/components/settings/CanvasConnection';
+import { GoogleDriveConnection } from '@/components/settings/GoogleDriveConnection';
+import { GoogleCalendarConnection } from '@/components/settings/GoogleCalendarConnection';
 import { StorageUsage } from '@/components/settings/StorageUsage';
 import { DataExport } from '@/components/settings/DataExport';
 import { AccountDeletion } from '@/components/settings/AccountDeletion';
@@ -230,6 +232,8 @@ const Settings = () => {
             
             <TabsContent value="integrations" className="space-y-6">
               <CanvasConnection />
+              <GoogleDriveConnection />
+              <GoogleCalendarConnection />
             </TabsContent>
 
             <TabsContent value="account" className="space-y-6">

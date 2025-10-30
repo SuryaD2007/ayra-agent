@@ -340,6 +340,182 @@ export type Database = {
         }
         Relationships: []
       }
+      google_calendar_events: {
+        Row: {
+          calendar_id: string
+          created_at: string
+          description: string | null
+          end_time: string
+          event_id: string
+          html_link: string
+          id: string
+          is_all_day: boolean | null
+          is_assignment: boolean | null
+          is_recurring: boolean | null
+          location: string | null
+          metadata: Json | null
+          recurrence_rule: string | null
+          start_time: string
+          status: string
+          summary: string
+          synced_at: string
+          user_id: string
+        }
+        Insert: {
+          calendar_id: string
+          created_at?: string
+          description?: string | null
+          end_time: string
+          event_id: string
+          html_link: string
+          id?: string
+          is_all_day?: boolean | null
+          is_assignment?: boolean | null
+          is_recurring?: boolean | null
+          location?: string | null
+          metadata?: Json | null
+          recurrence_rule?: string | null
+          start_time: string
+          status?: string
+          summary: string
+          synced_at?: string
+          user_id: string
+        }
+        Update: {
+          calendar_id?: string
+          created_at?: string
+          description?: string | null
+          end_time?: string
+          event_id?: string
+          html_link?: string
+          id?: string
+          is_all_day?: boolean | null
+          is_assignment?: boolean | null
+          is_recurring?: boolean | null
+          location?: string | null
+          metadata?: Json | null
+          recurrence_rule?: string | null
+          start_time?: string
+          status?: string
+          summary?: string
+          synced_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      google_drive_items: {
+        Row: {
+          created_at: string
+          created_time: string | null
+          drive_id: string
+          file_size: number | null
+          id: string
+          item_id: string | null
+          metadata: Json | null
+          mime_type: string | null
+          modified_time: string | null
+          name: string
+          parent_folder_id: string | null
+          synced_at: string
+          thumbnail_link: string | null
+          user_id: string
+          web_view_link: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_time?: string | null
+          drive_id: string
+          file_size?: number | null
+          id?: string
+          item_id?: string | null
+          metadata?: Json | null
+          mime_type?: string | null
+          modified_time?: string | null
+          name: string
+          parent_folder_id?: string | null
+          synced_at?: string
+          thumbnail_link?: string | null
+          user_id: string
+          web_view_link?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_time?: string | null
+          drive_id?: string
+          file_size?: number | null
+          id?: string
+          item_id?: string | null
+          metadata?: Json | null
+          mime_type?: string | null
+          modified_time?: string | null
+          name?: string
+          parent_folder_id?: string | null
+          synced_at?: string
+          thumbnail_link?: string | null
+          user_id?: string
+          web_view_link?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_drive_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      google_integrations: {
+        Row: {
+          access_token: string
+          calendar_enabled: boolean | null
+          calendar_last_sync: string | null
+          calendar_sync_token: string | null
+          created_at: string
+          drive_enabled: boolean | null
+          drive_last_sync: string | null
+          drive_sync_token: string | null
+          id: string
+          refresh_token: string | null
+          settings: Json | null
+          token_expires_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          calendar_enabled?: boolean | null
+          calendar_last_sync?: string | null
+          calendar_sync_token?: string | null
+          created_at?: string
+          drive_enabled?: boolean | null
+          drive_last_sync?: string | null
+          drive_sync_token?: string | null
+          id?: string
+          refresh_token?: string | null
+          settings?: Json | null
+          token_expires_at: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          calendar_enabled?: boolean | null
+          calendar_last_sync?: string | null
+          calendar_sync_token?: string | null
+          created_at?: string
+          drive_enabled?: boolean | null
+          drive_last_sync?: string | null
+          drive_sync_token?: string | null
+          id?: string
+          refresh_token?: string | null
+          settings?: Json | null
+          token_expires_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       integration_settings: {
         Row: {
           access_token: string | null

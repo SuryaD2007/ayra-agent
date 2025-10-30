@@ -45,7 +45,7 @@ const apiServices: APIService[] = [
     name: 'Google Drive',
     description: 'Import documents and files from Google Drive',
     icon: <div className="w-6 h-6 bg-blue-600 rounded text-white flex items-center justify-center text-xs font-bold">D</div>,
-    comingSoon: true
+    comingSoon: false
   }
 ];
 
@@ -53,8 +53,12 @@ export const APIConnectDrawer = ({ onClose }: APIConnectDrawerProps) => {
   const [webhookUrl, setWebhookUrl] = useState('');
 
   const handleConnect = (serviceId: string) => {
-    // Placeholder for future API integration
-    console.log('Connecting to service:', serviceId);
+    if (serviceId === 'drive') {
+      onClose();
+      window.location.href = '/settings?tab=integrations';
+    } else {
+      console.log('Connecting to service:', serviceId);
+    }
   };
 
   const saveWebhookUrl = () => {

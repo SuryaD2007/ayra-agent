@@ -43,6 +43,18 @@ verify_jwt = true
 [functions.sync-canvas-data]
 verify_jwt = true
 
+[functions.refresh-google-token]
+verify_jwt = true
+
+[functions.google-oauth-callback]
+verify_jwt = true
+
+[functions.sync-google-drive]
+verify_jwt = true
+
+[functions.sync-google-calendar]
+verify_jwt = true
+
 [storage]
 enabled = true
 port = 54323
