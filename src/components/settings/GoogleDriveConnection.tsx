@@ -43,6 +43,9 @@ export const GoogleDriveConnection = () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
+      console.log('Session:', session ? 'exists' : 'missing');
+      console.log('Invoking google-oauth-init...');
+      
       const response = await supabase.functions.invoke('google-oauth-init', {
         body: { service: 'drive' },
         headers: {
@@ -50,14 +53,24 @@ export const GoogleDriveConnection = () => {
         },
       });
 
-      if (response.error) throw response.error;
+      console.log('OAuth init response:', response);
+      console.log('Response data:', response.data);
+      console.log('Response error:', response.error);
+
+      if (response.error) {
+        throw new Error(JSON.stringify(response.error));
+      }
+
+      if (!response.data?.authUrl) {
+        throw new Error('No authUrl received from server');
+      }
 
       window.location.href = response.data.authUrl;
     } catch (error) {
       console.error('Error initiating OAuth:', error);
       toast({
         title: 'Connection Failed',
-        description: 'Failed to initiate Google Drive connection. Please try again.',
+        description: `Failed to initiate Google Drive connection: ${error.message || 'Please try again.'}`,
         variant: 'destructive',
       });
     }
