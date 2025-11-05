@@ -33,6 +33,7 @@ const Assignments = () => {
   const [assignments, setAssignments] = useState<CanvasAssignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [submittingId, setSubmittingId] = useState<string | null>(null);
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'upcoming' | 'due-soon' | 'submitted'>('all');
   const { toast } = useToast();
 
@@ -64,15 +65,24 @@ const Assignments = () => {
 
   const markAsSubmitted = async (assignmentId: string) => {
     try {
-      const { error } = await supabase
+      setSubmittingId(assignmentId);
+      console.log('Marking assignment as submitted:', assignmentId);
+      
+      const { data, error } = await supabase
         .from('canvas_items')
         .update({ 
           submission_status: 'submitted',
           submitted_at: new Date().toISOString()
         })
-        .eq('id', assignmentId);
+        .eq('id', assignmentId)
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating assignment:', error);
+        throw error;
+      }
+
+      console.log('Update successful:', data);
 
       setAssignments(prev => prev.map(a => 
         a.id === assignmentId 
@@ -81,15 +91,18 @@ const Assignments = () => {
       ));
 
       toast({
-        title: 'Status updated',
+        title: '✅ Status updated',
         description: 'Assignment marked as submitted'
       });
     } catch (error: any) {
+      console.error('Failed to mark as submitted:', error);
       toast({
         title: 'Error',
-        description: 'Failed to update status',
+        description: error.message || 'Failed to update status',
         variant: 'destructive'
       });
+    } finally {
+      setSubmittingId(null);
     }
   };
 
@@ -558,10 +571,20 @@ const Assignments = () => {
                                       variant="default" 
                                       size="sm"
                                       onClick={() => markAsSubmitted(assignment.id)}
+                                      disabled={submittingId === assignment.id}
                                       className="hover-glide smooth-bounce"
                                     >
-                                      <CheckCircle2 className="mr-2 h-4 w-4" />
-                                      Mark as Submitted
+                                      {submittingId === assignment.id ? (
+                                        <>
+                                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                          Updating...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <CheckCircle2 className="mr-2 h-4 w-4" />
+                                          Mark as Submitted
+                                        </>
+                                      )}
                                     </Button>
                                   )}
                                 </div>
