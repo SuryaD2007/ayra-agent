@@ -74,7 +74,6 @@ const Assignments = () => {
 
       if (error) throw error;
 
-      // Update local state
       setAssignments(prev => prev.map(a => 
         a.id === assignmentId 
           ? { ...a, submission_status: 'submitted', submitted_at: new Date().toISOString() }
@@ -106,7 +105,6 @@ const Assignments = () => {
         description: `Synced ${data?.synced || 0} assignments from Canvas`
       });
 
-      // Refresh assignments
       await fetchAssignments();
     } catch (error: any) {
       toast({
@@ -152,6 +150,21 @@ const Assignments = () => {
     const days = differenceInDays(new Date(a.due_date), new Date());
     return days > 3 && days <= 7;
   }).length;
+
+  // Calculate completion percentage
+  const completionPercentage = totalAssignments > 0 
+    ? Math.round((submittedCount / totalAssignments) * 100) 
+    : 0;
+
+  // Get motivational message based on progress
+  const getMotivationalMessage = () => {
+    if (completionPercentage === 100) return "🎉 Perfect! All assignments completed!";
+    if (completionPercentage >= 80) return "⚡ Almost there! Keep it up!";
+    if (completionPercentage >= 60) return "💪 Great progress! You're on fire!";
+    if (completionPercentage >= 40) return "🚀 Nice work! Keep pushing forward!";
+    if (completionPercentage >= 20) return "✨ Good start! Let's build momentum!";
+    return "🎯 Ready to conquer your assignments?";
+  };
 
   // Filter assignments
   const filteredAssignments = assignments.filter(assignment => {
@@ -224,118 +237,178 @@ const Assignments = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-background/95 pt-20">
       <AnimatedTransition show={showContent} animation="fade">
         <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-          {/* Header with Stats */}
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-                  Canvas Assignments
-                </h1>
-                <p className="text-muted-foreground flex items-center gap-2">
-                  <Zap className="h-4 w-4 text-primary" />
-                  {totalAssignments} assignment{totalAssignments !== 1 ? 's' : ''} synced from Canvas
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleSync}
-                  disabled={isSyncing}
-                  className="gap-2"
-                >
-                  {isSyncing ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Syncing...
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="h-4 w-4" />
-                      Sync from Canvas
-                    </>
-                  )}
-                </Button>
-                <div className="flex items-center gap-2">
-                  <Trophy className="h-6 w-6 text-amber-500 animate-pulse-slow" />
-                  <div className="text-right">
-                    <p className="text-2xl font-bold">{submittedCount}</p>
-                    <p className="text-xs text-muted-foreground">Submitted</p>
+          {/* Hero Dashboard Section */}
+          <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-primary/5 via-background to-background p-8 shadow-lg">
+            <div className="absolute inset-0 bg-grid-white/5 [mask-image:linear-gradient(0deg,transparent,black)]" />
+            <div className="relative space-y-6">
+              <div className="flex items-start justify-between gap-6 flex-wrap">
+                <div className="space-y-3 flex-1 min-w-[300px]">
+                  <h1 className="text-5xl font-bold bg-gradient-to-r from-foreground via-primary to-foreground/70 bg-clip-text text-transparent">
+                    Canvas Assignments
+                  </h1>
+                  <p className="text-lg text-muted-foreground">
+                    {getMotivationalMessage()}
+                  </p>
+                  <div className="flex items-center gap-4 text-sm flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-primary" />
+                      <span>{totalAssignments} total</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-amber-500" />
+                      <span>{dueSoonCount} due soon</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      <span>{submittedCount} completed</span>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Circular Progress Tracker */}
+                <div className="relative">
+                  <div className="relative flex items-center justify-center w-32 h-32">
+                    <svg className="transform -rotate-90 w-32 h-32">
+                      <circle
+                        cx="64"
+                        cy="64"
+                        r="56"
+                        stroke="currentColor"
+                        strokeWidth="8"
+                        fill="none"
+                        className="text-muted/20"
+                      />
+                      <circle
+                        cx="64"
+                        cy="64"
+                        r="56"
+                        stroke="currentColor"
+                        strokeWidth="8"
+                        fill="none"
+                        strokeDasharray={`${2 * Math.PI * 56}`}
+                        strokeDashoffset={`${2 * Math.PI * 56 * (1 - completionPercentage / 100)}`}
+                        className="text-primary transition-all duration-1000 ease-out"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-3xl font-bold">{completionPercentage}%</span>
+                      <span className="text-xs text-muted-foreground">Complete</span>
+                    </div>
                   </div>
                 </div>
               </div>
+
+              {/* Progress Bar */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Overall Progress</span>
+                  <span className="font-medium">{submittedCount} of {totalAssignments}</span>
+                </div>
+                <Progress value={completionPercentage} className="h-3" />
+              </div>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card 
-                onClick={() => setSelectedFilter('all')}
-                className={cn(
-                  "cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg border-border/50",
-                  selectedFilter === 'all' && "ring-2 ring-primary shadow-lg bg-primary/5"
-                )}
-              >
-                <CardContent className="p-6 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Target className="h-8 w-8 text-primary" />
-                    <Badge variant="outline" className="text-xs">{totalAssignments}</Badge>
-                  </div>
-                  <p className="text-2xl font-bold">{totalAssignments}</p>
-                  <p className="text-sm text-muted-foreground">Total</p>
-                </CardContent>
-              </Card>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-3xl -z-10" />
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-primary/10 rounded-full blur-3xl -z-10" />
+          </div>
 
-              <Card 
-                onClick={() => setSelectedFilter('due-soon')}
-                className={cn(
-                  "cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg border-border/50",
-                  selectedFilter === 'due-soon' && "ring-2 ring-amber-500 shadow-lg bg-amber-500/5"
-                )}
-              >
-                <CardContent className="p-6 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Clock className="h-8 w-8 text-amber-500" />
-                    <Badge className="bg-amber-500 text-xs">{dueSoonCount}</Badge>
-                  </div>
-                  <p className="text-2xl font-bold">{dueSoonCount}</p>
-                  <p className="text-sm text-muted-foreground">Due Soon</p>
-                </CardContent>
-              </Card>
-
-              <Card 
-                onClick={() => setSelectedFilter('upcoming')}
-                className={cn(
-                  "cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg border-border/50",
-                  selectedFilter === 'upcoming' && "ring-2 ring-blue-500 shadow-lg bg-blue-500/5"
-                )}
-              >
-                <CardContent className="p-6 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Calendar className="h-8 w-8 text-blue-500" />
-                    <Badge className="bg-blue-500 text-xs">{upcomingCount}</Badge>
-                  </div>
-                  <p className="text-2xl font-bold">{upcomingCount}</p>
-                  <p className="text-sm text-muted-foreground">This Week</p>
-                </CardContent>
-              </Card>
-
-              <Card 
-                onClick={() => setSelectedFilter('submitted')}
-                className={cn(
-                  "cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg border-border/50",
-                  selectedFilter === 'submitted' && "ring-2 ring-green-500 shadow-lg bg-green-500/5"
-                )}
-              >
-                <CardContent className="p-6 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <CheckCircle2 className="h-8 w-8 text-green-500" />
-                    <Badge className="bg-green-500 text-xs">{submittedCount}</Badge>
-                  </div>
-                  <p className="text-2xl font-bold">{submittedCount}</p>
-                  <p className="text-sm text-muted-foreground">Submitted</p>
-                </CardContent>
-              </Card>
+          {/* Action Bar */}
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-amber-500" />
+              <span className="text-sm font-medium">Keep up the great work!</span>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSync}
+              disabled={isSyncing}
+              className="gap-2"
+            >
+              {isSyncing ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Syncing...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4" />
+                  Sync from Canvas
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card 
+              onClick={() => setSelectedFilter('all')}
+              className={cn(
+                "cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg border-border/50",
+                selectedFilter === 'all' && "ring-2 ring-primary shadow-lg bg-primary/5"
+              )}
+            >
+              <CardContent className="p-6 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Target className="h-8 w-8 text-primary" />
+                  <Badge variant="outline" className="text-xs">{totalAssignments}</Badge>
+                </div>
+                <p className="text-2xl font-bold">{totalAssignments}</p>
+                <p className="text-sm text-muted-foreground">Total</p>
+              </CardContent>
+            </Card>
+
+            <Card 
+              onClick={() => setSelectedFilter('due-soon')}
+              className={cn(
+                "cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg border-border/50",
+                selectedFilter === 'due-soon' && "ring-2 ring-amber-500 shadow-lg bg-amber-500/5"
+              )}
+            >
+              <CardContent className="p-6 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Clock className="h-8 w-8 text-amber-500" />
+                  <Badge className="bg-amber-500 text-xs">{dueSoonCount}</Badge>
+                </div>
+                <p className="text-2xl font-bold">{dueSoonCount}</p>
+                <p className="text-sm text-muted-foreground">Due Soon</p>
+              </CardContent>
+            </Card>
+
+            <Card 
+              onClick={() => setSelectedFilter('upcoming')}
+              className={cn(
+                "cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg border-border/50",
+                selectedFilter === 'upcoming' && "ring-2 ring-blue-500 shadow-lg bg-blue-500/5"
+              )}
+            >
+              <CardContent className="p-6 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Calendar className="h-8 w-8 text-blue-500" />
+                  <Badge className="bg-blue-500 text-xs">{upcomingCount}</Badge>
+                </div>
+                <p className="text-2xl font-bold">{upcomingCount}</p>
+                <p className="text-sm text-muted-foreground">This Week</p>
+              </CardContent>
+            </Card>
+
+            <Card 
+              onClick={() => setSelectedFilter('submitted')}
+              className={cn(
+                "cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg border-border/50",
+                selectedFilter === 'submitted' && "ring-2 ring-green-500 shadow-lg bg-green-500/5"
+              )}
+            >
+              <CardContent className="p-6 space-y-2">
+                <div className="flex items-center justify-between">
+                  <CheckCircle2 className="h-8 w-8 text-green-500" />
+                  <Badge className="bg-green-500 text-xs">{submittedCount}</Badge>
+                </div>
+                <p className="text-2xl font-bold">{submittedCount}</p>
+                <p className="text-sm text-muted-foreground">Submitted</p>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Assignments List */}
@@ -367,107 +440,132 @@ const Assignments = () => {
                   </div>
 
                   <div className="grid gap-4">
-                    {courseAssignments.map((assignment, assignIdx) => (
-                      <Card 
-                        key={assignment.id}
-                        className="border-border/50 hover:shadow-lg transition-all duration-300 hover:scale-[1.01] hover-glide animate-fade-in"
-                        style={{ animationDelay: `${(idx * 100) + (assignIdx * 50)}ms` }}
-                      >
-                        <CardHeader>
+                    {courseAssignments.map((assignment, assignIdx) => {
+                      // Determine border gradient based on urgency
+                      const getBorderClass = () => {
+                        if (!assignment.due_date) return "";
+                        const days = differenceInDays(new Date(assignment.due_date), new Date());
+                        if (days < 0) return "border-l-4 border-l-destructive";
+                        if (days <= 3) return "border-l-4 border-l-amber-500";
+                        if (days <= 7) return "border-l-4 border-l-blue-500";
+                        return "border-l-4 border-l-primary/30";
+                      };
+
+                      return (
+                        <Card 
+                          key={assignment.id}
+                          className={cn(
+                            "border-border/50 hover:shadow-lg transition-all duration-300 hover:scale-[1.01] hover-glide animate-fade-in relative overflow-hidden group",
+                            getBorderClass()
+                          )}
+                          style={{ animationDelay: `${(idx * 100) + (assignIdx * 50)}ms` }}
+                        >
+                          {/* Hover gradient effect */}
+                          <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                          
+                          <CardHeader className="relative">
                             <div className="flex items-start justify-between gap-4">
-                            <div className="flex-1 space-y-3">
-                              <div className="flex items-start gap-3">
-                                <div className="mt-1">
-                                  {(assignment.submission_status === 'submitted' || assignment.submission_status === 'graded') ? (
-                                    <CheckCircle2 className="h-5 w-5 text-green-500" />
-                                  ) : (
-                                    <Circle className="h-5 w-5 text-muted-foreground" />
-                                  )}
-                                </div>
-                                <div className="flex-1">
-                                  <CardTitle className="text-xl mb-2 hover:text-primary transition-colors">
-                                    {assignment.title}
-                                  </CardTitle>
-                                   <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                                    {(assignment.submission_status === 'submitted' || assignment.submission_status === 'graded') && assignment.submitted_at && (
-                                      <div className="flex items-center gap-1.5 text-green-600">
-                                        <CheckCircle2 className="h-4 w-4" />
-                                        <span>Submitted: {format(new Date(assignment.submitted_at), 'PPP')}</span>
+                              <div className="flex-1 space-y-3">
+                                <div className="flex items-start gap-3">
+                                  <div className="mt-1 relative">
+                                    {(assignment.submission_status === 'submitted' || assignment.submission_status === 'graded') ? (
+                                      <div className="relative">
+                                        <div className="absolute inset-0 bg-green-500/20 blur-md rounded-full animate-pulse" />
+                                        <CheckCircle2 className="h-5 w-5 text-green-500 relative" />
                                       </div>
+                                    ) : (
+                                      <Circle className="h-5 w-5 text-muted-foreground" />
                                     )}
-                                    {assignment.submission_status === 'graded' && assignment.metadata.grade && (
-                                      <Badge className="bg-green-600 text-xs gap-1">
-                                        <Trophy className="h-3 w-3" />
-                                        Grade: {assignment.metadata.grade}
-                                        {assignment.metadata.score && assignment.metadata.points_possible && (
-                                          <span> ({assignment.metadata.score}/{assignment.metadata.points_possible})</span>
-                                        )}
-                                      </Badge>
-                                    )}
-                                    {assignment.due_date && (
-                                      <div className="flex items-center gap-1.5">
-                                        <Calendar className="h-4 w-4" />
-                                        <span>Due: {format(new Date(assignment.due_date), 'PPP')}</span>
-                                      </div>
-                                    )}
-                                    {assignment.metadata.points_possible && (
-                                      <Badge variant="outline" className="gap-1">
-                                        <Target className="h-3 w-3" />
-                                        {assignment.metadata.points_possible} pts
-                                      </Badge>
-                                    )}
-                                    {assignment.metadata.submission_types && assignment.metadata.submission_types.length > 0 && (
-                                      <Badge variant="secondary" className="text-xs">
-                                        {assignment.metadata.submission_types[0]}
-                                      </Badge>
-                                    )}
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="flex items-start gap-2 mb-2">
+                                      <CardTitle className="text-xl hover:text-primary transition-colors flex-1">
+                                        {assignment.title}
+                                      </CardTitle>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                                      {(assignment.submission_status === 'submitted' || assignment.submission_status === 'graded') && assignment.submitted_at && (
+                                        <div className="flex items-center gap-1.5 text-green-600">
+                                          <CheckCircle2 className="h-4 w-4" />
+                                          <span>Submitted: {format(new Date(assignment.submitted_at), 'PPP')}</span>
+                                        </div>
+                                      )}
+                                      {assignment.submission_status === 'graded' && assignment.metadata.grade && (
+                                        <Badge className="bg-green-600 text-xs gap-1">
+                                          <Trophy className="h-3 w-3" />
+                                          Grade: {assignment.metadata.grade}
+                                          {assignment.metadata.score && assignment.metadata.points_possible && (
+                                            <span> ({assignment.metadata.score}/{assignment.metadata.points_possible})</span>
+                                          )}
+                                        </Badge>
+                                      )}
+                                      {assignment.due_date && (
+                                        <div className="flex items-center gap-1.5">
+                                          <Calendar className="h-4 w-4" />
+                                          <span>Due: {format(new Date(assignment.due_date), 'PPP')}</span>
+                                        </div>
+                                      )}
+                                      {assignment.metadata.points_possible && (
+                                        <Badge variant="outline" className="gap-1">
+                                          <Target className="h-3 w-3" />
+                                          {assignment.metadata.points_possible} pts
+                                        </Badge>
+                                      )}
+                                      {assignment.metadata.submission_types && assignment.metadata.submission_types.length > 0 && (
+                                        <Badge variant="secondary" className="text-xs">
+                                          {assignment.metadata.submission_types[0]}
+                                        </Badge>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                               </div>
+                              <div className="shrink-0">
+                                {getStatusBadge(assignment.due_date)}
+                              </div>
                             </div>
-                            {getStatusBadge(assignment.due_date)}
-                          </div>
-                        </CardHeader>
-                        {(assignment.description || assignment.url) && (
-                          <CardContent className="space-y-4">
-                            {assignment.description && (
-                              <CardDescription 
-                                className="line-clamp-2 text-sm"
-                                dangerouslySetInnerHTML={{ 
-                                  __html: assignment.description.replace(/<[^>]*>/g, '').substring(0, 200) + '...' 
-                                }}
-                              />
-                            )}
-                            {assignment.url && (
-                              <div className="flex gap-2">
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  asChild
-                                  className="hover-glide smooth-bounce"
-                                >
-                                  <a href={assignment.url} target="_blank" rel="noopener noreferrer">
-                                    View in Canvas
-                                    <ExternalLink className="ml-2 h-4 w-4" />
-                                  </a>
-                                </Button>
-                                {assignment.submission_status === 'not_submitted' && (
+                          </CardHeader>
+                          {(assignment.description || assignment.url) && (
+                            <CardContent className="space-y-4">
+                              {assignment.description && (
+                                <CardDescription 
+                                  className="line-clamp-2 text-sm"
+                                  dangerouslySetInnerHTML={{ 
+                                    __html: assignment.description.replace(/<[^>]*>/g, '').substring(0, 200) + '...' 
+                                  }}
+                                />
+                              )}
+                              {assignment.url && (
+                                <div className="flex gap-2">
                                   <Button 
-                                    variant="default" 
-                                    size="sm"
-                                    onClick={() => markAsSubmitted(assignment.id)}
+                                    variant="outline" 
+                                    size="sm" 
+                                    asChild
                                     className="hover-glide smooth-bounce"
                                   >
-                                    <CheckCircle2 className="mr-2 h-4 w-4" />
-                                    Mark as Submitted
+                                    <a href={assignment.url} target="_blank" rel="noopener noreferrer">
+                                      View in Canvas
+                                      <ExternalLink className="ml-2 h-4 w-4" />
+                                    </a>
                                   </Button>
-                                )}
-                              </div>
-                            )}
-                          </CardContent>
-                        )}
-                      </Card>
-                    ))}
+                                  {assignment.submission_status === 'not_submitted' && (
+                                    <Button 
+                                      variant="default" 
+                                      size="sm"
+                                      onClick={() => markAsSubmitted(assignment.id)}
+                                      className="hover-glide smooth-bounce"
+                                    >
+                                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                                      Mark as Submitted
+                                    </Button>
+                                  )}
+                                </div>
+                              )}
+                            </CardContent>
+                          )}
+                        </Card>
+                      );
+                    })}
                   </div>
                 </div>
               ))}
