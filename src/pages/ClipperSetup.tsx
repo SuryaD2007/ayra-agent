@@ -101,6 +101,22 @@ const ClipperSetup = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const testBookmarklet = () => {
+    // Execute the bookmarklet code directly
+    try {
+      // Extract the function from the javascript: URL
+      const code = bookmarkletCode.replace('javascript:', '');
+      eval(code);
+    } catch (error) {
+      console.error('Bookmarklet test error:', error);
+      toast({
+        title: 'Test failed',
+        description: 'Please try again or check the console for errors',
+        variant: 'destructive'
+      });
+    }
+  };
+
   return (
     <AuthGuard
       title="Setup Web Clipper"
@@ -168,6 +184,24 @@ const ClipperSetup = () => {
                   <div className="text-center space-y-1">
                     <p className="text-xs text-muted-foreground max-w-md">
                       Or right-click the button and select "Bookmark this link"
+                    </p>
+                  </div>
+
+                  {/* Test Button */}
+                  <div className="pt-4 border-t border-border/50">
+                    <p className="text-sm text-muted-foreground mb-3 text-center">
+                      Want to test it first?
+                    </p>
+                    <Button 
+                      onClick={testBookmarklet}
+                      variant="outline"
+                      className="w-full max-w-xs"
+                    >
+                      <Zap className="h-4 w-4 mr-2" />
+                      Test Clipper Now
+                    </Button>
+                    <p className="text-xs text-muted-foreground mt-2 text-center max-w-md mx-auto">
+                      This will capture a screenshot of this page and open the clip window
                     </p>
                   </div>
                 </div>
