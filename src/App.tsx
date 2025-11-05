@@ -24,6 +24,8 @@ import ConfigurationBanner from "./components/ConfigurationBanner";
 import PreLaunchGuard from "./components/auth/PreLaunchGuard";
 import RoleGuard from "./components/auth/RoleGuard";
 import Admin from "./pages/Admin";
+import ClipperSetup from "./pages/ClipperSetup";
+import QuickClip from "./pages/QuickClip";
 import Assignments from "./pages/Assignments";
 import { useConfigurationValidation } from "./hooks/useConfigurationValidation";
 import { useSettings } from "./hooks/useSettings";
@@ -142,6 +144,24 @@ const AppRoutes = () => {
             <PreLaunchGuard>
               <Assignments />
             </PreLaunchGuard>
+          </PageTransition>
+        } 
+      />
+      <Route 
+        path="/clipper" 
+        element={
+          <PageTransition>
+            <PreLaunchGuard>
+              <ClipperSetup />
+            </PreLaunchGuard>
+          </PageTransition>
+        } 
+      />
+      <Route 
+        path="/clip" 
+        element={
+          <PageTransition>
+            <QuickClip />
           </PageTransition>
         } 
       />

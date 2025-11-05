@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { FileSpreadsheet, Plug, Globe2, Upload, Type, Youtube } from 'lucide-react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { FileSpreadsheet, Plug, Globe2, Upload, Type, Youtube, Bookmark } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { CSVImportDrawer } from '@/components/import/CSVImportDrawer';
 import { APIConnectDrawer } from '@/components/import/APIConnectDrawer';  
@@ -12,13 +12,14 @@ import { AnimatedTransition } from '@/components/AnimatedTransition';
 import { useAnimateIn } from '@/lib/animations';
 import { cn } from '@/lib/utils';
 
-type ImportType = 'csv' | 'api' | 'url' | 'file' | 'text' | 'video';
+type ImportType = 'csv' | 'api' | 'url' | 'file' | 'text' | 'video' | 'clipper';
 
 interface ImportCard {
   id: ImportType;
   title: string;
   description: string;
   icon: React.ReactNode;
+  isExternal?: boolean;
 }
 
 const importCards: ImportCard[] = [
@@ -33,6 +34,13 @@ const importCards: ImportCard[] = [
     title: 'Web URL',
     description: 'Import content from websites and articles',
     icon: <Globe2 size={24} />
+  },
+  {
+    id: 'clipper',
+    title: 'Web Clipper',
+    description: 'Setup bookmarklet to clip from any webpage',
+    icon: <Bookmark size={24} />,
+    isExternal: true
   },
   {
     id: 'video',
@@ -63,6 +71,7 @@ const importCards: ImportCard[] = [
 const ImportHub = () => {
   const [activeDrawer, setActiveDrawer] = useState<ImportType | null>(null);
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const showContent = useAnimateIn(false, 300);
 
   // Get preselected space from URL params
@@ -105,6 +114,12 @@ const ImportHub = () => {
   }, []);
 
   const handleCardClick = (importType: ImportType) => {
+    // Check if it's an external link
+    const card = importCards.find(c => c.id === importType);
+    if (card?.isExternal && importType === 'clipper') {
+      navigate('/clipper');
+      return;
+    }
     setActiveDrawer(importType);
   };
 
