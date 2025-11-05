@@ -117,7 +117,12 @@ const Assignments = () => {
     }
   };
 
-  const getStatusBadge = (dueDate: string | null) => {
+  const getStatusBadge = (dueDate: string | null, submissionStatus: string) => {
+    // If submitted or graded, show completion status instead
+    if (submissionStatus === 'submitted' || submissionStatus === 'graded') {
+      return <Badge className="bg-green-500">Submitted</Badge>;
+    }
+
     if (!dueDate) {
       return <Badge variant="secondary">No Due Date</Badge>;
     }
@@ -521,7 +526,7 @@ const Assignments = () => {
                                 </div>
                               </div>
                               <div className="shrink-0">
-                                {getStatusBadge(assignment.due_date)}
+                                {getStatusBadge(assignment.due_date, assignment.submission_status)}
                               </div>
                             </div>
                           </CardHeader>
