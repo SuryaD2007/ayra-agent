@@ -15,81 +15,8 @@ const ClipperSetup = () => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Generate bookmarklet code with screenshot capture and flash animation
-  const bookmarkletCode = `javascript:(function(){
-    const userId='${user?.id || 'USER_ID'}';
-    const title=document.title;
-    const url=window.location.href;
-    const selection=window.getSelection().toString();
-    
-    // Load html2canvas library
-    if(!window.html2canvas){
-      const script=document.createElement('script');
-      script.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-      script.onload=function(){captureAndClip();};
-      document.head.appendChild(script);
-    }else{
-      captureAndClip();
-    }
-    
-    function captureAndClip(){
-      // Show loading indicator
-      const loader=document.createElement('div');
-      loader.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.9);color:white;padding:24px 32px;border-radius:12px;z-index:999999;font-family:system-ui,-apple-system,sans-serif;font-size:16px;font-weight:500;box-shadow:0 10px 40px rgba(0,0,0,0.3);';
-      loader.innerHTML='<div style="display:flex;align-items:center;gap:12px;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg><span>Capturing screenshot...</span></div>';
-      const style=document.createElement('style');
-      style.textContent='@keyframes spin{to{transform:rotate(360deg)}}';
-      document.head.appendChild(style);
-      document.body.appendChild(loader);
-      
-      html2canvas(document.body,{
-        allowTaint:true,
-        useCORS:true,
-        scrollY:-window.scrollY,
-        scrollX:-window.scrollX,
-        windowWidth:document.documentElement.scrollWidth,
-        windowHeight:document.documentElement.scrollHeight
-      }).then(function(canvas){
-        // Camera flash animation
-        const flash=document.createElement('div');
-        flash.style.cssText='position:fixed;inset:0;background:white;z-index:9999999;animation:flash 0.5s ease-out;pointer-events:none;';
-        const flashStyle=document.createElement('style');
-        flashStyle.textContent='@keyframes flash{0%{opacity:0}50%{opacity:0.8}100%{opacity:0}}@keyframes slideDown{0%{transform:translateY(-120%);opacity:0}100%{transform:translateY(0);opacity:1}}';
-        document.head.appendChild(flashStyle);
-        document.body.appendChild(flash);
-        
-        // Show success message
-        loader.innerHTML='<div style="display:flex;align-items:center;gap:12px;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Screenshot captured!</span></div>';
-        
-        const screenshot=canvas.toDataURL('image/png');
-        
-        setTimeout(function(){
-          document.body.removeChild(flash);
-          document.body.removeChild(loader);
-          
-          // Show preview thumbnail
-          const preview=document.createElement('div');
-          preview.style.cssText='position:fixed;top:20px;right:20px;width:280px;background:rgba(0,0,0,0.95);padding:12px;border-radius:12px;z-index:999999;box-shadow:0 20px 60px rgba(0,0,0,0.5);animation:slideDown 0.6s cubic-bezier(0.34,1.56,0.64,1);';
-          preview.innerHTML='<div style="position:relative;"><img src="'+screenshot+'" style="width:100%;height:auto;border-radius:8px;"/><div style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.7);color:white;padding:4px 8px;border-radius:6px;font-size:11px;font-weight:600;font-family:system-ui,-apple-system,sans-serif;">Preview</div></div>';
-          document.body.appendChild(preview);
-          
-          setTimeout(function(){
-            document.body.removeChild(preview);
-            document.head.removeChild(style);
-            document.head.removeChild(flashStyle);
-            const clipperUrl='https://useayra.com/clip?title='+encodeURIComponent(title)+'&url='+encodeURIComponent(url)+'&content='+encodeURIComponent(selection)+'&userId='+userId+'&screenshot='+encodeURIComponent(screenshot);
-            window.open(clipperUrl,'ayra-clipper','width=600,height=700');
-          },1500);
-        },500);
-      }).catch(function(err){
-        document.body.removeChild(loader);
-        document.head.removeChild(style);
-        alert('Screenshot failed. Clipping without image.');
-        const clipperUrl='https://useayra.com/clip?title='+encodeURIComponent(title)+'&url='+encodeURIComponent(url)+'&content='+encodeURIComponent(selection)+'&userId='+userId;
-        window.open(clipperUrl,'ayra-clipper','width=600,height=700');
-      });
-    }
-  })();`;
+  // Generate bookmarklet code - simplified and with better error handling
+  const bookmarkletCode = `javascript:(function(){try{var u='${user?.id || 'USER_ID'}',t=document.title,l=window.location.href,s=window.getSelection().toString();console.log('Ayra clipper started');if(!window.html2canvas){var c=document.createElement('script');c.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';c.onerror=function(){alert('Failed to load screenshot library. Opening clip window without screenshot.');window.open('https://useayra.com/clip?title='+encodeURIComponent(t)+'&url='+encodeURIComponent(l)+'&content='+encodeURIComponent(s)+'&userId='+u,'ayra-clipper','width=600,height=700');};c.onload=function(){console.log('html2canvas loaded');capture();};document.head.appendChild(c);}else{capture();}function capture(){var d=document.createElement('div');d.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.9);color:white;padding:24px 32px;border-radius:12px;z-index:999999;font-family:system-ui;font-size:16px;';d.textContent='📸 Capturing...';document.body.appendChild(d);html2canvas(document.body,{allowTaint:true,useCORS:true,scrollY:-window.scrollY,scrollX:-window.scrollX}).then(function(canvas){var f=document.createElement('div');f.style.cssText='position:fixed;inset:0;background:white;z-index:9999998;opacity:0.8;';document.body.appendChild(f);setTimeout(function(){document.body.removeChild(f);},300);d.textContent='✅ Captured!';var img=canvas.toDataURL('image/png');setTimeout(function(){document.body.removeChild(d);console.log('Opening clip window');window.open('https://useayra.com/clip?title='+encodeURIComponent(t)+'&url='+encodeURIComponent(l)+'&content='+encodeURIComponent(s)+'&userId='+u+'&screenshot='+encodeURIComponent(img),'ayra-clipper','width=600,height=700');},800);}).catch(function(e){console.error('Screenshot error:',e);document.body.removeChild(d);alert('Screenshot failed: '+e.message);window.open('https://useayra.com/clip?title='+encodeURIComponent(t)+'&url='+encodeURIComponent(l)+'&content='+encodeURIComponent(s)+'&userId='+u,'ayra-clipper','width=600,height=700');});}}catch(e){console.error('Clipper error:',e);alert('Clipper error: '+e.message+'. Check console for details.');}})();`;
 
   const copyBookmarklet = () => {
     navigator.clipboard.writeText(bookmarkletCode);
@@ -320,6 +247,42 @@ const ClipperSetup = () => {
                 Works on all modern browsers
               </Badge>
             </div>
+
+            {/* Troubleshooting Section */}
+            <Card className="border-border/50 shadow-lg bg-muted/30">
+              <CardHeader>
+                <CardTitle className="text-xl">Troubleshooting</CardTitle>
+                <CardDescription>If the clipper isn't working</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3 text-sm">
+                  <div className="flex gap-3 items-start">
+                    <div className="text-primary shrink-0 mt-1">•</div>
+                    <div>
+                      <span className="font-medium">Try a different website:</span> The clipper won't work on useayra.com itself. Test it on Wikipedia, Medium, or any news site.
+                    </div>
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <div className="text-primary shrink-0 mt-1">•</div>
+                    <div>
+                      <span className="font-medium">Check browser console:</span> Right-click → Inspect → Console tab. You should see "Ayra clipper started" when you click the bookmarklet.
+                    </div>
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <div className="text-primary shrink-0 mt-1">•</div>
+                    <div>
+                      <span className="font-medium">Re-add the bookmark:</span> Delete the old one and drag the button again. Make sure the entire bookmark code is saved.
+                    </div>
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <div className="text-primary shrink-0 mt-1">•</div>
+                    <div>
+                      <span className="font-medium">Pop-up blocker:</span> Make sure your browser allows pop-ups for the site you're clipping from.
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </AnimatedTransition>
       </div>
