@@ -54,23 +54,33 @@ const ClipperSetup = () => {
         const flash=document.createElement('div');
         flash.style.cssText='position:fixed;inset:0;background:white;z-index:9999999;animation:flash 0.5s ease-out;pointer-events:none;';
         const flashStyle=document.createElement('style');
-        flashStyle.textContent='@keyframes flash{0%{opacity:0}50%{opacity:0.8}100%{opacity:0}}';
+        flashStyle.textContent='@keyframes flash{0%{opacity:0}50%{opacity:0.8}100%{opacity:0}}@keyframes slideDown{0%{transform:translateY(-120%);opacity:0}100%{transform:translateY(0);opacity:1}}';
         document.head.appendChild(flashStyle);
         document.body.appendChild(flash);
         
         // Show success message
         loader.innerHTML='<div style="display:flex;align-items:center;gap:12px;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Screenshot captured!</span></div>';
         
+        const screenshot=canvas.toDataURL('image/png');
+        
         setTimeout(function(){
           document.body.removeChild(flash);
           document.body.removeChild(loader);
-          document.head.removeChild(style);
-          document.head.removeChild(flashStyle);
           
-          const screenshot=canvas.toDataURL('image/png');
-          const clipperUrl='https://useayra.com/clip?title='+encodeURIComponent(title)+'&url='+encodeURIComponent(url)+'&content='+encodeURIComponent(selection)+'&userId='+userId+'&screenshot='+encodeURIComponent(screenshot);
-          window.open(clipperUrl,'ayra-clipper','width=600,height=700');
-        },800);
+          // Show preview thumbnail
+          const preview=document.createElement('div');
+          preview.style.cssText='position:fixed;top:20px;right:20px;width:280px;background:rgba(0,0,0,0.95);padding:12px;border-radius:12px;z-index:999999;box-shadow:0 20px 60px rgba(0,0,0,0.5);animation:slideDown 0.6s cubic-bezier(0.34,1.56,0.64,1);';
+          preview.innerHTML='<div style="position:relative;"><img src="'+screenshot+'" style="width:100%;height:auto;border-radius:8px;"/><div style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.7);color:white;padding:4px 8px;border-radius:6px;font-size:11px;font-weight:600;font-family:system-ui,-apple-system,sans-serif;">Preview</div></div>';
+          document.body.appendChild(preview);
+          
+          setTimeout(function(){
+            document.body.removeChild(preview);
+            document.head.removeChild(style);
+            document.head.removeChild(flashStyle);
+            const clipperUrl='https://useayra.com/clip?title='+encodeURIComponent(title)+'&url='+encodeURIComponent(url)+'&content='+encodeURIComponent(selection)+'&userId='+userId+'&screenshot='+encodeURIComponent(screenshot);
+            window.open(clipperUrl,'ayra-clipper','width=600,height=700');
+          },1500);
+        },500);
       }).catch(function(err){
         document.body.removeChild(loader);
         document.head.removeChild(style);

@@ -129,7 +129,7 @@ const QuickClip = () => {
           title: title.trim(),
           content: content || null,
           source: url || 'Web Clipper',
-          type: screenshot ? 'image' : (content ? 'note' : 'link'),
+          type: screenshot ? 'screenshot' : (content ? 'note' : 'link'),
           space_id: selectedSpace || null,
           user_id: user.id,
           file_path: filePath
