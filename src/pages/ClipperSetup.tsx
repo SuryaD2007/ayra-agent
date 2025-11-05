@@ -15,14 +15,49 @@ const ClipperSetup = () => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Generate bookmarklet code
+  // Generate bookmarklet code with screenshot capture
   const bookmarkletCode = `javascript:(function(){
     const userId='${user?.id || 'USER_ID'}';
     const title=document.title;
     const url=window.location.href;
     const selection=window.getSelection().toString();
-    const clipperUrl='${window.location.origin}/clip?title='+encodeURIComponent(title)+'&url='+encodeURIComponent(url)+'&content='+encodeURIComponent(selection)+'&userId='+userId;
-    window.open(clipperUrl,'ayra-clipper','width=500,height=600');
+    
+    // Load html2canvas library
+    if(!window.html2canvas){
+      const script=document.createElement('script');
+      script.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+      script.onload=function(){captureAndClip();};
+      document.head.appendChild(script);
+    }else{
+      captureAndClip();
+    }
+    
+    function captureAndClip(){
+      // Show loading indicator
+      const loader=document.createElement('div');
+      loader.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.8);color:white;padding:20px;border-radius:8px;z-index:999999;font-family:sans-serif;';
+      loader.textContent='📸 Capturing screenshot...';
+      document.body.appendChild(loader);
+      
+      html2canvas(document.body,{
+        allowTaint:true,
+        useCORS:true,
+        scrollY:-window.scrollY,
+        scrollX:-window.scrollX,
+        windowWidth:document.documentElement.scrollWidth,
+        windowHeight:document.documentElement.scrollHeight
+      }).then(function(canvas){
+        document.body.removeChild(loader);
+        const screenshot=canvas.toDataURL('image/png');
+        const clipperUrl='https://useayra.com/clip?title='+encodeURIComponent(title)+'&url='+encodeURIComponent(url)+'&content='+encodeURIComponent(selection)+'&userId='+userId+'&screenshot='+encodeURIComponent(screenshot);
+        window.open(clipperUrl,'ayra-clipper','width=600,height=700');
+      }).catch(function(err){
+        document.body.removeChild(loader);
+        alert('Screenshot failed. Clipping without image.');
+        const clipperUrl='https://useayra.com/clip?title='+encodeURIComponent(title)+'&url='+encodeURIComponent(url)+'&content='+encodeURIComponent(selection)+'&userId='+userId;
+        window.open(clipperUrl,'ayra-clipper','width=600,height=700');
+      });
+    }
   })();`;
 
   const copyBookmarklet = () => {
@@ -52,10 +87,10 @@ const ClipperSetup = () => {
                 </div>
               </div>
               <h1 className="text-4xl font-bold bg-gradient-to-r from-foreground via-primary to-foreground/70 bg-clip-text text-transparent">
-                Clip Anything to Ayra
+                Clip & Capture with Ayra
               </h1>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Save web pages, articles, and highlights directly to your Ayra library with one click
+                Save web pages with visual screenshots and highlights directly to your Ayra library with one click
               </p>
             </div>
 
@@ -177,7 +212,7 @@ const ClipperSetup = () => {
                     <div className="space-y-1">
                       <h4 className="font-semibold">Click the Bookmarklet</h4>
                       <p className="text-sm text-muted-foreground">
-                        Click the "Clip to Ayra" bookmark in your bookmarks bar. A popup will appear to save your clip.
+                        Click the "Clip to Ayra" bookmark. A screenshot will be captured automatically, then a popup will appear to save your clip.
                       </p>
                     </div>
                   </div>
@@ -195,9 +230,9 @@ const ClipperSetup = () => {
                   <div className="flex gap-3 items-start p-4 bg-muted/50 rounded-lg">
                     <Globe className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                     <div>
-                      <h4 className="font-semibold mb-1">Full Page Capture</h4>
+                      <h4 className="font-semibold mb-1">Page Screenshots</h4>
                       <p className="text-sm text-muted-foreground">
-                        Save entire web pages with title and URL
+                        Automatically captures visual snapshot of the page
                       </p>
                     </div>
                   </div>
@@ -244,20 +279,8 @@ const ClipperSetup = () => {
               <CardContent>
                 <div className="flex flex-wrap gap-3">
                   <Badge variant="secondary" className="gap-2 py-2 px-4">
-                    <Chrome className="h-4 w-4" />
-                    Chrome
-                  </Badge>
-                  <Badge variant="secondary" className="gap-2 py-2 px-4">
                     <Globe className="h-4 w-4" />
-                    Firefox
-                  </Badge>
-                  <Badge variant="secondary" className="gap-2 py-2 px-4">
-                    <Globe className="h-4 w-4" />
-                    Safari
-                  </Badge>
-                  <Badge variant="secondary" className="gap-2 py-2 px-4">
-                    <Globe className="h-4 w-4" />
-                    Edge
+                    All Modern Browsers
                   </Badge>
                 </div>
               </CardContent>

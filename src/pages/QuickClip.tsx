@@ -20,6 +20,7 @@ const QuickClip = () => {
   const [title, setTitle] = useState('');
   const [url, setUrl] = useState('');
   const [content, setContent] = useState('');
+  const [screenshot, setScreenshot] = useState<string>('');
   const [selectedSpace, setSelectedSpace] = useState<string>('');
   const [spaces, setSpaces] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
@@ -30,10 +31,12 @@ const QuickClip = () => {
     const titleParam = searchParams.get('title') || '';
     const urlParam = searchParams.get('url') || '';
     const contentParam = searchParams.get('content') || '';
+    const screenshotParam = searchParams.get('screenshot') || '';
     
     setTitle(titleParam);
     setUrl(urlParam);
     setContent(contentParam);
+    setScreenshot(screenshotParam);
 
     // Load spaces
     loadSpaces();
@@ -83,15 +86,53 @@ const QuickClip = () => {
     setSaving(true);
 
     try {
+      let filePath = null;
+
+      // Upload screenshot if exists
+      if (screenshot) {
+        try {
+          // Convert base64 to blob
+          const base64Data = screenshot.split(',')[1];
+          const byteCharacters = atob(base64Data);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: 'image/png' });
+
+          // Generate unique filename
+          const fileName = `${user.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.png`;
+
+          // Upload to storage
+          const { error: uploadError } = await supabase.storage
+            .from('ayra-files')
+            .upload(fileName, blob, {
+              contentType: 'image/png',
+              upsert: false
+            });
+
+          if (uploadError) throw uploadError;
+          filePath = fileName;
+        } catch (uploadError) {
+          console.error('Screenshot upload failed:', uploadError);
+          toast({
+            title: 'Screenshot upload failed',
+            description: 'Saving clip without screenshot',
+          });
+        }
+      }
+
       const { error } = await supabase
         .from('items')
         .insert({
           title: title.trim(),
           content: content || null,
           source: url || 'Web Clipper',
-          type: content ? 'note' : 'link',
+          type: screenshot ? 'image' : (content ? 'note' : 'link'),
           space_id: selectedSpace || null,
-          user_id: user.id
+          user_id: user.id,
+          file_path: filePath
         });
 
       if (error) throw error;
@@ -191,6 +232,22 @@ const QuickClip = () => {
                   placeholder="https://..."
                   className="font-mono text-sm"
                 />
+              </div>
+            )}
+
+            {screenshot && (
+              <div className="space-y-2">
+                <Label>Page Screenshot</Label>
+                <div className="border border-border rounded-lg overflow-hidden">
+                  <img 
+                    src={screenshot} 
+                    alt="Page screenshot" 
+                    className="w-full h-auto max-h-[400px] object-contain bg-muted"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Screenshot captured from the clipped page
+                </p>
               </div>
             )}
 
