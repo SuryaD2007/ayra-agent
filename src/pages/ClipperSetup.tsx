@@ -15,7 +15,7 @@ const ClipperSetup = () => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Generate bookmarklet code with screenshot capture
+  // Generate bookmarklet code with screenshot capture and flash animation
   const bookmarkletCode = `javascript:(function(){
     const userId='${user?.id || 'USER_ID'}';
     const title=document.title;
@@ -35,8 +35,11 @@ const ClipperSetup = () => {
     function captureAndClip(){
       // Show loading indicator
       const loader=document.createElement('div');
-      loader.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.8);color:white;padding:20px;border-radius:8px;z-index:999999;font-family:sans-serif;';
-      loader.textContent='📸 Capturing screenshot...';
+      loader.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.9);color:white;padding:24px 32px;border-radius:12px;z-index:999999;font-family:system-ui,-apple-system,sans-serif;font-size:16px;font-weight:500;box-shadow:0 10px 40px rgba(0,0,0,0.3);';
+      loader.innerHTML='<div style="display:flex;align-items:center;gap:12px;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg><span>Capturing screenshot...</span></div>';
+      const style=document.createElement('style');
+      style.textContent='@keyframes spin{to{transform:rotate(360deg)}}';
+      document.head.appendChild(style);
       document.body.appendChild(loader);
       
       html2canvas(document.body,{
@@ -47,12 +50,30 @@ const ClipperSetup = () => {
         windowWidth:document.documentElement.scrollWidth,
         windowHeight:document.documentElement.scrollHeight
       }).then(function(canvas){
-        document.body.removeChild(loader);
-        const screenshot=canvas.toDataURL('image/png');
-        const clipperUrl='https://useayra.com/clip?title='+encodeURIComponent(title)+'&url='+encodeURIComponent(url)+'&content='+encodeURIComponent(selection)+'&userId='+userId+'&screenshot='+encodeURIComponent(screenshot);
-        window.open(clipperUrl,'ayra-clipper','width=600,height=700');
+        // Camera flash animation
+        const flash=document.createElement('div');
+        flash.style.cssText='position:fixed;inset:0;background:white;z-index:9999999;animation:flash 0.5s ease-out;pointer-events:none;';
+        const flashStyle=document.createElement('style');
+        flashStyle.textContent='@keyframes flash{0%{opacity:0}50%{opacity:0.8}100%{opacity:0}}';
+        document.head.appendChild(flashStyle);
+        document.body.appendChild(flash);
+        
+        // Show success message
+        loader.innerHTML='<div style="display:flex;align-items:center;gap:12px;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Screenshot captured!</span></div>';
+        
+        setTimeout(function(){
+          document.body.removeChild(flash);
+          document.body.removeChild(loader);
+          document.head.removeChild(style);
+          document.head.removeChild(flashStyle);
+          
+          const screenshot=canvas.toDataURL('image/png');
+          const clipperUrl='https://useayra.com/clip?title='+encodeURIComponent(title)+'&url='+encodeURIComponent(url)+'&content='+encodeURIComponent(selection)+'&userId='+userId+'&screenshot='+encodeURIComponent(screenshot);
+          window.open(clipperUrl,'ayra-clipper','width=600,height=700');
+        },800);
       }).catch(function(err){
         document.body.removeChild(loader);
+        document.head.removeChild(style);
         alert('Screenshot failed. Clipping without image.');
         const clipperUrl='https://useayra.com/clip?title='+encodeURIComponent(title)+'&url='+encodeURIComponent(url)+'&content='+encodeURIComponent(selection)+'&userId='+userId;
         window.open(clipperUrl,'ayra-clipper','width=600,height=700');
