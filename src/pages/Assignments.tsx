@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, ExternalLink, Loader2, BookOpen, Clock, Target, Zap, CheckCircle2, Circle, Trophy, RefreshCw } from 'lucide-react';
+import { Calendar, ExternalLink, Loader2, BookOpen, Clock, Target, Zap, CheckCircle2, Circle, Trophy, RefreshCw, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format, differenceInDays } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -10,6 +10,7 @@ import { AnimatedTransition } from '@/components/AnimatedTransition';
 import { useAnimateIn } from '@/lib/animations';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface CanvasAssignment {
   id: string;
@@ -35,6 +36,7 @@ const Assignments = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [submittingId, setSubmittingId] = useState<string | null>(null);
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'upcoming' | 'due-soon' | 'submitted'>('all');
+  const [selectedCourse, setSelectedCourse] = useState<string>('all');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -184,8 +186,19 @@ const Assignments = () => {
     return "🎯 Ready to conquer your assignments?";
   };
 
+  // Get unique courses for dropdown
+  const uniqueCourses = Array.from(new Set(assignments.map(a => a.course_name || 'Uncategorized')))
+    .sort();
+
   // Filter assignments
   const filteredAssignments = assignments.filter(assignment => {
+    // Course filter
+    if (selectedCourse !== 'all') {
+      const course = assignment.course_name || 'Uncategorized';
+      if (course !== selectedCourse) return false;
+    }
+
+    // Status filter
     if (selectedFilter === 'all') return true;
     
     if (selectedFilter === 'submitted') {
@@ -333,10 +346,42 @@ const Assignments = () => {
 
           {/* Action Bar */}
           <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-amber-500" />
-              <span className="text-sm font-medium">Keep up the great work!</span>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-amber-500" />
+                <span className="text-sm font-medium">Keep up the great work!</span>
+              </div>
+              
+              {/* Course Filter Dropdown */}
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-muted-foreground" />
+                <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+                  <SelectTrigger className="w-[200px] bg-background border-border z-50">
+                    <SelectValue placeholder="All Courses" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border-border z-50">
+                    <SelectItem value="all" className="cursor-pointer">
+                      All Courses ({totalAssignments})
+                    </SelectItem>
+                    {uniqueCourses.map(course => {
+                      const courseCount = assignments.filter(a => 
+                        (a.course_name || 'Uncategorized') === course
+                      ).length;
+                      return (
+                        <SelectItem 
+                          key={course} 
+                          value={course}
+                          className="cursor-pointer"
+                        >
+                          {course} ({courseCount})
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+
             <Button
               variant="outline"
               size="sm"
