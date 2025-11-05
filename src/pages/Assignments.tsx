@@ -477,6 +477,12 @@ const Assignments = () => {
                             getBorderClass()
                           )}
                           style={{ animationDelay: `${(idx * 100) + (assignIdx * 50)}ms` }}
+                          onClick={(e) => {
+                            // Prevent card click when clicking buttons inside
+                            if ((e.target as HTMLElement).closest('button, a')) {
+                              e.stopPropagation();
+                            }
+                          }}
                         >
                           {/* Hover gradient effect */}
                           <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -554,14 +560,19 @@ const Assignments = () => {
                                 />
                               )}
                               {assignment.url && (
-                                <div className="flex gap-2">
+                                <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                                   <Button 
                                     variant="outline" 
                                     size="sm" 
                                     asChild
                                     className="hover-glide smooth-bounce"
                                   >
-                                    <a href={assignment.url} target="_blank" rel="noopener noreferrer">
+                                    <a 
+                                      href={assignment.url} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
                                       View in Canvas
                                       <ExternalLink className="ml-2 h-4 w-4" />
                                     </a>
@@ -570,7 +581,12 @@ const Assignments = () => {
                                     <Button 
                                       variant="default" 
                                       size="sm"
-                                      onClick={() => markAsSubmitted(assignment.id)}
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        console.log('Button clicked!', assignment.id);
+                                        markAsSubmitted(assignment.id);
+                                      }}
                                       disabled={submittingId === assignment.id}
                                       className="hover-glide smooth-bounce"
                                     >
