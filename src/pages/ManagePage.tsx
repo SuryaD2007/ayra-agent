@@ -25,7 +25,7 @@ const ManagePage = () => {
   const showContent = useAnimateIn(false, 300);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [viewType, setViewType] = useState<'table' | 'grid' | 'list' | 'kanban'>('table');
+  const [viewType, setViewType] = useState<'table' | 'grid' | 'list' | 'kanban' | 'neural' | 'timeline'>('table');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('private');
   const [selectedItem, setSelectedItem] = useState<string | null>('overview');

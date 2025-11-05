@@ -48,6 +48,8 @@ import TableView from './views/TableView';
 import GridView from './views/GridView';
 import ListView from './views/ListView';
 import KanbanView from './views/KanbanView';
+import NeuralView from './views/NeuralView';
+import TimelineView from './views/TimelineView';
 import FilterDrawer from './FilterDrawer';
 import { itemsToAyraItems } from '@/lib/itemUtils';
 import { useFilters } from '@/hooks/useFilters';
@@ -67,7 +69,7 @@ import {
 } from '@/lib/data';
 
 interface AyraTableProps {
-  viewType?: 'table' | 'grid' | 'list' | 'kanban';
+  viewType?: 'table' | 'grid' | 'list' | 'kanban' | 'neural' | 'timeline';
   categoryId?: string;
   ayraId?: string | null;
   onFiltersChange?: (filters: any) => void;
@@ -496,6 +498,20 @@ const AyraTable = forwardRef<AyraTableRef, AyraTableProps>(({
             )}
             {viewType === 'kanban' && (
               <KanbanView items={filteredItems} />
+            )}
+            {viewType === 'neural' && (
+              <NeuralView
+                items={filteredItems}
+                selectedItems={selectedItems}
+                onSelectItem={handleSelectItem}
+              />
+            )}
+            {viewType === 'timeline' && (
+              <TimelineView
+                items={filteredItems}
+                selectedItems={selectedItems}
+                onSelectItem={handleSelectItem}
+              />
             )}
             
             <TablePagination 
