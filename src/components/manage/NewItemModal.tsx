@@ -319,13 +319,13 @@ const NewItemModal = ({ open, onOpenChange, onItemCreated, preselectedSpace }: N
 
     setIsLoading(true);
     try {
-      // Create items without space assignment - users can move them later
+      // Create items with space assignment if a space is selected
       const payload = {
         title: formData.title,
         type: activeTab as 'note' | 'pdf' | 'link' | 'image',
         content: activeTab === 'note' ? editor?.getHTML() || '' : formData.content,
         source: activeTab === 'link' ? formData.url : 'Upload',
-        space_id: undefined, // Always create without space initially
+        space_id: preselectedSpace || undefined, // Use preselected space if available
         file: activeTab === 'pdf' ? formData.file : undefined
       };
 

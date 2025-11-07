@@ -172,6 +172,28 @@ const AyraTable = forwardRef<AyraTableRef, AyraTableProps>(({
     };
 
     loadData();
+
+    // Set up real-time subscription for items table
+    const channel = supabase
+      .channel('items-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'items'
+        },
+        (payload) => {
+          console.log('Items table changed:', payload);
+          // Reload data when items change
+          loadData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [isAuthenticated, ayraId, searchQuery]);
 
   // Function to get the active ayra name for display
