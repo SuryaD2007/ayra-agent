@@ -99,6 +99,11 @@ const SearchPage = () => {
   };
 
   const handleSendMessage = async (content: string, attachedFiles?: AttachedFile[]) => {
+    if (!user) {
+      setAuthModalOpen(true);
+      return;
+    }
+    
     if (!content.trim() && (!attachedFiles || attachedFiles.length === 0)) return;
     
     setChatInput('');
@@ -157,10 +162,7 @@ const SearchPage = () => {
 
 
   return (
-    <AuthGuard 
-      title="Search your knowledge"
-      description="Sign in to search through your notes, documents, and saved content."
-    >
+    <>
       <div className="h-screen flex flex-col bg-gradient-to-br from-background via-background to-background/95">
         {/* Top Navigation */}
         <div className="border-b border-border/30 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
@@ -329,11 +331,17 @@ const SearchPage = () => {
               handleSubmit={handleSubmit}
               isFocused={isFocused}
               setIsFocused={setIsFocused}
+              onFocus={() => !user && setAuthModalOpen(true)}
             />
           </div>
         </div>
       </div>
-    </AuthGuard>
+      
+      <AuthModal 
+        isOpen={authModalOpen} 
+        onClose={() => setAuthModalOpen(false)} 
+      />
+    </>
   );
 };
 
