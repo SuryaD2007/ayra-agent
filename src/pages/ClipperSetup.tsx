@@ -2,18 +2,21 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Bookmark, Chrome, Copy, Check, Zap, Globe, Share2, Sparkles } from 'lucide-react';
+import { Bookmark, Chrome, Copy, Check, Zap, Globe, Share2, Sparkles, Rocket } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import AuthGuard from '@/components/auth/AuthGuard';
+import RoleGuard from '@/components/auth/RoleGuard';
 import { AnimatedTransition } from '@/components/AnimatedTransition';
 import { useAnimateIn } from '@/lib/animations';
+import { useRoles } from '@/hooks/useRoles';
 
 const ClipperSetup = () => {
   const showContent = useAnimateIn(false, 200);
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { isAdmin, loading: rolesLoading } = useRoles();
 
   // Generate bookmarklet code - auto-saves to Screenshots space
   const currentDomain = window.location.origin;
@@ -44,6 +47,46 @@ const ClipperSetup = () => {
       });
     }
   };
+
+  // Show coming soon for non-admins
+  if (!rolesLoading && !isAdmin()) {
+    return (
+      <AuthGuard
+        title="Setup Web Clipper"
+        description="Sign in to access clipper setup"
+      >
+        <div className="min-h-screen bg-gradient-to-br from-background via-background to-background/95 pt-20">
+          <AnimatedTransition show={showContent} animation="fade">
+            <div className="max-w-2xl mx-auto px-4 py-8">
+              <div className="text-center space-y-6">
+                <div className="flex justify-center mb-6">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full animate-pulse-slow" />
+                    <div className="relative bg-gradient-to-br from-primary/10 to-primary/5 p-6 rounded-2xl">
+                      <Rocket className="h-12 w-12 text-primary" />
+                    </div>
+                  </div>
+                </div>
+                <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-foreground via-primary to-foreground/70 bg-clip-text text-transparent">
+                  Coming Soon
+                </h1>
+                <p className="text-xl text-muted-foreground max-w-xl mx-auto leading-relaxed">
+                  The web clipper is currently in development and will be available soon. Stay tuned!
+                </p>
+                <Card className="border-border/50 shadow-lg bg-muted/30 mt-8">
+                  <CardContent className="p-8 text-center">
+                    <p className="text-muted-foreground">
+                      We're working hard to bring you the best web clipping experience. Check back soon or contact us for early access.
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </AnimatedTransition>
+        </div>
+      </AuthGuard>
+    );
+  }
 
   return (
     <AuthGuard
