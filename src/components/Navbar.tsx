@@ -151,7 +151,7 @@ export const Navbar = () => {
   }, [location.pathname]);
   
   const handleOpenAuthModal = () => {
-    setIsAuthModalOpen(true);
+    navigate('/auth');
   };
 
   const handleCloseAuthModal = () => {
