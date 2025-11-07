@@ -152,7 +152,9 @@ const AppRoutes = () => {
         element={
           <PageTransition>
             <PreLaunchGuard>
-              <ClipperSetup />
+              <RoleGuard allowedRoles={['admin']}>
+                <ClipperSetup />
+              </RoleGuard>
             </PreLaunchGuard>
           </PageTransition>
         } 
