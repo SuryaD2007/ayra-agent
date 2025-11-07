@@ -1011,10 +1011,6 @@ export type Database = {
         Args: { _reason?: string; _target_user_id: string }
         Returns: undefined
       }
-      create_default_spaces_for_user: {
-        Args: { user_id: string }
-        Returns: undefined
-      }
       delete_user_account: {
         Args: { _reason?: string; _target_user_id: string }
         Returns: undefined
