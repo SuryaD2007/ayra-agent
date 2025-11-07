@@ -12,7 +12,6 @@ interface ChatInputProps {
   handleSubmit: (e: React.FormEvent, attachedFiles?: AttachedFile[]) => void;
   isFocused: boolean;
   setIsFocused: (focused: boolean) => void;
-  onFocus?: () => void;
 }
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
@@ -24,7 +23,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
   handleSubmit,
   isFocused,
   setIsFocused,
-  onFocus,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
@@ -188,10 +186,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
               ref={textareaRef}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              onFocus={() => {
-                setIsFocused(true);
-                onFocus?.();
-              }}
+              onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
               onKeyDown={handleKeyDown}
               placeholder="Ask me anything..."
