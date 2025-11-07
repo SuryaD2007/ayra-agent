@@ -31,11 +31,29 @@ const spaceEmojis = [
 const NewSpaceModal = ({ open, onOpenChange, onSpaceCreated, selectedCategory, onClose }: NewSpaceModalProps) => {
   const [name, setName] = useState('');
   const [selectedEmoji, setSelectedEmoji] = useState('🏠');
-  const [visibility, setVisibility] = useState<'private' | 'public'>(
-    (selectedCategory === 'private' || selectedCategory === 'public') ? selectedCategory : 'private'
+  
+  // Map category IDs to visibility values
+  const getVisibilityFromCategory = (categoryId: string | null | undefined): 'private' | 'shared' | 'team' | 'public' => {
+    if (!categoryId) return 'private';
+    // Handle exact matches for visibility values
+    if (['private', 'shared', 'team', 'public'].includes(categoryId)) {
+      return categoryId as 'private' | 'shared' | 'team' | 'public';
+    }
+    return 'private';
+  };
+  
+  const [visibility, setVisibility] = useState<'private' | 'shared' | 'team' | 'public'>(
+    getVisibilityFromCategory(selectedCategory)
   );
   const [isCreating, setIsCreating] = useState(false);
   const [availableCategories, setAvailableCategories] = useState<any[]>([]);
+
+  // Update visibility when selectedCategory changes
+  React.useEffect(() => {
+    if (open && selectedCategory) {
+      setVisibility(getVisibilityFromCategory(selectedCategory));
+    }
+  }, [open, selectedCategory]);
 
   // Load categories on mount
   React.useEffect(() => {
@@ -95,7 +113,7 @@ const NewSpaceModal = ({ open, onOpenChange, onSpaceCreated, selectedCategory, o
       // Reset form
       setName('');
       setSelectedEmoji('🏠');
-      setVisibility((selectedCategory === 'private' || selectedCategory === 'public') ? selectedCategory : 'private');
+      setVisibility(getVisibilityFromCategory(selectedCategory));
       if (onClose) {
         onClose();
       } else {
@@ -112,7 +130,7 @@ const NewSpaceModal = ({ open, onOpenChange, onSpaceCreated, selectedCategory, o
   const handleClose = () => {
     setName('');
     setSelectedEmoji('🏠');
-      setVisibility((selectedCategory === 'private' || selectedCategory === 'public') ? selectedCategory : 'private');
+    setVisibility(getVisibilityFromCategory(selectedCategory));
     if (onClose) {
       onClose();
     } else {
@@ -163,13 +181,15 @@ const NewSpaceModal = ({ open, onOpenChange, onSpaceCreated, selectedCategory, o
           {/* Visibility Select */}
           <div className="space-y-2">
             <Label htmlFor="visibility">Visibility</Label>
-            <Select value={visibility} onValueChange={(value) => setVisibility(value as 'private' | 'public')}>
+            <Select value={visibility} onValueChange={(value) => setVisibility(value as 'private' | 'shared' | 'team' | 'public')}>
               <SelectTrigger>
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="private">🔒 Private</SelectItem>
-                <SelectItem value="public">🔗 Public</SelectItem>
+                <SelectItem value="shared">🔗 Shared</SelectItem>
+                <SelectItem value="team">👥 Team</SelectItem>
+                <SelectItem value="public">🌍 Public</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -181,7 +201,7 @@ const NewSpaceModal = ({ open, onOpenChange, onSpaceCreated, selectedCategory, o
               <span className="text-lg">{selectedEmoji}</span>
               <span className="font-medium">{name || 'Space Name'}</span>
               <span className="text-xs text-muted-foreground">
-                • {visibility === 'private' ? 'Private' : 'Public'}
+                • {visibility === 'private' ? 'Private' : visibility === 'shared' ? 'Shared' : visibility === 'team' ? 'Team' : 'Public'}
               </span>
             </div>
           </div>

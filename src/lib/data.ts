@@ -16,7 +16,7 @@ export interface Space {
   id: string;
   name: string;
   emoji?: string;
-  visibility: 'private' | 'public';
+  visibility: 'private' | 'shared' | 'team' | 'public';
   created_at: string;
   user_id: string;
 }
