@@ -27,7 +27,6 @@ import Admin from "./pages/Admin";
 import ClipperSetup from "./pages/ClipperSetup";
 import QuickClip from "./pages/QuickClip";
 import Assignments from "./pages/Assignments";
-import Auth from "./pages/Auth";
 import { useConfigurationValidation } from "./hooks/useConfigurationValidation";
 import { useSettings } from "./hooks/useSettings";
 import './lib/sampleData'; // Import sample data utilities
@@ -169,15 +168,7 @@ const AppRoutes = () => {
         } 
       />
       <Route 
-        path="/auth" 
-        element={
-          <PageTransition>
-            <Auth />
-          </PageTransition>
-        } 
-      />
-      <Route 
-        path="/preview/:id" 
+        path="/preview/:id"
         element={
           <PageTransition>
             <PreLaunchGuard>
