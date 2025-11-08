@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, RefreshCw, Loader2, CalendarDays, CheckCircle2, Clock, Zap, Sparkles, TrendingUp, ChevronLeft, ChevronRight, CalendarClock } from 'lucide-react';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import { CalendarEventCard } from '@/components/calendar/CalendarEventCard';
+import { MiniCalendarSidebar } from '@/components/calendar/MiniCalendarSidebar';
 import { AnimatedTransition } from '@/components/AnimatedTransition';
 import { useAnimateIn } from '@/lib/animations';
 import { useToast } from '@/hooks/use-toast';
@@ -383,91 +384,104 @@ const CalendarPage = () => {
             </Button>
           </div>
 
-          {/* Premium Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card 
-              onClick={() => setSelectedFilter('all')}
-              className={cn(
-                "group cursor-pointer transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl border-border/50 bg-gradient-to-br from-background to-background/50 backdrop-blur-sm overflow-hidden relative",
-                selectedFilter === 'all' && "ring-2 ring-primary shadow-2xl shadow-primary/20 bg-gradient-to-br from-primary/10 to-background"
-              )}
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <CardContent className="p-6 space-y-3 relative z-10">
-                <div className="flex items-center justify-between">
-                  <div className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <CalendarDays className="h-6 w-6 text-primary" />
-                  </div>
-                  <Badge variant="outline" className="font-semibold">{totalEvents}</Badge>
-                </div>
-                <p className="text-3xl font-bold">{totalEvents}</p>
-                <p className="text-sm text-muted-foreground font-medium">All Events</p>
-              </CardContent>
-            </Card>
+          {/* Main Content with Sidebar Layout */}
+          <div className="flex gap-6 items-start">
+            {/* Mini Calendar Sidebar */}
+            <MiniCalendarSidebar
+              selectedMonth={selectedMonth}
+              events={events}
+              onMonthChange={handleMonthChange}
+              onDateSelect={handleDateSelect}
+              selectedDate={selectedMonth}
+            />
 
-            <Card 
-              onClick={() => setSelectedFilter('today')}
-              className={cn(
-                "group cursor-pointer transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl border-border/50 bg-gradient-to-br from-background to-background/50 backdrop-blur-sm overflow-hidden relative",
-                selectedFilter === 'today' && "ring-2 ring-blue-500 shadow-2xl shadow-blue-500/20 bg-gradient-to-br from-blue-500/10 to-background"
-              )}
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <CardContent className="p-6 space-y-3 relative z-10">
-                <div className="flex items-center justify-between">
-                  <div className="p-3 rounded-xl bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors">
-                    <Zap className="h-6 w-6 text-blue-500" />
-                  </div>
-                  <Badge className="bg-blue-500 font-semibold">{todayCount}</Badge>
-                </div>
-                <p className="text-3xl font-bold">{todayCount}</p>
-                <p className="text-sm text-muted-foreground font-medium">Today</p>
-              </CardContent>
-            </Card>
+            {/* Main Content Area */}
+            <div className="flex-1 space-y-8 min-w-0">
+              {/* Premium Stats Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Card 
+                  onClick={() => setSelectedFilter('all')}
+                  className={cn(
+                    "group cursor-pointer transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl border-border/50 bg-gradient-to-br from-background to-background/50 backdrop-blur-sm overflow-hidden relative",
+                    selectedFilter === 'all' && "ring-2 ring-primary shadow-2xl shadow-primary/20 bg-gradient-to-br from-primary/10 to-background"
+                  )}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <CardContent className="p-6 space-y-3 relative z-10">
+                    <div className="flex items-center justify-between">
+                      <div className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                        <CalendarDays className="h-6 w-6 text-primary" />
+                      </div>
+                      <Badge variant="outline" className="font-semibold">{totalEvents}</Badge>
+                    </div>
+                    <p className="text-3xl font-bold">{totalEvents}</p>
+                    <p className="text-sm text-muted-foreground font-medium">All Events</p>
+                  </CardContent>
+                </Card>
 
-            <Card 
-              onClick={() => setSelectedFilter('upcoming')}
-              className={cn(
-                "group cursor-pointer transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl border-border/50 bg-gradient-to-br from-background to-background/50 backdrop-blur-sm overflow-hidden relative",
-                selectedFilter === 'upcoming' && "ring-2 ring-amber-500 shadow-2xl shadow-amber-500/20 bg-gradient-to-br from-amber-500/10 to-background"
-              )}
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <CardContent className="p-6 space-y-3 relative z-10">
-                <div className="flex items-center justify-between">
-                  <div className="p-3 rounded-xl bg-amber-500/10 group-hover:bg-amber-500/20 transition-colors">
-                    <TrendingUp className="h-6 w-6 text-amber-500" />
-                  </div>
-                  <Badge className="bg-amber-500 font-semibold">{upcomingCount}</Badge>
-                </div>
-                <p className="text-3xl font-bold">{upcomingCount}</p>
-                <p className="text-sm text-muted-foreground font-medium">Next 7 Days</p>
-              </CardContent>
-            </Card>
+                <Card 
+                  onClick={() => setSelectedFilter('today')}
+                  className={cn(
+                    "group cursor-pointer transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl border-border/50 bg-gradient-to-br from-background to-background/50 backdrop-blur-sm overflow-hidden relative",
+                    selectedFilter === 'today' && "ring-2 ring-blue-500 shadow-2xl shadow-blue-500/20 bg-gradient-to-br from-blue-500/10 to-background"
+                  )}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <CardContent className="p-6 space-y-3 relative z-10">
+                    <div className="flex items-center justify-between">
+                      <div className="p-3 rounded-xl bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors">
+                        <Zap className="h-6 w-6 text-blue-500" />
+                      </div>
+                      <Badge className="bg-blue-500 font-semibold">{todayCount}</Badge>
+                    </div>
+                    <p className="text-3xl font-bold">{todayCount}</p>
+                    <p className="text-sm text-muted-foreground font-medium">Today</p>
+                  </CardContent>
+                </Card>
 
-            <Card 
-              onClick={() => setSelectedFilter('assignments')}
-              className={cn(
-                "group cursor-pointer transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl border-border/50 bg-gradient-to-br from-background to-background/50 backdrop-blur-sm overflow-hidden relative",
-                selectedFilter === 'assignments' && "ring-2 ring-green-500 shadow-2xl shadow-green-500/20 bg-gradient-to-br from-green-500/10 to-background"
-              )}
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <CardContent className="p-6 space-y-3 relative z-10">
-                <div className="flex items-center justify-between">
-                  <div className="p-3 rounded-xl bg-green-500/10 group-hover:bg-green-500/20 transition-colors">
-                    <CheckCircle2 className="h-6 w-6 text-green-500" />
-                  </div>
-                  <Badge className="bg-green-500 font-semibold">{assignmentCount}</Badge>
-                </div>
-                <p className="text-3xl font-bold">{assignmentCount}</p>
-                <p className="text-sm text-muted-foreground font-medium">Assignments</p>
-              </CardContent>
-            </Card>
-          </div>
+                <Card 
+                  onClick={() => setSelectedFilter('upcoming')}
+                  className={cn(
+                    "group cursor-pointer transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl border-border/50 bg-gradient-to-br from-background to-background/50 backdrop-blur-sm overflow-hidden relative",
+                    selectedFilter === 'upcoming' && "ring-2 ring-amber-500 shadow-2xl shadow-amber-500/20 bg-gradient-to-br from-amber-500/10 to-background"
+                  )}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <CardContent className="p-6 space-y-3 relative z-10">
+                    <div className="flex items-center justify-between">
+                      <div className="p-3 rounded-xl bg-amber-500/10 group-hover:bg-amber-500/20 transition-colors">
+                        <TrendingUp className="h-6 w-6 text-amber-500" />
+                      </div>
+                      <Badge className="bg-amber-500 font-semibold">{upcomingCount}</Badge>
+                    </div>
+                    <p className="text-3xl font-bold">{upcomingCount}</p>
+                    <p className="text-sm text-muted-foreground font-medium">Next 7 Days</p>
+                  </CardContent>
+                </Card>
 
-          {/* Premium Events Timeline */}
-          <div className="space-y-8">
+                <Card 
+                  onClick={() => setSelectedFilter('assignments')}
+                  className={cn(
+                    "group cursor-pointer transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl border-border/50 bg-gradient-to-br from-background to-background/50 backdrop-blur-sm overflow-hidden relative",
+                    selectedFilter === 'assignments' && "ring-2 ring-green-500 shadow-2xl shadow-green-500/20 bg-gradient-to-br from-green-500/10 to-background"
+                  )}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <CardContent className="p-6 space-y-3 relative z-10">
+                    <div className="flex items-center justify-between">
+                      <div className="p-3 rounded-xl bg-green-500/10 group-hover:bg-green-500/20 transition-colors">
+                        <CheckCircle2 className="h-6 w-6 text-green-500" />
+                      </div>
+                      <Badge className="bg-green-500 font-semibold">{assignmentCount}</Badge>
+                    </div>
+                    <p className="text-3xl font-bold">{assignmentCount}</p>
+                    <p className="text-sm text-muted-foreground font-medium">Assignments</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Premium Events Timeline */}
+              <div className="space-y-8">
             {sortedDates.map((date, idx) => {
               const dateObj = new Date(date);
               const isCurrentDay = isToday(dateObj);
@@ -530,6 +544,8 @@ const CalendarPage = () => {
                 </div>
               );
             })}
+              </div>
+            </div>
           </div>
 
           {/* Floating Jump to Today Button */}
