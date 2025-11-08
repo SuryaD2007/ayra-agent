@@ -16,6 +16,7 @@ const PrivateLockContext = createContext<PrivateLockContextType | undefined>(und
 
 const UNLOCK_DURATION = 30 * 60 * 1000; // 30 minutes in milliseconds
 const STORAGE_KEY = 'private_password_hash';
+const UNLOCK_STORAGE_KEY = 'private_unlock_until';
 
 // Simple hash function for password storage (in a real app, use proper encryption)
 const hashPassword = (password: string): string => {
@@ -34,7 +35,7 @@ export const PrivateLockProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [passwordHash, setPasswordHash] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Load password hash from localStorage on mount
+  // Load password hash and unlock state from localStorage on mount
   useEffect(() => {
     let mounted = true;
     
@@ -43,6 +44,28 @@ export const PrivateLockProvider: React.FC<{ children: React.ReactNode }> = ({ c
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored && mounted) {
           setPasswordHash(stored);
+        }
+
+        // Check if there's a valid unlock timestamp
+        const storedUnlockTime = localStorage.getItem(UNLOCK_STORAGE_KEY);
+        if (storedUnlockTime && mounted) {
+          const unlockTime = parseInt(storedUnlockTime, 10);
+          if (!isNaN(unlockTime) && Date.now() < unlockTime) {
+            // Still within unlock window
+            setIsPrivateLocked(false);
+            setUnlockedUntil(unlockTime);
+
+            // Set timeout to auto-lock when time expires
+            const remainingTime = unlockTime - Date.now();
+            setTimeout(() => {
+              setIsPrivateLocked(true);
+              setUnlockedUntil(null);
+              localStorage.removeItem(UNLOCK_STORAGE_KEY);
+            }, remainingTime);
+          } else {
+            // Expired, clean up
+            localStorage.removeItem(UNLOCK_STORAGE_KEY);
+          }
         }
       } catch (error) {
         console.error('Error loading password hash:', error);
@@ -78,10 +101,22 @@ export const PrivateLockProvider: React.FC<{ children: React.ReactNode }> = ({ c
       setIsPrivateLocked(false);
       setUnlockedUntil(unlockTime);
       
+      // Persist unlock state to localStorage
+      try {
+        localStorage.setItem(UNLOCK_STORAGE_KEY, unlockTime.toString());
+      } catch (error) {
+        console.error('Error storing unlock time:', error);
+      }
+      
       // Auto-lock after duration
       setTimeout(() => {
         setIsPrivateLocked(true);
         setUnlockedUntil(null);
+        try {
+          localStorage.removeItem(UNLOCK_STORAGE_KEY);
+        } catch (error) {
+          console.error('Error removing unlock time:', error);
+        }
       }, UNLOCK_DURATION);
       
       return true;
@@ -92,6 +127,11 @@ export const PrivateLockProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const lockPrivate = useCallback(() => {
     setIsPrivateLocked(true);
     setUnlockedUntil(null);
+    try {
+      localStorage.removeItem(UNLOCK_STORAGE_KEY);
+    } catch (error) {
+      console.error('Error removing unlock time:', error);
+    }
   }, []);
 
   const isPrivateUnlocked = useCallback((): boolean => {
