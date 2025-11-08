@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, ExternalLink, Loader2, BookOpen, Clock, Target, Zap, CheckCircle2, Circle, Trophy, RefreshCw, Filter, CalendarDays, Sparkles, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { format, differenceInDays, startOfMonth, addMonths, subMonths, startOfDay } from 'date-fns';
+import { format, differenceInDays, startOfMonth, addMonths, subMonths, startOfDay, isToday, isTomorrow, isPast } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { AnimatedTransition } from '@/components/AnimatedTransition';
 import { useAnimateIn } from '@/lib/animations';
@@ -40,6 +40,8 @@ const Assignments = () => {
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'upcoming' | 'due-soon' | 'submitted'>('all');
   const [selectedCourse, setSelectedCourse] = useState<string>('all');
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
+  const [showJumpToToday, setShowJumpToToday] = useState(false);
+  const todaySectionRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -264,6 +266,35 @@ const Assignments = () => {
     return true;
   });
 
+  // Auto-scroll to today's assignments on load
+  useEffect(() => {
+    if (!loading && todaySectionRef.current) {
+      setTimeout(() => {
+        todaySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 500);
+    }
+  }, [loading]);
+
+  // Show/hide jump to today button based on scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      if (todaySectionRef.current) {
+        const rect = todaySectionRef.current.getBoundingClientRect();
+        const isVisible = rect.top >= 0 && rect.bottom <= window.innerHeight;
+        setShowJumpToToday(!isVisible);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    handleScroll();
+
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const jumpToToday = () => {
+    todaySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
   const handleMonthChange = (direction: 'prev' | 'next') => {
     setSelectedMonth(prev => 
       direction === 'prev' ? subMonths(prev, 1) : addMonths(prev, 1)
@@ -272,18 +303,11 @@ const Assignments = () => {
 
   const handleDateSelect = (date: Date) => {
     setSelectedMonth(date);
-    // Scroll to assignments for this date if any
-    const dateAssignments = assignments.filter(a => {
-      if (!a.due_date) return false;
-      return format(startOfDay(new Date(a.due_date)), 'yyyy-MM-dd') === format(startOfDay(date), 'yyyy-MM-dd');
-    });
-    
-    if (dateAssignments.length > 0) {
-      const courseName = dateAssignments[0].course_name || 'Uncategorized';
-      const section = document.getElementById(`course-section-${courseName}`);
-      if (section) {
-        section.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
+    // Scroll to assignments for this date
+    const dateStr = format(startOfDay(date), 'yyyy-MM-dd');
+    const section = document.getElementById(`date-section-${dateStr}`);
+    if (section) {
+      section.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   };
 
@@ -353,13 +377,36 @@ const Assignments = () => {
     );
   }
 
-  // Group filtered assignments by course
-  const assignmentsByCourse = filteredAssignments.reduce((acc, assignment) => {
-    const course = assignment.course_name || 'Uncategorized';
-    if (!acc[course]) acc[course] = [];
-    acc[course].push(assignment);
+  // Group filtered assignments by date first
+  const assignmentsByDate = filteredAssignments.reduce((acc, assignment) => {
+    const date = assignment.due_date 
+      ? format(startOfDay(new Date(assignment.due_date)), 'yyyy-MM-dd')
+      : 'no-date';
+    if (!acc[date]) acc[date] = [];
+    acc[date].push(assignment);
     return acc;
   }, {} as Record<string, CanvasAssignment[]>);
+
+  // Sort dates - today first, then future dates, then past dates
+  const sortedDates = Object.keys(assignmentsByDate).sort((a, b) => {
+    if (a === 'no-date') return 1;
+    if (b === 'no-date') return -1;
+    
+    const dateA = new Date(a);
+    const dateB = new Date(b);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    
+    const isAToday = isToday(dateA);
+    const isBToday = isToday(dateB);
+    
+    // Today always first
+    if (isAToday && !isBToday) return -1;
+    if (!isAToday && isBToday) return 1;
+    
+    // Then sort by date ascending
+    return dateA.getTime() - dateB.getTime();
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-primary/[0.02] to-background pt-20 relative overflow-hidden">
@@ -642,31 +689,74 @@ const Assignments = () => {
                 </Card>
               ) : (
                 <div className="space-y-8">
-                  {Object.entries(assignmentsByCourse).map(([courseName, courseAssignments], idx) => (
-                    <div 
-                      key={courseName} 
-                      id={`course-section-${courseName}`}
-                      className="space-y-5 animate-fade-in scroll-mt-24" 
-                      style={{ animationDelay: `${idx * 100}ms` }}
-                    >
-                      <div className="sticky top-20 z-20 py-4 bg-gradient-to-b from-background via-background to-background/80 backdrop-blur-xl border-b border-border/50">
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-1.5 rounded-full bg-gradient-to-b from-primary to-primary/50" />
-                          <div>
+                  {sortedDates.map((date, dateIdx) => {
+                    const dateAssignments = assignmentsByDate[date];
+                    const dateObj = date !== 'no-date' ? new Date(date) : null;
+                    const isTodaySection = dateObj && isToday(dateObj);
+                    const isTomorrowSection = dateObj && isTomorrow(dateObj);
+                    const isPastDate = dateObj && isPast(dateObj) && !isToday(dateObj);
+                    
+                    let dateLabel = date === 'no-date' 
+                      ? 'No Due Date' 
+                      : isTodaySection
+                      ? `Today - ${format(dateObj, 'MMMM d, yyyy')}`
+                      : isTomorrowSection
+                      ? `Tomorrow - ${format(dateObj, 'MMMM d, yyyy')}`
+                      : format(dateObj, 'EEEE, MMMM d, yyyy');
+
+                    return (
+                      <div 
+                        key={date}
+                        id={`date-section-${date}`}
+                        ref={isTodaySection ? todaySectionRef : null}
+                        className="space-y-5 animate-fade-in scroll-mt-24"
+                        style={{ animationDelay: `${dateIdx * 50}ms` }}
+                      >
+                        {/* Sticky Date Header */}
+                        <div className="sticky top-20 z-20 py-4 bg-gradient-to-b from-background via-background to-background/80 backdrop-blur-xl border-b border-border/50">
+                          <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                              <h2 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-                                {courseName}
-                              </h2>
-                              <Badge variant="outline" className="font-semibold">
-                                {courseAssignments.length}
-                              </Badge>
+                              <div className={cn(
+                                "h-10 w-1.5 rounded-full",
+                                isTodaySection 
+                                  ? "bg-gradient-to-b from-primary to-primary/50 animate-pulse" 
+                                  : isPastDate
+                                  ? "bg-gradient-to-b from-muted to-muted/50"
+                                  : "bg-gradient-to-b from-blue-500 to-blue-500/50"
+                              )} />
+                              <div>
+                                <div className="flex items-center gap-3">
+                                  <h2 className={cn(
+                                    "text-2xl font-bold bg-gradient-to-r bg-clip-text text-transparent",
+                                    isTodaySection 
+                                      ? "from-primary via-primary to-primary/70" 
+                                      : "from-foreground to-foreground/70"
+                                  )}>
+                                    {dateLabel}
+                                  </h2>
+                                  {isTodaySection && (
+                                    <Badge className="bg-primary animate-pulse shadow-lg shadow-primary/20">
+                                      <Sparkles className="h-3 w-3 mr-1" />
+                                      Now
+                                    </Badge>
+                                  )}
+                                  {isPastDate && (
+                                    <Badge variant="secondary">
+                                      Overdue
+                                    </Badge>
+                                  )}
+                                </div>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  {dateAssignments.length} assignment{dateAssignments.length !== 1 ? 's' : ''}
+                                </p>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
 
-                  <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-                    {courseAssignments.map((assignment, assignIdx) => {
+                        {/* Assignments for this date */}
+                        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                    {dateAssignments.map((assignment, assignIdx) => {
                       // Determine border gradient based on urgency
                       const getBorderClass = () => {
                         if (!assignment.due_date) return "";
@@ -684,7 +774,7 @@ const Assignments = () => {
                               "border-border/50 hover:shadow-xl transition-all duration-500 hover:scale-[1.02] animate-scale-in relative overflow-hidden group cursor-pointer bg-gradient-to-br from-background/95 to-background/80 backdrop-blur-sm",
                               getBorderClass()
                             )}
-                            style={{ animationDelay: `${(idx * 50) + (assignIdx * 30)}ms` }}
+                            style={{ animationDelay: `${(dateIdx * 50) + (assignIdx * 30)}ms` }}
                           onClick={(e) => {
                             // Prevent card click when clicking buttons inside
                             if ((e.target as HTMLElement).closest('button, a')) {
@@ -830,15 +920,31 @@ const Assignments = () => {
                             </CardContent>
                           )}
                           </Card>
-                        );
-                      })}
-                    </div>
-                    </div>
-                  ))}
+                          );
+                        })}
+                      </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
           </div>
+
+          {/* Floating Jump to Today Button */}
+          {showJumpToToday && (
+            <button
+              onClick={jumpToToday}
+              className="fixed bottom-8 right-8 z-50 p-4 rounded-full bg-primary text-primary-foreground shadow-2xl shadow-primary/30 hover:scale-110 hover:shadow-3xl hover:shadow-primary/40 transition-all duration-300 animate-fade-in group"
+              aria-label="Jump to today"
+            >
+              <CalendarDays className="h-5 w-5 group-hover:scale-110 transition-transform" />
+              <span className="absolute -top-2 -right-2 flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+              </span>
+            </button>
+          )}
         </div>
       </AnimatedTransition>
     </div>
