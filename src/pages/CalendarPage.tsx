@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, RefreshCw, Loader2, CalendarDays, CheckCircle2, Clock, Zap, Sparkles, TrendingUp, ChevronLeft, ChevronRight, CalendarClock } from 'lucide-react';
+import { Calendar, RefreshCw, Loader2, CalendarDays, CheckCircle2, Clock, Zap, Sparkles, TrendingUp, ChevronLeft, ChevronRight, CalendarClock, Search, X } from 'lucide-react';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import { CalendarEventCard } from '@/components/calendar/CalendarEventCard';
 import { MiniCalendarSidebar } from '@/components/calendar/MiniCalendarSidebar';
@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
+import { Input } from '@/components/ui/input';
 
 const CalendarPage = () => {
   const showContent = useAnimateIn(false, 200);
@@ -24,6 +25,7 @@ const CalendarPage = () => {
   const [selectedCalendar, setSelectedCalendar] = useState<string>('all');
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
   const [showJumpToToday, setShowJumpToToday] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const todaySectionRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -117,6 +119,19 @@ const CalendarPage = () => {
 
   // Filter events by selected month
   const filteredEvents = events.filter(event => {
+    // Search filter - search in summary, description, and location
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      const matchesSummary = event.summary?.toLowerCase().includes(query);
+      const matchesDescription = event.description?.toLowerCase().includes(query);
+      const matchesLocation = event.location?.toLowerCase().includes(query);
+      const matchesCalendar = event.metadata?.calendar_name?.toLowerCase().includes(query);
+      
+      if (!matchesSummary && !matchesDescription && !matchesLocation && !matchesCalendar) {
+        return false;
+      }
+    }
+
     // Calendar filter
     if (selectedCalendar !== 'all') {
       const calendarName = (event.metadata as any)?.calendar_name || 'Unknown Calendar';
@@ -283,9 +298,9 @@ const CalendarPage = () => {
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl opacity-50" />
           </div>
 
-          {/* Premium Action Bar with Month Navigation */}
+          {/* Premium Action Bar with Month Navigation and Search */}
           <div className="flex items-center justify-between flex-wrap gap-4 p-4 rounded-2xl bg-background/50 backdrop-blur-sm border border-border/50 shadow-sm">
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-3 flex-wrap flex-1 min-w-0">
               {/* Month Navigation */}
               <div className="flex items-center gap-2 p-1 rounded-xl bg-background/80 backdrop-blur-sm border border-border/50 shadow-sm">
                 <Button
@@ -339,8 +354,28 @@ const CalendarPage = () => {
                 </Button>
               </div>
 
+              {/* Search Input */}
+              <div className="relative flex-1 min-w-[240px] max-w-md group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                <Input
+                  type="text"
+                  placeholder="Search events..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 pr-10 bg-background/80 backdrop-blur-sm border-border/50 hover:border-primary/50 focus:border-primary transition-all shadow-sm"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+
               <Select value={selectedCalendar} onValueChange={setSelectedCalendar}>
-                <SelectTrigger className="w-[240px] bg-background/80 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-all shadow-sm">
+                <SelectTrigger className="w-[200px] bg-background/80 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-all shadow-sm">
                   <SelectValue placeholder="All Calendars" />
                 </SelectTrigger>
                 <SelectContent className="bg-background/95 backdrop-blur-xl border-border/50 shadow-xl">
@@ -368,7 +403,7 @@ const CalendarPage = () => {
               size="sm" 
               onClick={handleSync} 
               disabled={syncing} 
-              className="gap-2 hover:bg-primary/10 hover:border-primary/50 transition-all duration-300 shadow-sm group"
+              className="gap-2 hover:bg-primary/10 hover:border-primary/50 transition-all duration-300 shadow-sm group flex-shrink-0"
             >
               {syncing ? (
                 <>

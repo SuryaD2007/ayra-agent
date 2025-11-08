@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, ExternalLink, Loader2, BookOpen, Clock, Target, Zap, CheckCircle2, Circle, Trophy, RefreshCw, Filter, CalendarDays, Sparkles, TrendingUp } from 'lucide-react';
+import { Calendar, ExternalLink, Loader2, BookOpen, Clock, Target, Zap, CheckCircle2, Circle, Trophy, RefreshCw, Filter, CalendarDays, Sparkles, TrendingUp, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format, differenceInDays, startOfMonth, addMonths, subMonths, startOfDay, isToday, isTomorrow, isPast } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -12,6 +12,7 @@ import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MiniAssignmentCalendar } from '@/components/assignments/MiniAssignmentCalendar';
+import { Input } from '@/components/ui/input';
 
 interface CanvasAssignment {
   id: string;
@@ -41,6 +42,7 @@ const Assignments = () => {
   const [selectedCourse, setSelectedCourse] = useState<string>('all');
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
   const [showJumpToToday, setShowJumpToToday] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const todaySectionRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -245,6 +247,18 @@ const Assignments = () => {
 
   // Filter assignments
   const filteredAssignments = assignments.filter(assignment => {
+    // Search filter - search in title, description, and course name
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      const matchesTitle = assignment.title?.toLowerCase().includes(query);
+      const matchesDescription = assignment.description?.toLowerCase().includes(query);
+      const matchesCourse = assignment.course_name?.toLowerCase().includes(query);
+      
+      if (!matchesTitle && !matchesDescription && !matchesCourse) {
+        return false;
+      }
+    }
+
     // Course filter
     if (selectedCourse !== 'all') {
       const course = assignment.course_name || 'Uncategorized';
@@ -518,11 +532,31 @@ const Assignments = () => {
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl opacity-50" />
           </div>
 
-          {/* Premium Action Bar */}
+          {/* Premium Action Bar with Search */}
           <div className="flex items-center justify-between flex-wrap gap-4 p-4 rounded-2xl bg-background/50 backdrop-blur-sm border border-border/50 shadow-sm">
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-3 flex-wrap flex-1 min-w-0">
+              {/* Search Input */}
+              <div className="relative flex-1 min-w-[240px] max-w-md group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                <Input
+                  type="text"
+                  placeholder="Search assignments..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 pr-10 bg-background/80 backdrop-blur-sm border-border/50 hover:border-primary/50 focus:border-primary transition-all shadow-sm"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+
               <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-                <SelectTrigger className="w-[240px] bg-background/80 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-all shadow-sm">
+                <SelectTrigger className="w-[200px] bg-background/80 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-all shadow-sm">
                   <SelectValue placeholder="All Courses" />
                 </SelectTrigger>
                 <SelectContent className="bg-background/95 backdrop-blur-xl border-border/50 shadow-xl">
@@ -554,7 +588,7 @@ const Assignments = () => {
               size="sm" 
               onClick={handleSync} 
               disabled={isSyncing} 
-              className="gap-2 hover:bg-primary/10 hover:border-primary/50 transition-all duration-300 shadow-sm group"
+              className="gap-2 hover:bg-primary/10 hover:border-primary/50 transition-all duration-300 shadow-sm group flex-shrink-0"
             >
               {isSyncing ? (
                 <>
