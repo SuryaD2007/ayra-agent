@@ -270,7 +270,7 @@ const Assignments = () => {
   useEffect(() => {
     if (!loading && todaySectionRef.current) {
       setTimeout(() => {
-        todaySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        todaySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 500);
     }
   }, [loading]);
@@ -292,7 +292,7 @@ const Assignments = () => {
   }, []);
 
   const jumpToToday = () => {
-    todaySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    todaySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const handleMonthChange = (direction: 'prev' | 'next') => {
@@ -303,11 +303,11 @@ const Assignments = () => {
 
   const handleDateSelect = (date: Date) => {
     setSelectedMonth(date);
-    // Scroll to assignments for this date
+    // Scroll to assignments for this date (at the top, not center)
     const dateStr = format(startOfDay(date), 'yyyy-MM-dd');
     const section = document.getElementById(`date-section-${dateStr}`);
     if (section) {
-      section.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
@@ -862,7 +862,7 @@ const Assignments = () => {
                             </div>
                           </CardHeader>
                           {(assignment.description || assignment.url) && (
-                            <CardContent className="space-y-4">
+                            <CardContent className="space-y-4 pb-6">
                               {assignment.description && (
                                 <CardDescription 
                                   className="line-clamp-2 text-sm"
@@ -872,21 +872,24 @@ const Assignments = () => {
                                 />
                               )}
                               {assignment.url && (
-                                <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                                <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
                                   <Button 
                                     variant="outline" 
                                     size="sm" 
                                     asChild
-                                    className="hover-glide smooth-bounce"
+                                    className="hover-glide smooth-bounce flex-shrink-0"
                                   >
                                     <a 
                                       href={assignment.url} 
                                       target="_blank" 
                                       rel="noopener noreferrer"
                                       onClick={(e) => e.stopPropagation()}
+                                      className="inline-flex items-center"
                                     >
-                                      {assignment.source === 'google_calendar' ? 'View in Google Calendar' : 'View in Canvas'}
-                                      <ExternalLink className="ml-2 h-4 w-4" />
+                                      <span className="truncate max-w-[180px]">
+                                        {assignment.source === 'google_calendar' ? 'View in Google Calendar' : 'View in Canvas'}
+                                      </span>
+                                      <ExternalLink className="ml-2 h-4 w-4 flex-shrink-0" />
                                     </a>
                                   </Button>
                                   {assignment.submission_status === 'not_submitted' && (
@@ -900,17 +903,17 @@ const Assignments = () => {
                                         markAsSubmitted(assignment.id);
                                       }}
                                       disabled={submittingId === assignment.id}
-                                      className="hover-glide smooth-bounce"
+                                      className="hover-glide smooth-bounce flex-shrink-0 whitespace-nowrap"
                                     >
                                       {submittingId === assignment.id ? (
                                         <>
-                                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                          Updating...
+                                          <Loader2 className="mr-2 h-4 w-4 animate-spin flex-shrink-0" />
+                                          <span>Updating...</span>
                                         </>
                                       ) : (
                                         <>
-                                          <CheckCircle2 className="mr-2 h-4 w-4" />
-                                          Mark as Submitted
+                                          <CheckCircle2 className="mr-2 h-4 w-4 flex-shrink-0" />
+                                          <span>Mark as Submitted</span>
                                         </>
                                       )}
                                     </Button>

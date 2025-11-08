@@ -123,7 +123,7 @@ export const CalendarEventCard = ({ event, compact = false }: CalendarEventCardP
         </div>
       </CardHeader>
       
-      <CardContent className="space-y-4 relative">
+      <CardContent className="space-y-4 relative pb-6">
         <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 backdrop-blur-sm">
           <div className="p-2 rounded-md bg-background/80">
             <Clock className="h-4 w-4 text-primary" />

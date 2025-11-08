@@ -55,7 +55,7 @@ const CalendarPage = () => {
   useEffect(() => {
     if (!loading && todaySectionRef.current) {
       setTimeout(() => {
-        todaySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        todaySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 500);
     }
   }, [loading]);
@@ -77,7 +77,7 @@ const CalendarPage = () => {
   }, []);
 
   const jumpToToday = () => {
-    todaySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    todaySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const handleMonthChange = (direction: 'prev' | 'next') => {
@@ -89,11 +89,11 @@ const CalendarPage = () => {
   const handleDateSelect = (date: Date | undefined) => {
     if (date) {
       setSelectedMonth(date);
-      // Find the section for this date and scroll to it
+      // Find the section for this date and scroll to it (at the top, not center)
       const dateStr = format(startOfDay(date), 'yyyy-MM-dd');
       const section = document.getElementById(`date-section-${dateStr}`);
       if (section) {
-        section.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
   };
