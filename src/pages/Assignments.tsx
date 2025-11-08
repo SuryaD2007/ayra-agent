@@ -2,15 +2,16 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, ExternalLink, Loader2, BookOpen, Clock, Target, Zap, CheckCircle2, Circle, Trophy, RefreshCw, Filter, CalendarDays } from 'lucide-react';
+import { Calendar, ExternalLink, Loader2, BookOpen, Clock, Target, Zap, CheckCircle2, Circle, Trophy, RefreshCw, Filter, CalendarDays, Sparkles, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { format, differenceInDays } from 'date-fns';
+import { format, differenceInDays, startOfMonth, addMonths, subMonths, startOfDay } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { AnimatedTransition } from '@/components/AnimatedTransition';
 import { useAnimateIn } from '@/lib/animations';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MiniAssignmentCalendar } from '@/components/assignments/MiniAssignmentCalendar';
 
 interface CanvasAssignment {
   id: string;
@@ -38,6 +39,7 @@ const Assignments = () => {
   const [submittingId, setSubmittingId] = useState<string | null>(null);
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'upcoming' | 'due-soon' | 'submitted'>('all');
   const [selectedCourse, setSelectedCourse] = useState<string>('all');
+  const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
   const { toast } = useToast();
 
   useEffect(() => {
@@ -262,12 +264,42 @@ const Assignments = () => {
     return true;
   });
 
+  const handleMonthChange = (direction: 'prev' | 'next') => {
+    setSelectedMonth(prev => 
+      direction === 'prev' ? subMonths(prev, 1) : addMonths(prev, 1)
+    );
+  };
+
+  const handleDateSelect = (date: Date) => {
+    setSelectedMonth(date);
+    // Scroll to assignments for this date if any
+    const dateAssignments = assignments.filter(a => {
+      if (!a.due_date) return false;
+      return format(startOfDay(new Date(a.due_date)), 'yyyy-MM-dd') === format(startOfDay(date), 'yyyy-MM-dd');
+    });
+    
+    if (dateAssignments.length > 0) {
+      const courseName = dateAssignments[0].course_name || 'Uncategorized';
+      const section = document.getElementById(`course-section-${courseName}`);
+      if (section) {
+        section.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-background/95 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
-          <p className="text-muted-foreground animate-pulse">Loading assignments...</p>
+      <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-background flex items-center justify-center relative overflow-hidden">
+        <div className="absolute inset-0 bg-grid-white/5 [mask-image:radial-gradient(white,transparent_85%)]" />
+        <div className="text-center space-y-6 relative z-10">
+          <div className="relative inline-block">
+            <div className="absolute inset-0 bg-primary/30 blur-3xl rounded-full animate-pulse" />
+            <Loader2 className="h-16 w-16 animate-spin text-primary mx-auto relative" />
+          </div>
+          <div className="space-y-2">
+            <p className="text-lg font-medium">Loading assignments</p>
+            <p className="text-sm text-muted-foreground animate-pulse">Gathering your tasks...</p>
+          </div>
         </div>
       </div>
     );
@@ -275,28 +307,44 @@ const Assignments = () => {
 
   if (assignments.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-background/95 pt-24 px-4">
+      <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-background pt-24 px-4 relative overflow-hidden">
+        <div className="absolute inset-0 bg-grid-white/5 [mask-image:radial-gradient(white,transparent_85%)]" />
         <AnimatedTransition show={showContent} animation="fade">
-          <div className="max-w-2xl mx-auto">
-            <Card className="border-border/50 shadow-lg hover:shadow-xl transition-all duration-300">
-              <CardContent className="py-16 text-center space-y-6">
+          <div className="max-w-2xl mx-auto relative z-10">
+            <Card className="border-border/50 shadow-2xl backdrop-blur-sm bg-background/95 hover:shadow-primary/20 transition-all duration-500">
+              <CardContent className="py-20 text-center space-y-8">
                 <div className="relative inline-block">
-                  <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full animate-pulse-slow" />
-                  <BookOpen className="h-16 w-16 mx-auto text-primary relative animate-float" />
+                  <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full animate-pulse" />
+                  <BookOpen className="h-20 w-20 mx-auto text-primary relative animate-float" />
                 </div>
-                <div className="space-y-2">
-                  <h3 className="text-2xl font-bold">No assignments found</h3>
-                  <p className="text-muted-foreground max-w-md mx-auto">
+                <div className="space-y-3">
+                  <h3 className="text-3xl font-bold bg-gradient-to-r from-foreground via-primary to-foreground/70 bg-clip-text text-transparent">
+                    No assignments found
+                  </h3>
+                  <p className="text-muted-foreground max-w-md mx-auto text-lg">
                     Connect your Canvas account and sync your data to see all your assignments in one place
                   </p>
                 </div>
-                <Button 
-                  onClick={() => window.location.href = '/settings'}
-                  className="mt-4 hover-glide smooth-bounce"
-                  size="lg"
-                >
-                  Go to Settings
-                </Button>
+                <div className="flex gap-4 justify-center flex-wrap">
+                  <Button 
+                    onClick={() => window.location.href = '/settings'}
+                    size="lg"
+                    className="group relative overflow-hidden"
+                  >
+                    <span className="relative z-10">Go to Settings</span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-primary/50 to-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={handleSync} 
+                    disabled={isSyncing} 
+                    size="lg"
+                    className="hover:border-primary/50 transition-all duration-300"
+                  >
+                    {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                    Sync Now
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -314,36 +362,62 @@ const Assignments = () => {
   }, {} as Record<string, CanvasAssignment[]>);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-background/95 pt-20">
+    <div className="min-h-screen bg-gradient-to-br from-background via-primary/[0.02] to-background pt-20 relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 bg-grid-white/[0.02] [mask-image:radial-gradient(white,transparent_85%)]" />
+      <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-pulse" />
+      <div className="absolute bottom-20 right-10 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse delay-1000" />
+      
       <AnimatedTransition show={showContent} animation="fade">
-        <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-          {/* Hero Dashboard Section */}
-          <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-primary/5 via-background to-background p-8 shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 py-8 space-y-8 relative z-10">
+          {/* Premium Hero Dashboard */}
+          <div className="relative overflow-hidden rounded-3xl border border-border/50 bg-gradient-to-br from-primary/10 via-background/95 to-background/95 backdrop-blur-xl shadow-2xl hover:shadow-primary/20 transition-all duration-500">
             <div className="absolute inset-0 bg-grid-white/5 [mask-image:linear-gradient(0deg,transparent,black)]" />
-            <div className="relative space-y-6">
-              <div className="flex items-start justify-between gap-6 flex-wrap">
-                <div className="space-y-3 flex-1 min-w-[300px]">
-                  <h1 className="text-5xl font-bold bg-gradient-to-r from-foreground via-primary to-foreground/70 bg-clip-text text-transparent">
-                    All Assignments
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent" />
+            
+            <div className="relative p-8 md:p-12 space-y-8">
+              <div className="flex items-start justify-between gap-8 flex-wrap">
+                <div className="space-y-4 flex-1 min-w-[300px]">
+                  <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 backdrop-blur-sm">
+                    <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+                    <span className="text-sm font-medium text-primary">Your Tasks</span>
+                  </div>
+                  
+                  <h1 className="text-6xl md:text-7xl font-bold bg-gradient-to-r from-foreground via-primary to-foreground/70 bg-clip-text text-transparent leading-tight animate-fade-in">
+                    Assignments
                   </h1>
-                  <p className="text-lg text-muted-foreground">
+                  
+                  <p className="text-xl text-muted-foreground/90 max-w-2xl">
                     {getMotivationalMessage()}
                   </p>
-                  <p className="text-sm text-muted-foreground/80">
-                    Showing assignments from Canvas and Google Calendar
-                  </p>
-                  <div className="flex items-center gap-4 text-sm flex-wrap">
-                    <div className="flex items-center gap-2">
-                      <Zap className="h-4 w-4 text-primary" />
-                      <span>{totalAssignments} total</span>
+                  
+                  <div className="flex items-center gap-6 text-sm flex-wrap pt-2">
+                    <div className="flex items-center gap-2 group">
+                      <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                        <Target className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-lg">{totalAssignments}</p>
+                        <p className="text-xs text-muted-foreground">Total Tasks</p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-amber-500" />
-                      <span>{dueSoonCount} due soon</span>
+                    <div className="flex items-center gap-2 group">
+                      <div className="p-2 rounded-lg bg-amber-500/10 group-hover:bg-amber-500/20 transition-colors">
+                        <Clock className="h-4 w-4 text-amber-500" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-lg">{dueSoonCount}</p>
+                        <p className="text-xs text-muted-foreground">Due Soon</p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-green-500" />
-                      <span>{submittedCount} completed</span>
+                    <div className="flex items-center gap-2 group">
+                      <div className="p-2 rounded-lg bg-green-500/10 group-hover:bg-green-500/20 transition-colors">
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-lg">{submittedCount}</p>
+                        <p className="text-xs text-muted-foreground">Completed</p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -392,169 +466,206 @@ const Assignments = () => {
               </div>
             </div>
 
-            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-3xl -z-10" />
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-primary/10 rounded-full blur-3xl -z-10" />
+            
+            <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl opacity-50" />
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl opacity-50" />
           </div>
 
-          {/* Action Bar */}
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Trophy className="h-5 w-5 text-amber-500" />
-                <span className="text-sm font-medium">Keep up the great work!</span>
-              </div>
-              
-              {/* Course Filter Dropdown */}
-              <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4 text-muted-foreground" />
-                <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-                  <SelectTrigger className="w-[200px] bg-background border-border z-50">
-                    <SelectValue placeholder="All Courses" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background border-border z-50">
-                    <SelectItem value="all" className="cursor-pointer">
-                      All Courses ({totalAssignments})
-                    </SelectItem>
-                    {uniqueCourses.map(course => {
-                      const courseCount = assignments.filter(a => 
-                        (a.course_name || 'Uncategorized') === course
-                      ).length;
-                      return (
-                        <SelectItem 
-                          key={course} 
-                          value={course}
-                          className="cursor-pointer"
-                        >
-                          {course} ({courseCount})
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
+          {/* Premium Action Bar */}
+          <div className="flex items-center justify-between flex-wrap gap-4 p-4 rounded-2xl bg-background/50 backdrop-blur-sm border border-border/50 shadow-sm">
+            <div className="flex items-center gap-3 flex-wrap">
+              <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+                <SelectTrigger className="w-[240px] bg-background/80 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-all shadow-sm">
+                  <SelectValue placeholder="All Courses" />
+                </SelectTrigger>
+                <SelectContent className="bg-background/95 backdrop-blur-xl border-border/50 shadow-xl">
+                  <SelectItem value="all" className="cursor-pointer">
+                    <span className="font-medium">All Courses</span>
+                    <Badge variant="secondary" className="ml-2">{totalAssignments}</Badge>
+                  </SelectItem>
+                  {uniqueCourses.map(course => {
+                    const courseCount = assignments.filter(a => 
+                      (a.course_name || 'Uncategorized') === course
+                    ).length;
+                    return (
+                      <SelectItem 
+                        key={course} 
+                        value={course}
+                        className="cursor-pointer"
+                      >
+                        {course}
+                        <Badge variant="outline" className="ml-2">{courseCount}</Badge>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
             </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSync}
-              disabled={isSyncing}
-              className="gap-2"
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleSync} 
+              disabled={isSyncing} 
+              className="gap-2 hover:bg-primary/10 hover:border-primary/50 transition-all duration-300 shadow-sm group"
             >
               {isSyncing ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Syncing...
+                  <span>Syncing...</span>
                 </>
               ) : (
                 <>
-                  <RefreshCw className="h-4 w-4" />
-                  Sync from Canvas
+                  <RefreshCw className="h-4 w-4 group-hover:rotate-180 transition-transform duration-500" />
+                  <span>Sync from Canvas</span>
                 </>
               )}
             </Button>
           </div>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card 
-              onClick={() => setSelectedFilter('all')}
-              className={cn(
-                "cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg border-border/50",
-                selectedFilter === 'all' && "ring-2 ring-primary shadow-lg bg-primary/5"
-              )}
-            >
-              <CardContent className="p-6 space-y-2">
-                <div className="flex items-center justify-between">
-                  <Target className="h-8 w-8 text-primary" />
-                  <Badge variant="outline" className="text-xs">{totalAssignments}</Badge>
-                </div>
-                <p className="text-2xl font-bold">{totalAssignments}</p>
-                <p className="text-sm text-muted-foreground">Total</p>
-              </CardContent>
-            </Card>
+          {/* Main Content with Sidebar Layout */}
+          <div className="flex gap-6 items-start">
+            {/* Mini Assignment Calendar */}
+            <MiniAssignmentCalendar
+              selectedMonth={selectedMonth}
+              assignments={assignments}
+              onMonthChange={handleMonthChange}
+              onDateSelect={handleDateSelect}
+              selectedDate={selectedMonth}
+            />
 
-            <Card 
-              onClick={() => setSelectedFilter('due-soon')}
-              className={cn(
-                "cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg border-border/50",
-                selectedFilter === 'due-soon' && "ring-2 ring-amber-500 shadow-lg bg-amber-500/5"
-              )}
-            >
-              <CardContent className="p-6 space-y-2">
-                <div className="flex items-center justify-between">
-                  <Clock className="h-8 w-8 text-amber-500" />
-                  <Badge className="bg-amber-500 text-xs">{dueSoonCount}</Badge>
-                </div>
-                <p className="text-2xl font-bold">{dueSoonCount}</p>
-                <p className="text-sm text-muted-foreground">Due Soon</p>
-              </CardContent>
-            </Card>
+            {/* Main Content Area */}
+            <div className="flex-1 space-y-8 min-w-0">
+              {/* Premium Stats Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Card 
+                  onClick={() => setSelectedFilter('all')}
+                  className={cn(
+                    "group cursor-pointer transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl border-border/50 bg-gradient-to-br from-background to-background/50 backdrop-blur-sm overflow-hidden relative",
+                    selectedFilter === 'all' && "ring-2 ring-primary shadow-2xl shadow-primary/20 bg-gradient-to-br from-primary/10 to-background"
+                  )}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <CardContent className="p-6 space-y-3 relative z-10">
+                    <div className="flex items-center justify-between">
+                      <div className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                        <Target className="h-6 w-6 text-primary" />
+                      </div>
+                      <Badge variant="outline" className="font-semibold">{totalAssignments}</Badge>
+                    </div>
+                    <p className="text-3xl font-bold">{totalAssignments}</p>
+                    <p className="text-sm text-muted-foreground font-medium">Total Tasks</p>
+                  </CardContent>
+                </Card>
 
-            <Card 
-              onClick={() => setSelectedFilter('upcoming')}
-              className={cn(
-                "cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg border-border/50",
-                selectedFilter === 'upcoming' && "ring-2 ring-blue-500 shadow-lg bg-blue-500/5"
-              )}
-            >
-              <CardContent className="p-6 space-y-2">
-                <div className="flex items-center justify-between">
-                  <Calendar className="h-8 w-8 text-blue-500" />
-                  <Badge className="bg-blue-500 text-xs">{upcomingCount}</Badge>
-                </div>
-                <p className="text-2xl font-bold">{upcomingCount}</p>
-                <p className="text-sm text-muted-foreground">This Week</p>
-              </CardContent>
-            </Card>
+                <Card 
+                  onClick={() => setSelectedFilter('due-soon')}
+                  className={cn(
+                    "group cursor-pointer transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl border-border/50 bg-gradient-to-br from-background to-background/50 backdrop-blur-sm overflow-hidden relative",
+                    selectedFilter === 'due-soon' && "ring-2 ring-amber-500 shadow-2xl shadow-amber-500/20 bg-gradient-to-br from-amber-500/10 to-background"
+                  )}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <CardContent className="p-6 space-y-3 relative z-10">
+                    <div className="flex items-center justify-between">
+                      <div className="p-3 rounded-xl bg-amber-500/10 group-hover:bg-amber-500/20 transition-colors">
+                        <Clock className="h-6 w-6 text-amber-500" />
+                      </div>
+                      <Badge className="bg-amber-500 font-semibold">{dueSoonCount}</Badge>
+                    </div>
+                    <p className="text-3xl font-bold">{dueSoonCount}</p>
+                    <p className="text-sm text-muted-foreground font-medium">Due Soon</p>
+                  </CardContent>
+                </Card>
 
-            <Card 
-              onClick={() => setSelectedFilter('submitted')}
-              className={cn(
-                "cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg border-border/50",
-                selectedFilter === 'submitted' && "ring-2 ring-green-500 shadow-lg bg-green-500/5"
-              )}
-            >
-              <CardContent className="p-6 space-y-2">
-                <div className="flex items-center justify-between">
-                  <CheckCircle2 className="h-8 w-8 text-green-500" />
-                  <Badge className="bg-green-500 text-xs">{submittedCount}</Badge>
-                </div>
-                <p className="text-2xl font-bold">{submittedCount}</p>
-                <p className="text-sm text-muted-foreground">Submitted</p>
-              </CardContent>
-            </Card>
-          </div>
+                <Card 
+                  onClick={() => setSelectedFilter('upcoming')}
+                  className={cn(
+                    "group cursor-pointer transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl border-border/50 bg-gradient-to-br from-background to-background/50 backdrop-blur-sm overflow-hidden relative",
+                    selectedFilter === 'upcoming' && "ring-2 ring-blue-500 shadow-2xl shadow-blue-500/20 bg-gradient-to-br from-blue-500/10 to-background"
+                  )}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <CardContent className="p-6 space-y-3 relative z-10">
+                    <div className="flex items-center justify-between">
+                      <div className="p-3 rounded-xl bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors">
+                        <TrendingUp className="h-6 w-6 text-blue-500" />
+                      </div>
+                      <Badge className="bg-blue-500 font-semibold">{upcomingCount}</Badge>
+                    </div>
+                    <p className="text-3xl font-bold">{upcomingCount}</p>
+                    <p className="text-sm text-muted-foreground font-medium">This Week</p>
+                  </CardContent>
+                </Card>
 
-          {/* Assignments List */}
-          {filteredAssignments.length === 0 ? (
-            <Card className="border-border/50">
-              <CardContent className="py-12 text-center">
-                <CheckCircle2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-lg font-semibold mb-2">No {selectedFilter !== 'all' && selectedFilter.replace('-', ' ')} assignments</h3>
-                <p className="text-muted-foreground mb-4">
-                  {selectedFilter === 'submitted' && "No submitted assignments yet. Keep working!"}
-                  {selectedFilter === 'due-soon' && "No assignments due in the next 3 days."}
-                  {selectedFilter === 'upcoming' && "No assignments due this week."}
-                </p>
-                <Button variant="outline" onClick={() => setSelectedFilter('all')}>
-                  View All Assignments
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-8">
-              {Object.entries(assignmentsByCourse).map(([courseName, courseAssignments], idx) => (
-                <div key={courseName} className="space-y-4 animate-fade-in" style={{ animationDelay: `${idx * 100}ms` }}>
-                  <div className="flex items-center gap-3">
-                    <BookOpen className="h-6 w-6 text-primary" />
-                    <h2 className="text-2xl font-semibold">{courseName}</h2>
-                    <Badge variant="outline" className="ml-2">
-                      {courseAssignments.length}
-                    </Badge>
-                  </div>
+                <Card 
+                  onClick={() => setSelectedFilter('submitted')}
+                  className={cn(
+                    "group cursor-pointer transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl border-border/50 bg-gradient-to-br from-background to-background/50 backdrop-blur-sm overflow-hidden relative",
+                    selectedFilter === 'submitted' && "ring-2 ring-green-500 shadow-2xl shadow-green-500/20 bg-gradient-to-br from-green-500/10 to-background"
+                  )}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <CardContent className="p-6 space-y-3 relative z-10">
+                    <div className="flex items-center justify-between">
+                      <div className="p-3 rounded-xl bg-green-500/10 group-hover:bg-green-500/20 transition-colors">
+                        <CheckCircle2 className="h-6 w-6 text-green-500" />
+                      </div>
+                      <Badge className="bg-green-500 font-semibold">{submittedCount}</Badge>
+                    </div>
+                    <p className="text-3xl font-bold">{submittedCount}</p>
+                    <p className="text-sm text-muted-foreground font-medium">Submitted</p>
+                  </CardContent>
+                </Card>
+              </div>
 
-                  <div className="grid gap-4">
+              {/* Assignments List */}
+              {filteredAssignments.length === 0 ? (
+                <Card className="border-border/50 bg-background/50 backdrop-blur-sm">
+                  <CardContent className="py-16 text-center space-y-4">
+                    <div className="relative inline-block">
+                      <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full" />
+                      <CheckCircle2 className="h-16 w-16 mx-auto text-primary/50 relative" />
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-xl font-semibold">No {selectedFilter !== 'all' && selectedFilter.replace('-', ' ')} assignments</h3>
+                      <p className="text-muted-foreground">
+                        {selectedFilter === 'submitted' && "No submitted assignments yet. Keep working!"}
+                        {selectedFilter === 'due-soon' && "No assignments due in the next 3 days."}
+                        {selectedFilter === 'upcoming' && "No assignments due this week."}
+                      </p>
+                    </div>
+                    <Button variant="outline" onClick={() => setSelectedFilter('all')} className="mt-4">
+                      View All Assignments
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-8">
+                  {Object.entries(assignmentsByCourse).map(([courseName, courseAssignments], idx) => (
+                    <div 
+                      key={courseName} 
+                      id={`course-section-${courseName}`}
+                      className="space-y-5 animate-fade-in scroll-mt-24" 
+                      style={{ animationDelay: `${idx * 100}ms` }}
+                    >
+                      <div className="sticky top-20 z-20 py-4 bg-gradient-to-b from-background via-background to-background/80 backdrop-blur-xl border-b border-border/50">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-1.5 rounded-full bg-gradient-to-b from-primary to-primary/50" />
+                          <div>
+                            <div className="flex items-center gap-3">
+                              <h2 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                                {courseName}
+                              </h2>
+                              <Badge variant="outline" className="font-semibold">
+                                {courseAssignments.length}
+                              </Badge>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                  <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
                     {courseAssignments.map((assignment, assignIdx) => {
                       // Determine border gradient based on urgency
                       const getBorderClass = () => {
@@ -566,14 +677,14 @@ const Assignments = () => {
                         return "border-l-4 border-l-primary/30";
                       };
 
-                      return (
-                        <Card 
-                          key={assignment.id}
-                          className={cn(
-                            "border-border/50 hover:shadow-lg transition-all duration-300 hover:scale-[1.01] hover-glide animate-fade-in relative overflow-hidden group",
-                            getBorderClass()
-                          )}
-                          style={{ animationDelay: `${(idx * 100) + (assignIdx * 50)}ms` }}
+                        return (
+                          <Card 
+                            key={assignment.id}
+                            className={cn(
+                              "border-border/50 hover:shadow-xl transition-all duration-500 hover:scale-[1.02] animate-scale-in relative overflow-hidden group cursor-pointer bg-gradient-to-br from-background/95 to-background/80 backdrop-blur-sm",
+                              getBorderClass()
+                            )}
+                            style={{ animationDelay: `${(idx * 50) + (assignIdx * 30)}ms` }}
                           onClick={(e) => {
                             // Prevent card click when clicking buttons inside
                             if ((e.target as HTMLElement).closest('button, a')) {
@@ -581,8 +692,10 @@ const Assignments = () => {
                             }
                           }}
                         >
-                          {/* Hover gradient effect */}
-                          <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                            {/* Hover gradient effect */}
+                            <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                            {/* Shine effect */}
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
                           
                           <CardHeader className="relative">
                             <div className="flex items-start justify-between gap-4">
@@ -716,14 +829,16 @@ const Assignments = () => {
                               )}
                             </CardContent>
                           )}
-                        </Card>
-                      );
-                    })}
-                  </div>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
-          )}
+          </div>
         </div>
       </AnimatedTransition>
     </div>
