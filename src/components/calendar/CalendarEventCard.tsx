@@ -75,50 +75,60 @@ export const CalendarEventCard = ({ event, compact = false }: CalendarEventCardP
   }
 
   return (
-    <Card className="border-border/50 hover:shadow-lg transition-all duration-300 group">
-      <CardHeader>
+    <Card className="group relative overflow-hidden border-border/50 bg-gradient-to-br from-background to-background/50 backdrop-blur-sm hover:shadow-2xl hover:shadow-primary/10 transition-all duration-500 hover:scale-[1.02] hover:-translate-y-1">
+      {/* Animated gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      
+      {/* Status indicator bar */}
+      <div className={cn("absolute top-0 left-0 right-0 h-1", getStatusColor())} />
+      
+      <CardHeader className="relative">
         <div className="flex items-start justify-between gap-4">
-          <div className="flex-1 space-y-2">
+          <div className="flex-1 space-y-3">
             <div className="flex items-center gap-2 flex-wrap">
               {event.is_assignment && (
-                <Badge className="bg-primary">
+                <Badge className="bg-primary shadow-sm">
                   <BookOpen className="h-3 w-3 mr-1" />
                   Assignment
                 </Badge>
               )}
               {event.is_recurring && (
-                <Badge variant="outline">Recurring</Badge>
+                <Badge variant="outline" className="border-border/50">Recurring</Badge>
               )}
               {event.is_all_day && (
                 <Badge variant="secondary">All Day</Badge>
               )}
-              <Badge variant="outline" className={cn("text-xs", getStatusColor())}>
+              <Badge variant="outline" className={cn("text-xs font-medium shadow-sm", getStatusColor())}>
                 {getTimeUntil()}
               </Badge>
             </div>
-            <CardTitle className="text-xl group-hover:text-primary transition-colors">
+            <CardTitle className="text-xl font-bold group-hover:text-primary transition-colors duration-300 leading-tight">
               {event.summary}
             </CardTitle>
             <CardDescription className="flex items-center gap-2 text-sm">
-              <Calendar className="h-4 w-4" />
-              {getCalendarName()}
+              <div className="p-1.5 rounded-md bg-primary/10">
+                <Calendar className="h-3.5 w-3.5 text-primary" />
+              </div>
+              <span className="font-medium">{getCalendarName()}</span>
             </CardDescription>
           </div>
           <Button
             variant="ghost"
             size="icon"
             onClick={() => window.open(event.html_link, '_blank')}
-            className="flex-shrink-0"
+            className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-primary/10"
           >
             <ExternalLink className="h-4 w-4" />
           </Button>
         </div>
       </CardHeader>
       
-      <CardContent className="space-y-3">
-        <div className="flex items-center gap-2 text-sm">
-          <Clock className="h-4 w-4 text-muted-foreground" />
-          <span>
+      <CardContent className="space-y-4 relative">
+        <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 backdrop-blur-sm">
+          <div className="p-2 rounded-md bg-background/80">
+            <Clock className="h-4 w-4 text-primary" />
+          </div>
+          <span className="text-sm font-medium">
             {event.is_all_day 
               ? format(startDate, 'EEEE, MMMM d, yyyy')
               : `${format(startDate, 'EEE, MMM d, h:mm a')} - ${format(endDate, 'h:mm a')}`
@@ -127,18 +137,25 @@ export const CalendarEventCard = ({ event, compact = false }: CalendarEventCardP
         </div>
 
         {event.location && (
-          <div className="flex items-start gap-2 text-sm">
-            <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-            <span className="line-clamp-2">{event.location}</span>
+          <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 backdrop-blur-sm">
+            <div className="p-2 rounded-md bg-background/80 flex-shrink-0">
+              <MapPin className="h-4 w-4 text-primary" />
+            </div>
+            <span className="text-sm line-clamp-2 font-medium">{event.location}</span>
           </div>
         )}
 
         {event.description && (
-          <div className="text-sm text-muted-foreground line-clamp-3 pt-2 border-t border-border/50">
+          <div className="text-sm text-muted-foreground line-clamp-3 pt-3 border-t border-border/50 leading-relaxed">
             {event.description}
           </div>
         )}
       </CardContent>
+      
+      {/* Shine effect on hover */}
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+      </div>
     </Card>
   );
 };
