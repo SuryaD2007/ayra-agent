@@ -9,6 +9,7 @@ import AyraSidebar from '@/components/manage/AyraSidebar';
 import ViewSwitcher from '@/components/manage/ViewSwitcher';
 import HotkeysSheet from '@/components/manage/HotkeysSheet';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { OnboardingTutorial } from '@/components/onboarding/OnboardingTutorial';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -146,8 +147,10 @@ const ManagePage = () => {
       title="Access your library"
       description="Sign in to manage your notes, documents, and saved links."
     >
-      <div className="max-w-full mx-auto h-screen pt-24 pb-6">
-        <Toaster position="top-right" />
+      <TooltipProvider>
+        <OnboardingTutorial />
+        <div className="max-w-full mx-auto h-screen pt-24 pb-6">
+          <Toaster position="top-right" />
         
         {authError && (
           <div className="mb-4 mx-4">
@@ -283,7 +286,8 @@ const ManagePage = () => {
           isOpen={authModalOpen} 
           onClose={() => setAuthModalOpen(false)} 
         />
-      </div>
+        </div>
+      </TooltipProvider>
     </AuthGuard>
   );
 };

@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { 
   Search, 
@@ -21,7 +22,8 @@ import {
   MoreHorizontal, 
   Move, 
   Trash2,
-  Undo2
+  Undo2,
+  Plus
 } from 'lucide-react';
 import {
   Dialog,
@@ -419,22 +421,47 @@ const AyraTable = forwardRef<AyraTableRef, AyraTableProps>(({
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setFilterDrawerOpen(true)}
-            className={hasFilters ? 'border-primary' : ''}
-          >
-            <Filter className="w-4 h-4 mr-2" />
-            Filter
-            {hasFilters && (
-              <Badge variant="secondary" className="ml-2">
-                Active
-              </Badge>
-            )}
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={() => setNewItemModalOpen(true)}
+                size="sm"
+                data-onboarding="add-item"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Item
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Add a new note, PDF, link, or image</p>
+            </TooltipContent>
+          </Tooltip>
           
-          <ViewSwitcher activeView={viewType} onViewChange={() => {}} />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setFilterDrawerOpen(true)}
+                className={hasFilters ? 'border-primary' : ''}
+              >
+                <Filter className="w-4 h-4 mr-2" />
+                Filter
+                {hasFilters && (
+                  <Badge variant="secondary" className="ml-2">
+                    Active
+                  </Badge>
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Filter items by type, tags, or date</p>
+            </TooltipContent>
+          </Tooltip>
+          
+          <div data-onboarding="view-switcher">
+            <ViewSwitcher activeView={viewType} onViewChange={() => {}} />
+          </div>
         </div>
       </div>
 

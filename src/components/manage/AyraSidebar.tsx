@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Folder, Share, Users, Lock, Plus, Move, Building, Globe, Trash2, MoreHorizontal, Unlock, GripVertical, ChevronDown, ChevronRight } from 'lucide-react';
+import { Folder, Share, Users, Lock, Plus, Move, Building, Globe, Trash2, MoreHorizontal, Unlock, GripVertical, ChevronDown, ChevronRight, Brain, Sparkles, Upload, Inbox } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Popover,
   PopoverContent,
@@ -532,13 +535,56 @@ const AyraSidebar = ({
         {/* Header */}
         <div className="px-4 py-3 border-b border-border">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Cortex</h2>
+            <Link to="/" className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+                <Brain className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <span className="font-semibold text-lg">Ayra</span>
+            </Link>
             <div className="flex gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link 
+                    to="/search"
+                    data-onboarding="ai-search"
+                    className="p-1.5 rounded-lg hover:bg-muted"
+                  >
+                    <Sparkles size={16} />
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <p>AI Search</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link 
+                    to="/import"
+                    data-onboarding="import"
+                    className="p-1.5 rounded-lg hover:bg-muted"
+                  >
+                    <Upload size={16} />
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <p>Import Hub</p>
+                </TooltipContent>
+              </Tooltip>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="p-1.5 rounded-lg hover:bg-muted">
-                    <Plus size={16} />
-                  </button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button 
+                        className="p-1.5 rounded-lg hover:bg-muted"
+                        data-onboarding="new-space"
+                      >
+                        <Plus size={16} />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <p>Create new space, item, or category</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuItem onClick={() => setNewSpaceModalOpen(true)}>
