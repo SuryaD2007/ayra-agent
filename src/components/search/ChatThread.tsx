@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Bot, User, ThumbsUp, ThumbsDown, Copy, Check } from 'lucide-react';
+import { User, ThumbsUp, ThumbsDown, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Message } from '@/types/chat';
 import { SourcesList } from './SourcesList';
 import ReactMarkdown from 'react-markdown';
+import { AyraLogo } from './AyraLogo';
 
 interface ChatThreadProps {
   messages: Message[];
@@ -38,8 +39,8 @@ export function ChatThread({ messages, isLoading = false, onSuggestionClick }: C
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center space-y-6 max-w-2xl mx-auto px-4">
-          <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
-            <Bot size={32} className="text-primary-foreground" />
+          <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg shadow-primary/20">
+            <AyraLogo size={32} />
           </div>
           <div className="space-y-2">
             <h2 className="text-2xl font-semibold">Welcome to Ayra Search</h2>
@@ -106,8 +107,8 @@ export function ChatThread({ messages, isLoading = false, onSuggestionClick }: C
               message.role === 'user' ? "justify-end" : "justify-start"
             )}>
               {message.role === 'assistant' && (
-                <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/60 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                  <Bot size={16} className="text-primary-foreground" />
+                <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/60 rounded-full flex items-center justify-center flex-shrink-0 mt-1 shadow-md shadow-primary/20">
+                  <AyraLogo size={16} />
                 </div>
               )}
               
@@ -204,8 +205,8 @@ export function ChatThread({ messages, isLoading = false, onSuggestionClick }: C
 
         {isLoading && (
           <div className="flex gap-4 animate-fade-in">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/60 rounded-full flex items-center justify-center flex-shrink-0 animate-pulse">
-              <Bot size={16} className="text-primary-foreground" />
+            <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/60 rounded-full flex items-center justify-center flex-shrink-0 animate-pulse shadow-md shadow-primary/20">
+              <AyraLogo size={16} />
             </div>
             <div className="max-w-[740px] bg-muted rounded-2xl px-6 py-4 hover-float">
               <div className="space-y-2">
