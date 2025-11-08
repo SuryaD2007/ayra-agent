@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams, useNavigate, useLocation } from 'react-router-dom';
-import { Brain, LogIn, Search, Upload, User, Settings, LogOut, Moon, Sun, Table, Info, HelpCircle, Code, Shield, Calendar } from 'lucide-react';
+import { Brain, LogIn, Search, Upload, User, Settings, LogOut, Moon, Sun, Table, Info, HelpCircle, Code, Shield, Calendar, CalendarDays } from 'lucide-react';
 import { useRippleEffect } from '@/lib/animations';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRoles } from '@/hooks/useRoles';
 import { useCanvasConnection } from '@/hooks/useCanvasConnection';
+import { supabase } from '@/integrations/supabase/client';
 import AuthModal from '@/components/AuthModal';
 import NewItemModal from '@/components/manage/NewItemModal';
 import { Button } from '@/components/ui/button';
@@ -128,6 +129,7 @@ export const Navbar = () => {
   const { theme, toggleTheme } = useTheme();
   const { isAdmin } = useRoles();
   const { isConnected: isCanvasConnected } = useCanvasConnection();
+  const [isGoogleCalendarConnected, setIsGoogleCalendarConnected] = useState(false);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -135,6 +137,26 @@ export const Navbar = () => {
   // Check if admin access is enabled (for owner login access)
   const isAdminMode = searchParams.get('admin') === 'true' || isAuthenticated;
   
+  // Check Google Calendar connection
+  useEffect(() => {
+    const checkGoogleCalendar = async () => {
+      if (!isAuthenticated) return;
+      
+      try {
+        const { data } = await supabase
+          .from('google_integrations')
+          .select('calendar_enabled')
+          .maybeSingle();
+        
+        setIsGoogleCalendarConnected(data?.calendar_enabled || false);
+      } catch (error) {
+        console.error('Error checking Google Calendar:', error);
+      }
+    };
+
+    checkGoogleCalendar();
+  }, [isAuthenticated]);
+
   // Update active state based on current route
   useEffect(() => {
     const path = location.pathname;
@@ -144,6 +166,7 @@ export const Navbar = () => {
     else if (path === '/manage') setActive('manage');
     else if (path === '/search') setActive('search');
     else if (path === '/assignments') setActive('assignments');
+    else if (path === '/calendar') setActive('calendar');
     else if (path === '/profile') setActive('profile');
     else if (path === '/settings') setActive('settings');
     else if (path === '/admin') setActive('admin');
@@ -182,6 +205,7 @@ export const Navbar = () => {
     { to: '/manage', icon: <Table size={20} />, label: 'Manage', id: 'manage' },
     { to: '/search', icon: <Search size={20} />, label: 'Search', id: 'search' },
     ...(isCanvasConnected ? [{ to: '/assignments', icon: <Calendar size={20} />, label: 'Assignments', id: 'assignments' }] : []),
+    ...(isGoogleCalendarConnected ? [{ to: '/calendar', icon: <CalendarDays size={20} />, label: 'Calendar', id: 'calendar' }] : []),
     { to: '/profile', icon: <User size={20} />, label: 'Profile', id: 'profile' },
     { to: '/settings', icon: <Settings size={20} />, label: 'Settings', id: 'settings' },
     ...(isAdmin() ? [{ to: '/admin', icon: <Shield size={20} />, label: 'Admin', id: 'admin' }] : []),

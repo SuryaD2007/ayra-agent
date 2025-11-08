@@ -11,9 +11,14 @@ import { CallToAction } from '@/components/landing/CallToAction';
 import { Footer } from '@/components/landing/Footer';
 import { LoadingScreen } from '@/components/landing/LoadingScreen';
 import UseCasesSection from '@/components/landing/UseCasesSection';
+import { UpcomingEventsWidget } from '@/components/calendar/UpcomingEventsWidget';
+import { useAuth } from '@/contexts/AuthContext';
+import { useGoogleConnection } from '@/hooks/useGoogleConnection';
 
 const Index = () => {
   const [loading, setLoading] = useState(true);
+  const { isAuthenticated } = useAuth();
+  const { isConnected, calendarEnabled } = useGoogleConnection();
   const showHero = useAnimateIn(false, 300);
   const showUniversities = useAnimateIn(false, 500);
   const showManage = useAnimateIn(false, 700);
@@ -23,6 +28,7 @@ const Index = () => {
   const showTestimonials = useAnimateIn(false, 1900);
   const showCallToAction = useAnimateIn(false, 2200);
   const showFooter = useAnimateIn(false, 2500);
+  const showWidget = useAnimateIn(false, 800);
   
   useEffect(() => {
     // Simulate loading
@@ -48,6 +54,13 @@ const Index = () => {
         <div className="flex flex-col">
           {/* Hero Section */}
           <HeroSection showTitle={showHero} />
+          
+          {/* Calendar Widget - Only show if authenticated and calendar connected */}
+          {isAuthenticated && isConnected && calendarEnabled && showWidget && (
+            <div className="mb-16 animate-fade-in">
+              <UpcomingEventsWidget />
+            </div>
+          )}
           
           {/* University Students Section */}
           <UniversityStudentsSection show={showUniversities} />

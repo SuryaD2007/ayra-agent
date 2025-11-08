@@ -27,6 +27,7 @@ import Admin from "./pages/Admin";
 import ClipperSetup from "./pages/ClipperSetup";
 import QuickClip from "./pages/QuickClip";
 import Assignments from "./pages/Assignments";
+import CalendarPage from "./pages/CalendarPage";
 import { useConfigurationValidation } from "./hooks/useConfigurationValidation";
 import { useSettings } from "./hooks/useSettings";
 import './lib/sampleData'; // Import sample data utilities
@@ -148,6 +149,16 @@ const AppRoutes = () => {
         } 
       />
       <Route 
+        path="/calendar" 
+        element={
+          <PageTransition>
+            <PreLaunchGuard>
+              <CalendarPage />
+            </PreLaunchGuard>
+          </PageTransition>
+        } 
+      />
+      <Route
         path="/clipper" 
         element={
           <PageTransition>

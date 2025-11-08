@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, ExternalLink, Loader2, BookOpen, Clock, Target, Zap, CheckCircle2, Circle, Trophy, RefreshCw, Filter } from 'lucide-react';
+import { Calendar, ExternalLink, Loader2, BookOpen, Clock, Target, Zap, CheckCircle2, Circle, Trophy, RefreshCw, Filter, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format, differenceInDays } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -27,6 +27,7 @@ interface CanvasAssignment {
     grade?: string;
     score?: number;
   };
+  source?: 'canvas' | 'google_calendar';
 }
 
 const Assignments = () => {
@@ -45,14 +46,62 @@ const Assignments = () => {
 
   const fetchAssignments = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch Canvas assignments
+      const { data: canvasData, error: canvasError } = await supabase
         .from('canvas_items')
         .select('*')
         .eq('type', 'assignment')
         .order('due_date', { ascending: true, nullsFirst: false });
 
-      if (error) throw error;
-      setAssignments((data || []) as CanvasAssignment[]);
+      if (canvasError) throw canvasError;
+
+      // Fetch Google Calendar assignments
+      const { data: calendarData, error: calendarError } = await supabase
+        .from('google_calendar_events')
+        .select('*')
+        .eq('is_assignment', true)
+        .order('start_time', { ascending: true });
+
+      if (calendarError) console.error('Calendar fetch error:', calendarError);
+
+      // Transform calendar events to match assignment interface
+      const calendarAssignments = (calendarData || []).map(event => {
+        const eventMetadata = event.metadata as any;
+        return {
+          id: event.id,
+          title: event.summary,
+          description: event.description || '',
+          due_date: event.start_time,
+          course_name: eventMetadata?.calendar_name || 'Calendar',
+          url: event.html_link,
+          submission_status: 'not_submitted' as const,
+          submitted_at: null,
+          metadata: {},
+          source: 'google_calendar' as const
+        };
+      });
+
+      // Combine and sort all assignments
+      const allAssignments = [
+        ...(canvasData || []).map(a => ({ 
+          ...a, 
+          source: 'canvas' as const,
+          submission_status: a.submission_status as 'not_submitted' | 'submitted' | 'graded',
+          metadata: a.metadata as { 
+            points_possible?: number; 
+            submission_types?: string[]; 
+            grade?: string; 
+            score?: number; 
+          }
+        })),
+        ...calendarAssignments
+      ].sort((a, b) => {
+        if (!a.due_date) return 1;
+        if (!b.due_date) return -1;
+        return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+      });
+
+      setAssignments(allAssignments);
     } catch (error: any) {
       console.error('Error fetching assignments:', error);
       toast({
@@ -275,10 +324,13 @@ const Assignments = () => {
               <div className="flex items-start justify-between gap-6 flex-wrap">
                 <div className="space-y-3 flex-1 min-w-[300px]">
                   <h1 className="text-5xl font-bold bg-gradient-to-r from-foreground via-primary to-foreground/70 bg-clip-text text-transparent">
-                    Canvas Assignments
+                    All Assignments
                   </h1>
                   <p className="text-lg text-muted-foreground">
                     {getMotivationalMessage()}
+                  </p>
+                  <p className="text-sm text-muted-foreground/80">
+                    Showing assignments from Canvas and Google Calendar
                   </p>
                   <div className="flex items-center gap-4 text-sm flex-wrap">
                     <div className="flex items-center gap-2">
@@ -547,10 +599,22 @@ const Assignments = () => {
                                     )}
                                   </div>
                                   <div className="flex-1">
-                                    <div className="flex items-start gap-2 mb-2">
+                                     <div className="flex items-start gap-2 mb-2">
                                       <CardTitle className="text-xl hover:text-primary transition-colors flex-1">
                                         {assignment.title}
                                       </CardTitle>
+                                      {assignment.source === 'google_calendar' && (
+                                        <Badge variant="outline" className="gap-1 text-xs">
+                                          <CalendarDays className="h-3 w-3" />
+                                          Google Calendar
+                                        </Badge>
+                                      )}
+                                      {assignment.source === 'canvas' && (
+                                        <Badge variant="outline" className="gap-1 text-xs bg-primary/5">
+                                          <BookOpen className="h-3 w-3" />
+                                          Canvas
+                                        </Badge>
+                                      )}
                                     </div>
                                     <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                                       {(assignment.submission_status === 'submitted' || assignment.submission_status === 'graded') && assignment.submitted_at && (
@@ -618,7 +682,7 @@ const Assignments = () => {
                                       rel="noopener noreferrer"
                                       onClick={(e) => e.stopPropagation()}
                                     >
-                                      View in Canvas
+                                      {assignment.source === 'google_calendar' ? 'View in Google Calendar' : 'View in Canvas'}
                                       <ExternalLink className="ml-2 h-4 w-4" />
                                     </a>
                                   </Button>
