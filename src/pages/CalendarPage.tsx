@@ -1,17 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, RefreshCw, Loader2, CalendarDays, CheckCircle2, Clock, Zap, Sparkles, TrendingUp } from 'lucide-react';
+import { Calendar, RefreshCw, Loader2, CalendarDays, CheckCircle2, Clock, Zap, Sparkles, TrendingUp, ChevronLeft, ChevronRight, CalendarClock } from 'lucide-react';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import { CalendarEventCard } from '@/components/calendar/CalendarEventCard';
 import { AnimatedTransition } from '@/components/AnimatedTransition';
 import { useAnimateIn } from '@/lib/animations';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { format, isToday, isTomorrow, addDays, startOfDay } from 'date-fns';
+import { format, isToday, isTomorrow, addDays, startOfDay, startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 
 const CalendarPage = () => {
   const showContent = useAnimateIn(false, 200);
@@ -19,6 +21,9 @@ const CalendarPage = () => {
   const [syncing, setSyncing] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'upcoming' | 'today' | 'assignments'>('all');
   const [selectedCalendar, setSelectedCalendar] = useState<string>('all');
+  const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
+  const [showJumpToToday, setShowJumpToToday] = useState(false);
+  const todaySectionRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   const handleSync = async () => {
@@ -45,6 +50,53 @@ const CalendarPage = () => {
     }
   };
 
+  // Auto-scroll to today's events on load
+  useEffect(() => {
+    if (!loading && todaySectionRef.current) {
+      setTimeout(() => {
+        todaySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 500);
+    }
+  }, [loading]);
+
+  // Show/hide jump to today button based on scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      if (todaySectionRef.current) {
+        const rect = todaySectionRef.current.getBoundingClientRect();
+        const isVisible = rect.top >= 0 && rect.bottom <= window.innerHeight;
+        setShowJumpToToday(!isVisible);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    handleScroll();
+
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const jumpToToday = () => {
+    todaySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  const handleMonthChange = (direction: 'prev' | 'next') => {
+    setSelectedMonth(prev => 
+      direction === 'prev' ? subMonths(prev, 1) : addMonths(prev, 1)
+    );
+  };
+
+  const handleDateSelect = (date: Date | undefined) => {
+    if (date) {
+      setSelectedMonth(date);
+      // Find the section for this date and scroll to it
+      const dateStr = format(startOfDay(date), 'yyyy-MM-dd');
+      const section = document.getElementById(`date-section-${dateStr}`);
+      if (section) {
+        section.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  };
+
   // Calculate stats
   const totalEvents = events.length;
   const todayEvents = getTodayEvents();
@@ -62,20 +114,23 @@ const CalendarPage = () => {
     new Set(events.map(e => e.metadata?.calendar_name || 'Unknown Calendar'))
   ).sort();
 
-  // Filter events
+  // Filter events by selected month
   const filteredEvents = events.filter(event => {
     // Calendar filter
     if (selectedCalendar !== 'all') {
-      const calendarName = event.metadata?.calendar_name || 'Unknown Calendar';
+      const calendarName = (event.metadata as any)?.calendar_name || 'Unknown Calendar';
       if (calendarName !== selectedCalendar) return false;
     }
+
+    // Month filter - only show events in selected month
+    const eventDate = new Date(event.start_time);
+    if (!isSameMonth(eventDate, selectedMonth)) return false;
 
     // Status filter
     if (selectedFilter === 'all') return true;
     if (selectedFilter === 'assignments') return event.is_assignment;
-    if (selectedFilter === 'today') return isToday(new Date(event.start_time));
+    if (selectedFilter === 'today') return isToday(eventDate);
     if (selectedFilter === 'upcoming') {
-      const eventDate = new Date(event.start_time);
       const nextWeek = addDays(new Date(), 7);
       return eventDate > new Date() && eventDate <= nextWeek;
     }
@@ -227,9 +282,62 @@ const CalendarPage = () => {
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl opacity-50" />
           </div>
 
-          {/* Premium Action Bar */}
+          {/* Premium Action Bar with Month Navigation */}
           <div className="flex items-center justify-between flex-wrap gap-4 p-4 rounded-2xl bg-background/50 backdrop-blur-sm border border-border/50 shadow-sm">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
+              {/* Month Navigation */}
+              <div className="flex items-center gap-2 p-1 rounded-xl bg-background/80 backdrop-blur-sm border border-border/50 shadow-sm">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleMonthChange('prev')}
+                  className="h-8 w-8 hover:bg-primary/10"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" className="h-8 px-3 font-semibold hover:bg-primary/10 min-w-[140px]">
+                      <CalendarClock className="h-4 w-4 mr-2" />
+                      {format(selectedMonth, 'MMMM yyyy')}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 bg-background/95 backdrop-blur-xl border-border/50 shadow-xl" align="start">
+                    <CalendarPicker
+                      mode="single"
+                      selected={selectedMonth}
+                      onSelect={handleDateSelect}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+                
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleMonthChange('next')}
+                  className="h-8 w-8 hover:bg-primary/10"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                
+                <div className="h-4 w-px bg-border/50 mx-1" />
+                
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedMonth(new Date());
+                    jumpToToday();
+                  }}
+                  className="h-8 text-xs hover:bg-primary/10 hover:text-primary transition-colors"
+                >
+                  Today
+                </Button>
+              </div>
+
               <Select value={selectedCalendar} onValueChange={setSelectedCalendar}>
                 <SelectTrigger className="w-[240px] bg-background/80 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-all shadow-sm">
                   <SelectValue placeholder="All Calendars" />
@@ -241,7 +349,7 @@ const CalendarPage = () => {
                   </SelectItem>
                   {uniqueCalendars.map(calendar => {
                     const count = events.filter(e => 
-                      (e.metadata?.calendar_name || 'Unknown Calendar') === calendar
+                      ((e.metadata as any)?.calendar_name || 'Unknown Calendar') === calendar
                     ).length;
                     return (
                       <SelectItem key={calendar} value={calendar} className="cursor-pointer">
@@ -362,7 +470,8 @@ const CalendarPage = () => {
           <div className="space-y-8">
             {sortedDates.map((date, idx) => {
               const dateObj = new Date(date);
-              const dateLabel = isToday(dateObj) 
+              const isCurrentDay = isToday(dateObj);
+              const dateLabel = isCurrentDay
                 ? 'Today' 
                 : isTomorrow(dateObj)
                 ? 'Tomorrow'
@@ -370,18 +479,38 @@ const CalendarPage = () => {
 
               return (
                 <div 
-                  key={date} 
-                  className="space-y-5 animate-fade-in"
+                  key={date}
+                  id={`date-section-${date}`}
+                  ref={isCurrentDay ? todaySectionRef : null}
+                  className="space-y-5 animate-fade-in scroll-mt-24"
                   style={{ animationDelay: `${idx * 50}ms` }}
                 >
                   <div className="sticky top-20 z-20 py-4 bg-gradient-to-b from-background via-background to-background/80 backdrop-blur-xl border-b border-border/50">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-1.5 bg-gradient-to-b from-primary to-primary/50 rounded-full" />
+                      <div className={cn(
+                        "h-10 w-1.5 rounded-full",
+                        isCurrentDay 
+                          ? "bg-gradient-to-b from-primary to-primary/50 animate-pulse" 
+                          : "bg-gradient-to-b from-muted to-muted/50"
+                      )} />
                       <div>
-                        <h2 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-                          {dateLabel}
-                        </h2>
-                        <p className="text-sm text-muted-foreground">
+                        <div className="flex items-center gap-3">
+                          <h2 className={cn(
+                            "text-2xl font-bold bg-gradient-to-r bg-clip-text text-transparent",
+                            isCurrentDay 
+                              ? "from-primary via-primary to-primary/70" 
+                              : "from-foreground to-foreground/70"
+                          )}>
+                            {dateLabel}
+                          </h2>
+                          {isCurrentDay && (
+                            <Badge className="bg-primary animate-pulse">
+                              <Sparkles className="h-3 w-3 mr-1" />
+                              Now
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
                           {groupedEvents[date].length} event{groupedEvents[date].length !== 1 ? 's' : ''}
                         </p>
                       </div>
@@ -402,6 +531,21 @@ const CalendarPage = () => {
               );
             })}
           </div>
+
+          {/* Floating Jump to Today Button */}
+          {showJumpToToday && (
+            <button
+              onClick={jumpToToday}
+              className="fixed bottom-8 right-8 z-50 p-4 rounded-full bg-primary text-primary-foreground shadow-2xl shadow-primary/30 hover:scale-110 hover:shadow-3xl hover:shadow-primary/40 transition-all duration-300 animate-fade-in group"
+              aria-label="Jump to today"
+            >
+              <CalendarDays className="h-5 w-5 group-hover:scale-110 transition-transform" />
+              <span className="absolute -top-2 -right-2 flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+              </span>
+            </button>
+          )}
         </div>
       </AnimatedTransition>
     </div>
