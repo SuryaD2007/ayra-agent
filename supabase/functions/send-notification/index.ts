@@ -12,7 +12,7 @@ const corsHeaders = {
 };
 
 interface NotificationRequest {
-  userId: string;
+  userId: string | null;
   notificationType: string;
   subject: string;
   body: string;

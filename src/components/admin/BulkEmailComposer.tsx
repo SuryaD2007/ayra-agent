@@ -102,7 +102,7 @@ export default function BulkEmailComposer() {
       const promises = recipients.map((recipient) =>
         supabase.functions.invoke('send-notification', {
           body: {
-            userId: 'bulk-send',
+            userId: null,
             email: recipient.email,
             notificationType: 'bulk',
             subject,

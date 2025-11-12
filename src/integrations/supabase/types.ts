@@ -295,7 +295,7 @@ export type Database = {
           sent_at: string | null
           status: string | null
           subject: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           body: string
@@ -305,7 +305,7 @@ export type Database = {
           sent_at?: string | null
           status?: string | null
           subject: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           body?: string
@@ -315,7 +315,7 @@ export type Database = {
           sent_at?: string | null
           status?: string | null
           subject?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
