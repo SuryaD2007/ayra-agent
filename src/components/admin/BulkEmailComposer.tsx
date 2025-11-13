@@ -98,24 +98,45 @@ export default function BulkEmailComposer() {
         return;
       }
 
-      // Send emails to all recipients
-      const promises = recipients.map((recipient) =>
-        supabase.functions.invoke('send-notification', {
-          body: {
-            userId: null,
-            email: recipient.email,
-            notificationType: 'bulk',
-            subject,
-            body, // Already HTML from the rich text editor
-          },
-        })
-      );
-
-      await Promise.all(promises);
+      // Send emails to all recipients with rate limiting (max 2 per second for Resend)
+      let successCount = 0;
+      let errorCount = 0;
+      
+      for (let i = 0; i < recipients.length; i++) {
+        const recipient = recipients[i];
+        
+        try {
+          const { error } = await supabase.functions.invoke('send-notification', {
+            body: {
+              userId: null,
+              email: recipient.email,
+              notificationType: 'bulk',
+              subject,
+              body, // Already HTML from the rich text editor
+            },
+          });
+          
+          if (error) {
+            console.error(`Failed to send to ${recipient.email}:`, error);
+            errorCount++;
+          } else {
+            successCount++;
+          }
+        } catch (error) {
+          console.error(`Failed to send to ${recipient.email}:`, error);
+          errorCount++;
+        }
+        
+        // Wait 500ms between emails to respect Resend's rate limit (2 req/sec)
+        if (i < recipients.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
 
       toast({
-        title: 'Emails sent!',
-        description: `Successfully sent ${recipients.length} email(s)`,
+        title: successCount > 0 ? 'Emails sent!' : 'Failed to send emails',
+        description: `Successfully sent ${successCount} email(s)${errorCount > 0 ? `, ${errorCount} failed` : ''}`,
+        variant: errorCount > 0 ? 'destructive' : 'default',
       });
 
       // Clear form
