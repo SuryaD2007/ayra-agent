@@ -21,7 +21,6 @@ import ManagePage from "./pages/ManagePage";
 import PreviewPage from "./pages/PreviewPage";
 import Navbar from "./components/Navbar";
 import ConfigurationBanner from "./components/ConfigurationBanner";
-import PreLaunchGuard from "./components/auth/PreLaunchGuard";
 import RoleGuard from "./components/auth/RoleGuard";
 import Admin from "./pages/Admin";
 import ClipperSetup from "./pages/ClipperSetup";
@@ -80,9 +79,7 @@ const AppRoutes = () => {
         path="/manage" 
         element={
           <PageTransition>
-            <PreLaunchGuard>
-              <ManagePage />
-            </PreLaunchGuard>
+            <ManagePage />
           </PageTransition>
         } 
       />
@@ -90,9 +87,7 @@ const AppRoutes = () => {
         path="/profile" 
         element={
           <PageTransition>
-            <PreLaunchGuard>
-              <Profile />
-            </PreLaunchGuard>
+            <Profile />
           </PageTransition>
         } 
       />
@@ -100,9 +95,7 @@ const AppRoutes = () => {
         path="/import" 
         element={
           <PageTransition>
-            <PreLaunchGuard>
-              <ImportHub />
-            </PreLaunchGuard>
+            <ImportHub />
           </PageTransition>
         } 
       />
@@ -110,9 +103,7 @@ const AppRoutes = () => {
         path="/search" 
         element={
           <PageTransition>
-            <PreLaunchGuard>
-              <SearchPage />
-            </PreLaunchGuard>
+            <SearchPage />
           </PageTransition>
         } 
       />
@@ -120,9 +111,7 @@ const AppRoutes = () => {
         path="/settings" 
         element={
           <PageTransition>
-            <PreLaunchGuard>
-              <Settings />
-            </PreLaunchGuard>
+            <Settings />
           </PageTransition>
         } 
       />
@@ -130,11 +119,9 @@ const AppRoutes = () => {
         path="/admin" 
         element={
           <PageTransition>
-            <PreLaunchGuard>
-              <RoleGuard allowedRoles={['admin']}>
-                <Admin />
-              </RoleGuard>
-            </PreLaunchGuard>
+            <RoleGuard allowedRoles={['admin']}>
+              <Admin />
+            </RoleGuard>
           </PageTransition>
         } 
       />
@@ -142,9 +129,7 @@ const AppRoutes = () => {
         path="/assignments" 
         element={
           <PageTransition>
-            <PreLaunchGuard>
-              <Assignments />
-            </PreLaunchGuard>
+            <Assignments />
           </PageTransition>
         } 
       />
@@ -152,9 +137,7 @@ const AppRoutes = () => {
         path="/calendar" 
         element={
           <PageTransition>
-            <PreLaunchGuard>
-              <CalendarPage />
-            </PreLaunchGuard>
+            <CalendarPage />
           </PageTransition>
         } 
       />
@@ -162,11 +145,9 @@ const AppRoutes = () => {
         path="/clipper" 
         element={
           <PageTransition>
-            <PreLaunchGuard>
-              <RoleGuard allowedRoles={['admin']}>
-                <ClipperSetup />
-              </RoleGuard>
-            </PreLaunchGuard>
+            <RoleGuard allowedRoles={['admin']}>
+              <ClipperSetup />
+            </RoleGuard>
           </PageTransition>
         } 
       />
@@ -182,9 +163,7 @@ const AppRoutes = () => {
         path="/preview/:id"
         element={
           <PageTransition>
-            <PreLaunchGuard>
-              <PreviewPage />
-            </PreLaunchGuard>
+            <PreviewPage />
           </PageTransition>
         } 
       />
