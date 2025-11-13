@@ -1,25 +1,8 @@
 import { app, BrowserWindow, Menu, shell, ipcMain } from 'electron';
 import * as path from 'path';
-import Store, { Schema } from 'electron-store';
+import Store from 'electron-store';
 
-interface StoreSchema {
-  windowBounds: { width: number; height: number; x?: number; y?: number };
-}
-
-const schema: Schema<StoreSchema> = {
-  windowBounds: {
-    type: 'object',
-    properties: {
-      width: { type: 'number' },
-      height: { type: 'number' },
-      x: { type: 'number' },
-      y: { type: 'number' },
-    },
-    default: { width: 1400, height: 900 },
-  },
-};
-
-const store = new Store<StoreSchema>({ schema });
+const store = new Store();
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -42,10 +25,10 @@ if (!gotTheLock) {
 
 function createWindow() {
   // Get saved window bounds or use defaults
-  const windowBounds = store.get('windowBounds', {
+  const windowBounds = (store as any).get('windowBounds', {
     width: 1400,
     height: 900,
-  });
+  }) as { width: number; height: number; x?: number; y?: number };
 
   mainWindow = new BrowserWindow({
     ...windowBounds,
@@ -65,7 +48,7 @@ function createWindow() {
   // Save window bounds on close
   mainWindow.on('close', () => {
     if (mainWindow) {
-      store.set('windowBounds', mainWindow.getBounds());
+      (store as any).set('windowBounds', mainWindow.getBounds());
     }
   });
 
