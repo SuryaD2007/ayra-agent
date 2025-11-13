@@ -22,9 +22,9 @@ const DEBOUNCE_DELAY = 400;
 export const useLibraryTitle = (): UseLibraryTitleReturn => {
   const [libraryTitle, setLibraryTitle] = useState(() => {
     try {
-      return localStorage.getItem(LIBRARY_TITLE_KEY) || 'Cortex Library';
+      return localStorage.getItem(LIBRARY_TITLE_KEY) || 'Ayra Library';
     } catch {
-      return 'Cortex Library';
+      return 'Ayra Library';
     }
   });
   
