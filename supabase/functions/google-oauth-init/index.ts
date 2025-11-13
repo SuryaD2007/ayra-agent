@@ -30,6 +30,10 @@ Deno.serve(async (req) => {
     }
 
     const { service } = await req.json();
+    
+    // Get the origin from the referer header to redirect back correctly
+    const referer = req.headers.get('referer') || 'https://useayra.com';
+    const origin = new URL(referer).origin;
 
     const clientId = Deno.env.get('GOOGLE_CLIENT_ID');
     if (!clientId) {
@@ -62,7 +66,7 @@ Deno.serve(async (req) => {
     authUrl.searchParams.set('scope', scopes.join(' '));
     authUrl.searchParams.set('access_type', 'offline');
     authUrl.searchParams.set('prompt', 'consent');
-    authUrl.searchParams.set('state', JSON.stringify({ service, userId: user.id }));
+    authUrl.searchParams.set('state', JSON.stringify({ service, userId: user.id, origin }));
 
     return new Response(
       JSON.stringify({ authUrl: authUrl.toString() }),
