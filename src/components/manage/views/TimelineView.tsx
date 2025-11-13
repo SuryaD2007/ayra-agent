@@ -43,14 +43,15 @@ const TimelineView = ({ items, selectedItems, onSelectItem }: TimelineViewProps)
   };
 
   const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'Note':
+    const lowerType = type?.toLowerCase();
+    switch (lowerType) {
+      case 'note':
         return <FileText className="w-5 h-5" />;
-      case 'PDF':
+      case 'pdf':
         return <FileType className="w-5 h-5" />;
-      case 'Link':
+      case 'link':
         return <LinkIcon className="w-5 h-5" />;
-      case 'Image':
+      case 'image':
         return <ImageIcon className="w-5 h-5" />;
       default:
         return <FileText className="w-5 h-5" />;
@@ -58,14 +59,15 @@ const TimelineView = ({ items, selectedItems, onSelectItem }: TimelineViewProps)
   };
 
   const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'Note':
+    const lowerType = type?.toLowerCase();
+    switch (lowerType) {
+      case 'note':
         return 'text-primary';
-      case 'PDF':
+      case 'pdf':
         return 'text-destructive';
-      case 'Link':
+      case 'link':
         return 'text-accent-foreground';
-      case 'Image':
+      case 'image':
         return 'text-secondary-foreground';
       default:
         return 'text-muted-foreground';
@@ -129,7 +131,7 @@ const TimelineView = ({ items, selectedItems, onSelectItem }: TimelineViewProps)
                           {item.title}
                         </h4>
                         <Badge variant="outline" className="shrink-0">
-                          {item.type}
+                          {item.type?.toUpperCase()}
                         </Badge>
                       </div>
 

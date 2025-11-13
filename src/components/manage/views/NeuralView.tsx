@@ -91,13 +91,14 @@ const NeuralView = ({ items, selectedItems, onSelectItem }: NeuralViewProps) => 
   };
 
   const getNodeColor = (type: string) => {
+    const lowerType = type?.toLowerCase();
     const colors = {
-      'Note': 'hsl(var(--primary))',
-      'PDF': 'hsl(var(--destructive))',
-      'Link': 'hsl(var(--accent))',
-      'Image': 'hsl(var(--secondary))'
+      'note': 'hsl(var(--primary))',
+      'pdf': 'hsl(var(--destructive))',
+      'link': 'hsl(var(--accent))',
+      'image': 'hsl(var(--secondary))'
     };
-    return colors[type as keyof typeof colors] || 'hsl(var(--muted))';
+    return colors[lowerType as keyof typeof colors] || 'hsl(var(--muted))';
   };
 
   const activeNodeData = activeNode ? nodes.find(n => n.id === activeNode) : null;
@@ -157,7 +158,7 @@ const NeuralView = ({ items, selectedItems, onSelectItem }: NeuralViewProps) => 
               }}
             >
               <span className="text-white text-xs font-bold text-center px-2">
-                {node.type}
+                {node.type?.toUpperCase()}
               </span>
             </div>
 
@@ -182,7 +183,7 @@ const NeuralView = ({ items, selectedItems, onSelectItem }: NeuralViewProps) => 
                   <h3 className="text-lg font-semibold mb-1">{activeNodeData.title}</h3>
                   <p className="text-sm text-muted-foreground">{activeNodeData.source}</p>
                 </div>
-                <Badge variant="outline">{activeNodeData.type}</Badge>
+                <Badge variant="outline">{activeNodeData.type?.toUpperCase()}</Badge>
               </div>
 
               <div className="flex gap-2 flex-wrap mb-3">

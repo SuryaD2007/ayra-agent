@@ -64,7 +64,7 @@ const GridView = ({
               <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
               <div className="mb-2">
                 <span className="px-2 py-1 rounded-full bg-primary/10 text-xs font-medium">
-                  {item.type}
+                  {item.type?.toUpperCase()}
                 </span>
                 <span className="ml-2 text-sm text-muted-foreground">{item.source}</span>
               </div>
