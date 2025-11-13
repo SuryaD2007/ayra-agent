@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { encryptToken, decryptToken } from '../_shared/encryption.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -40,6 +41,9 @@ Deno.serve(async (req) => {
       throw new Error('No Google integration found');
     }
 
+    // Decrypt refresh token before using it
+    const decryptedRefreshToken = await decryptToken(integration.refresh_token);
+
     // Refresh the token with Google
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
@@ -47,7 +51,7 @@ Deno.serve(async (req) => {
       body: new URLSearchParams({
         client_id: Deno.env.get('GOOGLE_CLIENT_ID') ?? '',
         client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '',
-        refresh_token: integration.refresh_token,
+        refresh_token: decryptedRefreshToken,
         grant_type: 'refresh_token',
       }),
     });
@@ -58,12 +62,15 @@ Deno.serve(async (req) => {
 
     const tokenData = await tokenResponse.json();
 
+    // Encrypt new access token before storing
+    const encryptedAccessToken = await encryptToken(tokenData.access_token);
+
     // Update the access token in database
     const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000);
     const { error: updateError } = await supabaseClient
       .from('google_integrations')
       .update({
-        access_token: tokenData.access_token,
+        access_token: encryptedAccessToken,
         token_expires_at: expiresAt.toISOString(),
         updated_at: new Date().toISOString(),
       })
