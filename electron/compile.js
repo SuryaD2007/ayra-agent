@@ -2,17 +2,13 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-const electronDir = path.join(__dirname);
+const electronDir = __dirname;
 
 console.log('🔨 Compiling TypeScript...');
 
 try {
-  // Compile TypeScript
-  execSync('tsc -p electron/tsconfig.json', { stdio: 'inherit' });
-  
+  // Clean old build files first
   console.log('✨ Cleaning old build files...');
-  
-  // Clean old .js and .cjs files
   ['main.js', 'preload.js', 'main.cjs', 'preload.cjs'].forEach(file => {
     const filePath = path.join(electronDir, file);
     if (fs.existsSync(filePath)) {
@@ -21,8 +17,8 @@ try {
     }
   });
   
-  // Compile TypeScript
-  execSync('tsc -p electron/tsconfig.json', { stdio: 'inherit' });
+  // Compile TypeScript (run from electron directory)
+  execSync('tsc -p tsconfig.json', { cwd: electronDir, stdio: 'inherit' });
   
   console.log('✨ Renaming to .cjs extensions...');
   
