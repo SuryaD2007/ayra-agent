@@ -20,7 +20,8 @@ Deno.serve(async (req) => {
       throw new Error('Missing authorization code or state');
     }
 
-    const { service, userId } = JSON.parse(state);
+    const { service, userId, origin } = JSON.parse(state);
+    const appUrl = origin || 'https://useayra.com';
     
     const clientId = Deno.env.get('GOOGLE_CLIENT_ID');
     const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET');
@@ -95,7 +96,6 @@ Deno.serve(async (req) => {
         });
     }
 
-    const appUrl = 'https://5b048333-08cf-4bbf-8a84-3ca4b713ec40.lovableproject.com';
     return new Response(null, {
       status: 302,
       headers: {
@@ -105,12 +105,13 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     console.error('OAuth callback error:', error);
-    const appUrl = 'https://5b048333-08cf-4bbf-8a84-3ca4b713ec40.lovableproject.com';
+    // Fallback to default domain if origin is not in state
+    const fallbackUrl = 'https://useayra.com';
     return new Response(null, {
       status: 302,
       headers: {
         ...corsHeaders,
-        'Location': `${appUrl}/settings?google_error=${encodeURIComponent(error.message)}`,
+        'Location': `${fallbackUrl}/settings?google_error=${encodeURIComponent(error.message)}`,
       },
     });
   }
