@@ -2,7 +2,11 @@ import { app, BrowserWindow, Menu, shell, ipcMain } from 'electron';
 import * as path from 'path';
 import Store from 'electron-store';
 
-const store = new Store();
+interface StoreSchema {
+  windowBounds: { width: number; height: number; x?: number; y?: number };
+}
+
+const store = new Store<StoreSchema>();
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -28,7 +32,7 @@ function createWindow() {
   const windowBounds = store.get('windowBounds', {
     width: 1400,
     height: 900,
-  }) as { width: number; height: number; x?: number; y?: number };
+  });
 
   mainWindow = new BrowserWindow({
     ...windowBounds,
