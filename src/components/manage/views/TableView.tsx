@@ -30,6 +30,8 @@ import {
 } from "@/components/ui/sheet";
 import { AyraItem, columns } from '../ayra-data';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 interface TableViewProps {
   items: AyraItem[];
@@ -170,6 +172,41 @@ const TableView = ({
     }
   };
 
+  const handleOpenExternal = async (item: AyraItem, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    try {
+      // For PDFs with file_path, generate signed URL
+      if (item.type?.toLowerCase() === 'pdf' && item.file_path) {
+        const { data, error } = await supabase.storage
+          .from('ayra-files')
+          .createSignedUrl(item.file_path, 3600);
+        
+        if (error) {
+          console.error('Error generating signed URL:', error);
+          toast({
+            title: "Error",
+            description: "Could not open PDF. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        window.open(data.signedUrl, '_blank');
+      } else if (item.url) {
+        // For items with direct URL
+        window.open(item.url, '_blank');
+      }
+    } catch (error) {
+      console.error('Error opening item:', error);
+      toast({
+        title: "Error",
+        description: "Could not open the file. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Render table row component
   const renderTableRow = (item: AyraItem, index: number, virtualRow?: any) => {
     const isSelected = selectedItems.includes(item.id);
@@ -299,14 +336,11 @@ const TableView = ({
             >
               <Eye size={14} />
             </Button>
-            {item.url && (
+            {(item.url || (item.type?.toLowerCase() === 'pdf' && item.file_path)) && (
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  window.open(item.url, '_blank');
-                }}
+                onClick={(e) => handleOpenExternal(item, e)}
                 className="h-8 w-8 p-0"
               >
                 <ExternalLink size={14} />
