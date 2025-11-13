@@ -5,6 +5,7 @@ This directory contains the Electron configuration for building Ayra as a native
 ## ✅ Setup Complete
 
 All configuration files are ready:
+
 - ✅ Electron main process (`main.ts`)
 - ✅ Secure preload script (`preload.ts`)
 - ✅ Build configuration (`builder.config.js`)
@@ -19,7 +20,7 @@ All configuration files are ready:
 Open your `package.json` and add these scripts (after line 11):
 
 ```json
-"electron:compile": "tsc -p electron/tsconfig.json",
+"electron:compile": "tsc -p electron/tsconfig.json && cd electron && ren main.js main.cjs && ren preload.js preload.cjs && cd ..",
 "electron:dev": "npm run electron:compile && concurrently \"vite\" \"wait-on tcp:8080 && electron .\"",
 "electron:build": "npm run electron:compile && vite build && electron-builder",
 "electron:build:mac": "npm run electron:compile && vite build && electron-builder --mac",
@@ -27,6 +28,7 @@ Open your `package.json` and add these scripts (after line 11):
 ```
 
 Also add this to the root of package.json:
+
 ```json
 "main": "electron/main.js"
 ```
@@ -36,11 +38,13 @@ Also add this to the root of package.json:
 The Linux icon (icon.png) is ready! For Mac and Windows, convert it using:
 
 **Mac (.icns):**
+
 - Use https://cloudconvert.com/png-to-icns
 - Upload `electron/resources/icon.png`
 - Download and save as `electron/resources/icon.icns`
 
 **Windows (.ico):**
+
 - Use https://icoconvert.com
 - Upload `electron/resources/icon.png`
 - Download and save as `electron/resources/icon.ico`
@@ -62,6 +66,7 @@ npm run electron:dev
 ```
 
 This will:
+
 1. Compile TypeScript files in the electron folder
 2. Start the Vite dev server
 3. Launch Electron pointing to localhost:8080
@@ -70,16 +75,19 @@ This will:
 ## Building for Production
 
 ### Build for Current Platform
+
 ```bash
 npm run electron:build
 ```
 
 ### Build for Mac
+
 ```bash
 npm run electron:build:mac
 ```
 
 ### Build for Windows
+
 ```bash
 npm run electron:build:win
 ```
@@ -89,11 +97,13 @@ Built applications will be in the `dist-electron` folder.
 ## 📦 Distribution
 
 ### Mac (.dmg)
+
 - Universal binary (Intel + Apple Silicon)
 - Drag-to-install DMG
 - Size: ~120-150MB
 
 ### Windows (.exe)
+
 - NSIS installer with setup wizard
 - Desktop + Start Menu shortcuts
 - Size: ~100-130MB
@@ -101,36 +111,43 @@ Built applications will be in the `dist-electron` folder.
 ## ✨ Features Implemented
 
 ### Window Management
+
 - Persistent window size/position
 - Minimum window size: 1024x768
 - Single instance (prevents multiple app windows)
 - Native title bar (macOS style)
 
 ### Security
+
 - Context isolation enabled
 - Node integration disabled
 - Sandbox mode enabled
 - Secure IPC communication
 
 ### Native Menus
+
 - Mac: Standard macOS menu with app name
 - Windows: Traditional File/Edit/View/Window/Help menus
 - Keyboard shortcuts (Cmd/Ctrl+N for new item)
 
 ### Deep Links
+
 - Protocol handler for `ayra://` URLs
 - Open Ayra from browser links
 
 ### Platform Detection
+
 - Accessible via `window.electron.platform()`
 - Returns 'darwin', 'win32', or 'linux'
 
 ## 🔒 Code Signing (Optional - For Distribution)
 
 ### For Mac:
+
 1. Join Apple Developer Program ($99/year)
 2. Create certificates in Xcode
 3. Add to `builder.config.js`:
+
 ```js
 mac: {
   identity: "Developer ID Application: Your Name (TEAM_ID)",
@@ -138,8 +155,10 @@ mac: {
 ```
 
 ### For Windows:
+
 1. Purchase code signing certificate (~$100-300/year)
 2. Add to `builder.config.js`:
+
 ```js
 win: {
   certificateFile: "path/to/certificate.pfx",
@@ -159,15 +178,19 @@ win: {
 ## Troubleshooting
 
 ### "Cannot find module 'electron'"
+
 Run: `npm install`
 
 ### TypeScript compilation errors
+
 Make sure all dependencies are installed: `npm install`
 
 ### Build fails on Mac
+
 You may need Xcode Command Line Tools: `xcode-select --install`
 
 ### Build fails on Windows
+
 You may need Visual Studio Build Tools or Windows SDK.
 
 ## Resources
