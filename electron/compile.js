@@ -10,15 +10,21 @@ try {
   // Compile TypeScript
   execSync('tsc -p electron/tsconfig.json', { stdio: 'inherit' });
   
-  console.log('✨ Renaming to .cjs extensions...');
+  console.log('✨ Cleaning old build files...');
   
-  // Clean old .cjs files
-  ['main.cjs', 'preload.cjs'].forEach(file => {
+  // Clean old .js and .cjs files
+  ['main.js', 'preload.js', 'main.cjs', 'preload.cjs'].forEach(file => {
     const filePath = path.join(electronDir, file);
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
+      console.log(`  ✓ Removed ${file}`);
     }
   });
+  
+  // Compile TypeScript
+  execSync('tsc -p electron/tsconfig.json', { stdio: 'inherit' });
+  
+  console.log('✨ Renaming to .cjs extensions...');
   
   // Rename .js to .cjs
   const jsFiles = [
