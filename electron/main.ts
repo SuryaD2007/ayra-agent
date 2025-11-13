@@ -1,12 +1,25 @@
 import { app, BrowserWindow, Menu, shell, ipcMain } from 'electron';
 import * as path from 'path';
-import Store from 'electron-store';
+import Store, { Schema } from 'electron-store';
 
 interface StoreSchema {
   windowBounds: { width: number; height: number; x?: number; y?: number };
 }
 
-const store = new Store<StoreSchema>();
+const schema: Schema<StoreSchema> = {
+  windowBounds: {
+    type: 'object',
+    properties: {
+      width: { type: 'number' },
+      height: { type: 'number' },
+      x: { type: 'number' },
+      y: { type: 'number' },
+    },
+    default: { width: 1400, height: 900 },
+  },
+};
+
+const store = new Store<StoreSchema>({ schema });
 
 let mainWindow: BrowserWindow | null = null;
 
