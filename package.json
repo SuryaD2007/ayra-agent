@@ -10,7 +10,7 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "electron:compile": "tsc -p electron/tsconfig.json && node electron/rename-compiled.js",
+    "electron:compile": "node electron/compile.js",
     "electron:dev": "npm run electron:compile && concurrently \"vite\" \"wait-on tcp:8080 && electron .\"",
     "electron:build": "npm run electron:compile && vite build && electron-builder"
   },
