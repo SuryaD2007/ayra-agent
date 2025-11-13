@@ -10,8 +10,8 @@ module.exports = {
   },
   files: [
     'dist/**/*',
-    'electron/main.js',
-    'electron/preload.js',
+    'electron/main.cjs',
+    'electron/preload.cjs',
     'package.json',
   ],
   mac: {
