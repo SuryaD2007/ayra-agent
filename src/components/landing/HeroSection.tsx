@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DiagramComponent from './DiagramComponent';
 import { BetaModal } from '@/components/beta/BetaModal';
+import { toast } from 'sonner';
 
 interface HeroSectionProps {
   showTitle: boolean;
@@ -26,8 +27,7 @@ export const HeroSection = ({
   }, []);
 
   const handleBetaClick = (os: 'mac' | 'windows') => {
-    setSelectedOs(os);
-    setShowBetaModal(true);
+    toast.info(`${os === 'mac' ? 'Mac' : 'Windows'} download coming very soon!`);
   };
   
   const handleSectionClick = (section: 'scattered' | 'convergence' | 'organized', text: string) => {
