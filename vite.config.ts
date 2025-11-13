@@ -5,6 +5,7 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  base: process.env.ELECTRON === "true" ? "./" : "/",
   server: {
     host: "::",
     port: 8080,
@@ -17,6 +18,13 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+    },
+  },
+  build: {
+    outDir: "dist",
+    emptyOutDir: true,
+    rollupOptions: {
+      external: process.env.ELECTRON === "true" ? ["electron"] : [],
     },
   },
 }));
