@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { encryptToken } from '../_shared/encryption.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -55,6 +56,10 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Encrypt tokens before storing
+    const encryptedAccessToken = await encryptToken(tokens.access_token);
+    const encryptedRefreshToken = tokens.refresh_token ? await encryptToken(tokens.refresh_token) : null;
+    
     const expiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
     
     const { data: existing } = await supabaseClient
@@ -65,11 +70,11 @@ Deno.serve(async (req) => {
 
     if (existing) {
       const updateData: any = {
-        access_token: tokens.access_token,
+        access_token: encryptedAccessToken,
         token_expires_at: expiresAt,
       };
       
-      if (tokens.refresh_token) updateData.refresh_token = tokens.refresh_token;
+      if (encryptedRefreshToken) updateData.refresh_token = encryptedRefreshToken;
       if (service === 'drive') updateData.drive_enabled = true;
       if (service === 'calendar') updateData.calendar_enabled = true;
 
@@ -82,8 +87,8 @@ Deno.serve(async (req) => {
         .from('google_integrations')
         .insert({
           user_id: userId,
-          access_token: tokens.access_token,
-          refresh_token: tokens.refresh_token,
+          access_token: encryptedAccessToken,
+          refresh_token: encryptedRefreshToken,
           token_expires_at: expiresAt,
           drive_enabled: service === 'drive',
           calendar_enabled: service === 'calendar',
