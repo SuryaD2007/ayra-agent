@@ -21,7 +21,7 @@ const KanbanView = ({ items }: KanbanViewProps) => {
                 <h4 className="text-sm font-medium mb-1">{item.title}</h4>
                 <div className="mb-2">
                   <span className="px-2 py-0.5 rounded-full bg-primary/10 text-xs font-medium">
-                    {item.type}
+                    {item.type?.toUpperCase()}
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground">{item.space}</p>

@@ -58,7 +58,7 @@ const PreviewDrawer = ({ open, onOpenChange, item, onDelete }: PreviewDrawerProp
 
   // MUST call all hooks before any early returns or conditional logic
   const { url: pdfUrl, loading: isPdfLoading, error: pdfUrlError, refresh: refreshPdfUrl } = useSignedUrl(
-    item?.type === 'PDF' && item?.file_path ? item.file_path : null,
+    item?.type?.toLowerCase() === 'pdf' && item?.file_path ? item.file_path : null,
     3600
   );
 
@@ -270,14 +270,15 @@ const PreviewDrawer = ({ open, onOpenChange, item, onDelete }: PreviewDrawerProp
 
 
   const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'Note':
+    const lowerType = type?.toLowerCase();
+    switch (lowerType) {
+      case 'note':
         return <FileText className="w-5 h-5 text-blue-500" />;
-      case 'PDF':
+      case 'pdf':
         return <FileText className="w-5 h-5 text-red-500" />;
-      case 'Link':
+      case 'link':
         return <LinkIcon className="w-5 h-5 text-green-500" />;
-      case 'Image':
+      case 'image':
         return <ImageIcon className="w-5 h-5 text-purple-500" />;
       default:
         return <FileText className="w-5 h-5 text-gray-500" />;
@@ -285,14 +286,15 @@ const PreviewDrawer = ({ open, onOpenChange, item, onDelete }: PreviewDrawerProp
   };
 
   const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'Note':
+    const lowerType = type?.toLowerCase();
+    switch (lowerType) {
+      case 'note':
         return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800';
-      case 'PDF':
+      case 'pdf':
         return 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-800';
-      case 'Link':
+      case 'link':
         return 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800';
-      case 'Image':
+      case 'image':
         return 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-800';
       default:
         return 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-950 dark:text-gray-300 dark:border-gray-800';
@@ -331,7 +333,7 @@ const PreviewDrawer = ({ open, onOpenChange, item, onDelete }: PreviewDrawerProp
                   {getTypeIcon(item.type)}
                   <div className="flex-1">
                     <Badge variant="outline" className={getTypeColor(item.type)}>
-                      {item.type}
+                      {item.type?.toUpperCase()}
                     </Badge>
                     
                     {/* Inline Editable Title */}
@@ -483,7 +485,7 @@ const PreviewDrawer = ({ open, onOpenChange, item, onDelete }: PreviewDrawerProp
               <ExternalLink className="w-4 h-4 text-muted-foreground" />
               {item.source}
             </div>
-            {item.type === 'PDF' && item.file_path && (
+            {item.type?.toLowerCase() === 'pdf' && item.file_path && (
               <div className="flex items-center gap-2 bg-background/60 rounded-full px-3 py-1 text-sm">
                 <HardDrive className="w-4 h-4 text-muted-foreground" />
                 PDF File
@@ -496,7 +498,7 @@ const PreviewDrawer = ({ open, onOpenChange, item, onDelete }: PreviewDrawerProp
         <div className="p-6 space-y-6">
 
           {/* Content based on type */}
-          {item.type === 'PDF' && (
+          {item.type?.toLowerCase() === 'pdf' && (
             <div className="rounded-md border bg-card">
               <div className="flex items-center justify-between p-3 border-b bg-muted/30">
                 <div className="text-sm text-muted-foreground">
@@ -579,7 +581,7 @@ const PreviewDrawer = ({ open, onOpenChange, item, onDelete }: PreviewDrawerProp
           )}
 
           {/* Note Content */}
-          {item.content && item.type === 'Note' && (
+          {item.content && item.type?.toLowerCase() === 'note' && (
             <Card>
               <CardContent className="p-4">
                 <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-4">
@@ -594,7 +596,7 @@ const PreviewDrawer = ({ open, onOpenChange, item, onDelete }: PreviewDrawerProp
           )}
 
           {/* Link Preview */}
-          {item.type === 'Link' && (
+          {item.type?.toLowerCase() === 'link' && (
             <Card>
               <CardContent className="p-4">
                 <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-4">
@@ -629,7 +631,7 @@ const PreviewDrawer = ({ open, onOpenChange, item, onDelete }: PreviewDrawerProp
           )}
 
           {/* Image Preview */}
-          {item.type === 'Image' && (
+          {item.type?.toLowerCase() === 'image' && (
             <Card>
               <CardContent className="p-4">
                 <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-4">

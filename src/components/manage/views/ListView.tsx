@@ -61,7 +61,7 @@ const ListView = ({
               <h3 className="text-base font-semibold">{item.title}</h3>
               <div className="flex items-center gap-3 mt-1 mb-2">
                 <span className="px-2 py-0.5 rounded-full bg-primary/10 text-xs font-medium">
-                  {item.type}
+                  {item.type?.toUpperCase()}
                 </span>
                 <span className="text-sm text-muted-foreground">{item.source}</span>
               </div>

@@ -95,14 +95,15 @@ const TableView = ({
   });
 
   const getTypeIcon = (type: AyraItem['type']) => {
-    switch (type) {
-      case 'Note':
+    const lowerType = type?.toLowerCase();
+    switch (lowerType) {
+      case 'note':
         return <FileText size={16} className="text-blue-500" />;
-      case 'PDF':
+      case 'pdf':
         return <File size={16} className="text-red-500" />;
-      case 'Link':
+      case 'link':
         return <Link size={16} className="text-green-500" />;
-      case 'Image':
+      case 'image':
         return <ImageIcon size={16} className="text-purple-500" />;
       default:
         return <FileText size={16} className="text-gray-500" />;
@@ -239,7 +240,7 @@ const TableView = ({
 
         <TableCell>
           <Badge variant="outline">
-            {item.type}
+            {item.type?.toUpperCase()}
           </Badge>
         </TableCell>
 
