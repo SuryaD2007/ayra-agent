@@ -9,6 +9,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { PrivateLockProvider } from '@/contexts/PrivateLockContext';
 import { IPBanGuard } from '@/components/auth/IPBanGuard';
+import LaunchGuard from '@/components/auth/LaunchGuard';
 import Index from "./pages/Index";
 import WhyPage from "./pages/WhyPage";
 import HowPage from "./pages/HowPage";
@@ -222,22 +223,24 @@ const App = () => {
           <AuthProvider>
             <SettingsHandler>
               <IPBanGuard>
-                <PrivateLockProvider>
-                  <TooltipProvider>
-                    <Toaster />
-                    <Sonner />
-                    {showBanner && (
-                      <ConfigurationBanner 
-                        missingKeys={missingKeys} 
-                        onDismiss={dismissBanner}
-                      />
-                    )}
-                    <div className={`min-h-screen ${showBanner ? 'pt-20' : ''}`}>
-                      <Navbar />
-                      <AppRoutes />
-                    </div>
-                  </TooltipProvider>
-                </PrivateLockProvider>
+                <LaunchGuard>
+                  <PrivateLockProvider>
+                    <TooltipProvider>
+                      <Toaster />
+                      <Sonner />
+                      {showBanner && (
+                        <ConfigurationBanner 
+                          missingKeys={missingKeys} 
+                          onDismiss={dismissBanner}
+                        />
+                      )}
+                      <div className={`min-h-screen ${showBanner ? 'pt-20' : ''}`}>
+                        <Navbar />
+                        <AppRoutes />
+                      </div>
+                    </TooltipProvider>
+                  </PrivateLockProvider>
+                </LaunchGuard>
               </IPBanGuard>
             </SettingsHandler>
           </AuthProvider>
