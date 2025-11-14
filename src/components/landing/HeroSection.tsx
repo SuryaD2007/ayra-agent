@@ -28,7 +28,12 @@ export const HeroSection = ({
   }, []);
 
   const handleBetaClick = (os: 'mac' | 'windows') => {
-    toast.info(`${os === 'mac' ? 'Mac' : 'Windows'} download coming very soon!`);
+    if (os === 'windows') {
+      // Direct download for Windows installer
+      window.location.href = 'https://github.com/SuryaD2007/ayra-agent/releases/download/v0.0.1/Ayra.Setup.0.0.0.exe';
+    } else {
+      toast.info('Mac download coming very soon!');
+    }
   };
   
   const handleSectionClick = (section: 'scattered' | 'convergence' | 'organized', text: string) => {
