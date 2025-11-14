@@ -1,89 +1,55 @@
-# Welcome to your Lovable project
+Ayra – Your Personal AI Engine
 
-## Project info
+Ayra is a cross-platform second-brain built for students, creators, founders, and knowledge workers.
+It combines notes, bookmarks, documents, screenshots, images, and web captures into one intelligent, searchable knowledge engine.
 
-**URL**: https://lovable.dev/projects/513db1a2-0fcc-4643-bd43-f10d076dfa80
+🚀 Features
 
-## How can I edit this code?
+AI-powered universal search
 
-There are several ways of editing your application.
+Capture text, links, images, screenshots
 
-**Use Lovable**
+Organize into spaces, categories, and tags
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/513db1a2-0fcc-4643-bd43-f10d076dfa80) and start prompting.
+Local-first desktop app (Windows + macOS)
 
-Changes made via Lovable will be committed automatically to this repo.
+Cloud sync (Supabase)
 
-**Use your preferred IDE**
+Offline mode
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+Secure private storage
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+Fast and beautiful UI built with React + Vite
 
-Follow these steps:
+🖥 Desktop App
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+Download Ayra:
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+Windows (.exe)
 
-# Step 3: Install the necessary dependencies.
+https://github.com/SuryaD2007/ayra-agent/releases/latest/download/Ayra.Setup.0.0.1.exe
+
+macOS (coming soon)
+🛠 Tech Stack
+
+React / TypeScript
+
+Vite
+
+Tailwind / shadcn-ui
+
+Electron
+
+Supabase
+
+TanStack Query
+
+Tiptap
+
+📦 Development
 npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
 npm run dev
-```
 
-**Edit a file directly in GitHub**
+📄 License
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with .
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/513db1a2-0fcc-4643-bd43-f10d076dfa80) and click on Share -> Publish.
-
-## I want to use a custom domain - is that possible?
-
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
-
-## Supabase Configuration
-
-This project uses Supabase for backend functionality. After deployment, you'll need to configure CORS settings:
-
-### CORS Configuration for Deployed Domain
-
-1. Go to your [Supabase Dashboard](https://supabase.com/dashboard)
-2. Navigate to Settings → API
-3. Under "CORS Origins", add your deployed domain URL
-4. For Lovable deployments, add: `https://your-app-name.lovable.app`
-5. For custom domains, add: `https://your-custom-domain.com`
-
-### Required Environment Variables
-
-The app validates these Supabase configuration values on startup:
-- `SUPABASE_URL`: Your Supabase project URL
-- `SUPABASE_ANON_KEY`: Your Supabase anonymous/public key
-
-If these are missing or invalid, a configuration banner will appear with setup instructions.
+Proprietary. All rights reserved.
