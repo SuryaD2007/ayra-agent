@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRoles } from '@/hooks/useRoles';
+import { isElectron } from '@/utils/isElectron';
 import { useCanvasConnection } from '@/hooks/useCanvasConnection';
 import { supabase } from '@/integrations/supabase/client';
 import AuthModal from '@/components/AuthModal';
@@ -225,26 +226,28 @@ export const Navbar = () => {
       <TooltipProvider>
         <header className="glass-panel fixed top-6 left-1/2 transform -translate-x-1/2 z-40 rounded-lg px-1 py-1">
           <nav className="flex items-center">
-            {/* Ayra with submenu */}
-            <NavItem
-              to="#"
-              icon={<Brain size={20} />}
-              label="Ayra"
-              active={['what', 'why', 'how'].includes(active)}
-              onClick={() => {}}
-              hasSubmenu={true}
-            >
-              {ayraSubmenu.map((item) => (
-                <SubMenuItem
-                  key={item.id}
-                  to={item.to}
-                  icon={item.icon}
-                  label={item.label}
-                  active={active === item.id}
-                  onClick={() => handleNavItemClick(item.id)}
-                />
-              ))}
-            </NavItem>
+            {/* Ayra with submenu - only show for unauthenticated browser users */}
+            {!isAuthenticated && !isElectron() && (
+              <NavItem
+                to="#"
+                icon={<Brain size={20} />}
+                label="Ayra"
+                active={['what', 'why', 'how'].includes(active)}
+                onClick={() => {}}
+                hasSubmenu={true}
+              >
+                {ayraSubmenu.map((item) => (
+                  <SubMenuItem
+                    key={item.id}
+                    to={item.to}
+                    icon={item.icon}
+                    label={item.label}
+                    active={active === item.id}
+                    onClick={() => handleNavItemClick(item.id)}
+                  />
+                ))}
+              </NavItem>
+            )}
             
             {/* Other nav items */}
             {navItems.map((item) => (
