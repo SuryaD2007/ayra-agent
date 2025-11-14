@@ -22,6 +22,7 @@ import PreviewPage from "./pages/PreviewPage";
 import Navbar from "./components/Navbar";
 import ConfigurationBanner from "./components/ConfigurationBanner";
 import RoleGuard from "./components/auth/RoleGuard";
+import LandingPageGuard from "./components/auth/LandingPageGuard";
 import Admin from "./pages/Admin";
 import ClipperSetup from "./pages/ClipperSetup";
 import QuickClip from "./pages/QuickClip";
@@ -55,7 +56,9 @@ const AppRoutes = () => {
         path="/" 
         element={
           <PageTransition>
-            <Index />
+            <LandingPageGuard>
+              <Index />
+            </LandingPageGuard>
           </PageTransition>
         } 
       />
@@ -63,7 +66,9 @@ const AppRoutes = () => {
         path="/why" 
         element={
           <PageTransition>
-            <WhyPage />
+            <LandingPageGuard>
+              <WhyPage />
+            </LandingPageGuard>
           </PageTransition>
         } 
       />
@@ -71,7 +76,9 @@ const AppRoutes = () => {
         path="/how" 
         element={
           <PageTransition>
-            <HowPage />
+            <LandingPageGuard>
+              <HowPage />
+            </LandingPageGuard>
           </PageTransition>
         } 
       />
