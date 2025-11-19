@@ -2,17 +2,19 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, HardDrive, RefreshCw, Unlink, AlertCircle } from 'lucide-react';
+import { Loader2, HardDrive, RefreshCw, Unlink, AlertCircle, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useGoogleConnection } from '@/hooks/useGoogleConnection';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { GoogleDriveImportDrawer } from '@/components/import/GoogleDriveImportDrawer';
 
 export const GoogleDriveConnection = () => {
   const { isAuthenticated } = useAuth();
   const { driveEnabled, loading: connectionLoading } = useGoogleConnection();
   const [isSyncing, setIsSyncing] = useState(false);
+  const [showImportDrawer, setShowImportDrawer] = useState(false);
   const [stats, setStats] = useState({ files: 0, lastSync: null as string | null });
   const { toast } = useToast();
 
@@ -232,13 +234,17 @@ export const GoogleDriveConnection = () => {
               </div>
             </div>
             <div className="flex gap-2">
-              <Button onClick={handleSync} disabled={isSyncing} className="flex-1">
+              <Button onClick={handleSync} disabled={isSyncing} variant="outline">
                 {isSyncing ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                 ) : (
                   <RefreshCw className="h-4 w-4 mr-2" />
                 )}
                 Sync Now
+              </Button>
+              <Button onClick={() => setShowImportDrawer(true)} variant="default">
+                <Download className="h-4 w-4 mr-2" />
+                Import Files
               </Button>
               <Button onClick={handleDisconnect} variant="outline">
                 <Unlink className="h-4 w-4 mr-2" />
@@ -257,6 +263,12 @@ export const GoogleDriveConnection = () => {
           </Button>
         )}
       </CardContent>
+      
+      <GoogleDriveImportDrawer 
+        open={showImportDrawer} 
+        onOpenChange={setShowImportDrawer}
+        onImport={loadStats}
+      />
     </Card>
   );
 };
