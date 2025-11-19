@@ -84,6 +84,25 @@ export const GoogleCalendarConnection = () => {
           throw new Error('Google Calendar integration is not configured yet. Please contact the administrator to set up Google OAuth credentials.');
         }
         
+        // Check if it's a scope issue
+        if (errorMsg.includes('insufficient') || errorMsg.includes('scope')) {
+          toast({
+            title: 'Insufficient Permissions',
+            description: 'Please disconnect and reconnect to grant calendar access.',
+            variant: 'destructive',
+            action: (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleDisconnect}
+              >
+                Disconnect
+              </Button>
+            ),
+          });
+          return;
+        }
+        
         throw new Error(errorMsg);
       }
 
