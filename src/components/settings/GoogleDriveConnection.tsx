@@ -109,7 +109,33 @@ export const GoogleDriveConnection = () => {
         },
       });
 
-      if (response.error) throw response.error;
+      if (response.error) {
+        const errorMsg = typeof response.error === 'string' 
+          ? response.error 
+          : response.error.message || 'Unknown error';
+        
+        // Check if it's an authentication error
+        if (errorMsg.includes('reconnect') || errorMsg.includes('authentication failed')) {
+          toast({
+            title: 'Authentication Error',
+            description: 'Your Google Drive connection needs to be refreshed. Please disconnect and reconnect.',
+            variant: 'destructive',
+            action: (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleDisconnect}
+                className="ml-2"
+              >
+                Disconnect
+              </Button>
+            ),
+          });
+          return;
+        }
+        
+        throw new Error(errorMsg);
+      }
 
       toast({
         title: 'Sync Complete',
@@ -117,11 +143,11 @@ export const GoogleDriveConnection = () => {
       });
 
       loadStats();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Sync error:', error);
       toast({
         title: 'Sync Failed',
-        description: 'Failed to sync Google Drive. Please try again.',
+        description: error.message || 'Failed to sync Google Drive. Please try again.',
         variant: 'destructive',
       });
     } finally {
