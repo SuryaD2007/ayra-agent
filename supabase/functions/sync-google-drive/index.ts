@@ -40,9 +40,19 @@ Deno.serve(async (req) => {
       throw new Error('Google Drive not connected');
     }
 
+    // Decrypt the access token
+    const { decryptToken } = await import('../_shared/encryption.ts');
+    let accessToken: string;
+    
+    try {
+      accessToken = await decryptToken(integration.access_token);
+    } catch (error) {
+      console.error('Failed to decrypt access token:', error);
+      throw new Error('Invalid access token. Please reconnect your Google account.');
+    }
+
     // Check if token needs refresh
     const tokenExpiry = new Date(integration.token_expires_at);
-    let accessToken = integration.access_token;
 
     if (tokenExpiry <= new Date()) {
       console.log('Token expired, refreshing...');
@@ -52,6 +62,12 @@ Deno.serve(async (req) => {
           headers: { Authorization: req.headers.get('Authorization')! },
         }
       );
+      
+      if (!refreshResponse.ok) {
+        console.error('Token refresh failed:', await refreshResponse.text());
+        throw new Error('Failed to refresh access token. Please reconnect your Google account.');
+      }
+      
       const refreshData = await refreshResponse.json();
       accessToken = refreshData.access_token;
     }
@@ -67,7 +83,108 @@ Deno.serve(async (req) => {
     );
 
     if (!driveResponse.ok) {
-      throw new Error('Failed to fetch Drive files');
+      const errorBody = await driveResponse.text();
+      console.error('Google Drive API error:', driveResponse.status, errorBody);
+      
+      // Handle authentication errors
+      if (driveResponse.status === 401 || driveResponse.status === 403) {
+        // Try to refresh token one more time
+        console.log('Authentication error, attempting token refresh...');
+        const refreshResponse = await fetch(
+          `${Deno.env.get('SUPABASE_URL')}/functions/v1/refresh-google-token`,
+          {
+            headers: { Authorization: req.headers.get('Authorization')! },
+          }
+        );
+        
+        if (refreshResponse.ok) {
+          const refreshData = await refreshResponse.json();
+          accessToken = refreshData.access_token;
+          
+          // Retry the Drive request
+          const retryResponse = await fetch(
+            `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,mimeType,size,webViewLink,modifiedTime,createdTime,parents,thumbnailLink),nextPageToken&pageSize=100`,
+            {
+              headers: { Authorization: `Bearer ${accessToken}` },
+            }
+          );
+          
+          if (!retryResponse.ok) {
+            throw new Error('Google Drive authentication failed. Please disconnect and reconnect your account.');
+          }
+          
+          const retryData = await retryResponse.json();
+          const files = retryData.files || [];
+          
+          // Continue with retry data
+          let synced = 0;
+          let errors = 0;
+
+          for (const file of files) {
+            try {
+              const { data: existing } = await supabaseClient
+                .from('google_drive_items')
+                .select('id')
+                .eq('user_id', user.id)
+                .eq('drive_id', file.id)
+                .maybeSingle();
+
+              const fileData = {
+                user_id: user.id,
+                drive_id: file.id,
+                name: file.name,
+                mime_type: file.mimeType,
+                file_size: file.size ? parseInt(file.size) : null,
+                web_view_link: file.webViewLink,
+                modified_time: file.modifiedTime,
+                created_time: file.createdTime,
+                parent_folder_id: file.parents?.[0] || null,
+                thumbnail_link: file.thumbnailLink,
+                metadata: { originalFile: file },
+                synced_at: new Date().toISOString(),
+              };
+
+              if (existing) {
+                await supabaseClient
+                  .from('google_drive_items')
+                  .update(fileData)
+                  .eq('id', existing.id);
+              } else {
+                await supabaseClient
+                  .from('google_drive_items')
+                  .insert(fileData);
+              }
+
+              synced++;
+            } catch (error) {
+              console.error(`Error syncing file ${file.id}:`, error);
+              errors++;
+            }
+          }
+
+          await supabaseClient
+            .from('google_integrations')
+            .update({
+              drive_last_sync: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('user_id', user.id);
+
+          return new Response(
+            JSON.stringify({
+              success: true,
+              synced,
+              errors,
+              total: files.length,
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } else {
+          throw new Error('Google Drive authentication failed. Please disconnect and reconnect your account.');
+        }
+      }
+      
+      throw new Error(`Google Drive API error: ${driveResponse.status} - ${errorBody}`);
     }
 
     const driveData = await driveResponse.json();

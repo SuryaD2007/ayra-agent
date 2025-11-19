@@ -51,9 +51,19 @@ Deno.serve(async (req) => {
       throw new Error('Google Calendar not connected');
     }
 
+    // Decrypt the access token
+    const { decryptToken } = await import('../_shared/encryption.ts');
+    let accessToken: string;
+    
+    try {
+      accessToken = await decryptToken(integration.access_token);
+    } catch (error) {
+      console.error('Failed to decrypt access token:', error);
+      throw new Error('Invalid access token. Please reconnect your Google account.');
+    }
+
     // Check if token needs refresh
     const tokenExpiry = new Date(integration.token_expires_at);
-    let accessToken = integration.access_token;
 
     if (tokenExpiry <= new Date()) {
       console.log('Token expired, refreshing...');
@@ -63,6 +73,12 @@ Deno.serve(async (req) => {
           headers: { Authorization: req.headers.get('Authorization')! },
         }
       );
+      
+      if (!refreshResponse.ok) {
+        console.error('Token refresh failed:', await refreshResponse.text());
+        throw new Error('Failed to refresh access token. Please reconnect your Google account.');
+      }
+      
       const refreshData = await refreshResponse.json();
       accessToken = refreshData.access_token;
     }
@@ -76,7 +92,15 @@ Deno.serve(async (req) => {
     );
 
     if (!calendarListResponse.ok) {
-      throw new Error('Failed to fetch calendar list');
+      const errorBody = await calendarListResponse.text();
+      console.error('Google Calendar API error:', calendarListResponse.status, errorBody);
+      
+      // Handle authentication errors
+      if (calendarListResponse.status === 401 || calendarListResponse.status === 403) {
+        throw new Error('Google Calendar authentication failed. Please disconnect and reconnect your account.');
+      }
+      
+      throw new Error(`Google Calendar API error: ${calendarListResponse.status} - ${errorBody}`);
     }
 
     const calendarListData = await calendarListResponse.json();
